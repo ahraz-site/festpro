@@ -6,19 +6,19 @@
 -- ENUMS
 -- ============================================================
 
-CREATE TYPE kitchen_status AS ENUM ('active', 'inactive', 'under_maintenance', 'closed');
-CREATE TYPE kitchen_staff_role AS ENUM ('manager', 'chef', 'cook', 'assistant', 'cleaner', 'volunteer');
-CREATE TYPE meal_type_enum AS ENUM ('breakfast', 'morning_tea', 'lunch', 'evening_tea', 'dinner', 'midnight_meal', 'special_meal', 'vip_meal');
-CREATE TYPE meal_session_status AS ENUM ('planned', 'preparing', 'ready', 'serving', 'completed', 'cancelled');
-CREATE TYPE menu_status AS ENUM ('draft', 'published', 'archived');
-CREATE TYPE meal_booking_status AS ENUM ('pending', 'confirmed', 'cancelled', 'no_show', 'attended');
-CREATE TYPE coupon_status AS ENUM ('active', 'redeemed', 'expired', 'cancelled');
-CREATE TYPE distribution_point_status AS ENUM ('open', 'closed', 'paused');
-CREATE TYPE diet_type AS ENUM ('vegetarian', 'vegan', 'halal', 'gluten_free', 'diabetic', 'allergy_based', 'custom');
-CREATE TYPE diet_request_status AS ENUM ('pending', 'approved', 'rejected');
-CREATE TYPE ingredient_unit AS ENUM ('kg', 'g', 'l', 'ml', 'pcs', 'dozen', 'packet', 'carton', 'bag', 'bottle');
-CREATE TYPE waste_category AS ENUM ('preparation', 'spoilage', 'overproduction', 'serving_waste', 'expired');
-CREATE TYPE dining_hall_status AS ENUM ('open', 'closed', 'cleaning', 'maintenance');
+DO $$ BEGIN CREATE TYPE kitchen_status AS ENUM ('active', 'inactive', 'under_maintenance', 'closed'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE kitchen_staff_role AS ENUM ('manager', 'chef', 'cook', 'assistant', 'cleaner', 'volunteer'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE meal_type_enum AS ENUM ('breakfast', 'morning_tea', 'lunch', 'evening_tea', 'dinner', 'midnight_meal', 'special_meal', 'vip_meal'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE meal_session_status AS ENUM ('planned', 'preparing', 'ready', 'serving', 'completed', 'cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE menu_status AS ENUM ('draft', 'published', 'archived'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE meal_booking_status AS ENUM ('pending', 'confirmed', 'cancelled', 'no_show', 'attended'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE coupon_status AS ENUM ('active', 'redeemed', 'expired', 'cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE distribution_point_status AS ENUM ('open', 'closed', 'paused'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE diet_type AS ENUM ('vegetarian', 'vegan', 'halal', 'gluten_free', 'diabetic', 'allergy_based', 'custom'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE diet_request_status AS ENUM ('pending', 'approved', 'rejected'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE ingredient_unit AS ENUM ('kg', 'g', 'l', 'ml', 'pcs', 'dozen', 'packet', 'carton', 'bag', 'bottle'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE waste_category AS ENUM ('preparation', 'spoilage', 'overproduction', 'serving_waste', 'expired'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE dining_hall_status AS ENUM ('open', 'closed', 'cleaning', 'maintenance'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- ============================================================
 -- 1. KITCHENS
@@ -68,6 +68,7 @@ CREATE TABLE kitchen_staff (
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE kitchen_staff ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
 ALTER TABLE kitchen_staff ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
@@ -732,36 +733,36 @@ CREATE INDEX idx_meal_feedback_festival ON meal_feedback(festival_id);
 -- RLS POLICIES
 -- ============================================================
 
-CREATE POLICY "org_access_all" ON kitchens FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON kitchen_staff FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON meal_categories FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON meal_types FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON meal_plans FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON meal_sessions FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON menus FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON menu_items FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON recipes FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON recipe_ingredients FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON meal_bookings FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON meal_coupons FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON coupon_redemptions FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON meal_attendance FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON dining_halls FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON dining_tables FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON food_distribution_points FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON meal_distribution_logs FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON special_diets FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON diet_requests FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON food_suppliers FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON food_orders FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON food_order_items FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON kitchen_inventory FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON ingredient_stock FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON ingredient_consumption FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON food_preparation_logs FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON food_waste_logs FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON nutrition_information FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON meal_feedback FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
+CREATE POLICY "org_access_all" ON kitchens FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON kitchen_staff FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON meal_categories FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON meal_types FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON meal_plans FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON meal_sessions FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON menus FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON menu_items FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON recipes FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON recipe_ingredients FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON meal_bookings FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON meal_coupons FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON coupon_redemptions FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON meal_attendance FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON dining_halls FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON dining_tables FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON food_distribution_points FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON meal_distribution_logs FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON special_diets FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON diet_requests FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON food_suppliers FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON food_orders FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON food_order_items FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON kitchen_inventory FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON ingredient_stock FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON ingredient_consumption FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON food_preparation_logs FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON food_waste_logs FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON nutrition_information FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON meal_feedback FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
 
 -- ============================================================
 -- TRIGGERS

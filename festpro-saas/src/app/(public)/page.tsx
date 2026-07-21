@@ -57,7 +57,7 @@ export default function PublicHomePage() {
               { title: "Latest News", description: "Stay updated with announcements and press releases.", icon: Newspaper, href: "/news" },
               { title: "Downloads", description: "Rules, schedules, forms, and certificates.", icon: Download, href: "/downloads" },
               { title: "Registration", description: "Online registration for individuals and teams.", icon: Users, href: "/register" },
-              { title: "Certificate Verification", description: "Verify certificates with QR code.", icon: CheckCircle, href: "/verify" },
+              { title: "Certificate Verification", description: "Verify certificates with QR code.", icon: CheckCircle, href: "/certificate" },
             ].map(f => (
               <Link key={f.title} href={f.href} className="group p-6 rounded-xl border border-gray-200 hover:border-indigo-300 hover:shadow-lg transition-all">
                 <f.icon className="h-10 w-10 text-indigo-600 mb-4" />

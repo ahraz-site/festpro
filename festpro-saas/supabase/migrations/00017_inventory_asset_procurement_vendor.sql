@@ -3,16 +3,16 @@
 -- ============================================================
 
 -- ENUMS
-CREATE TYPE stock_movement_type AS ENUM ('in','out','transfer_in','transfer_out','adjustment_up','adjustment_down','damaged','expired','reserved','unreserved','returned');
-CREATE TYPE stock_transfer_status AS ENUM ('draft','in_transit','completed','cancelled');
-CREATE TYPE purchase_request_status AS ENUM ('draft','pending_approval','approved','rejected','ordered','cancelled');
-CREATE TYPE purchase_order_status AS ENUM ('draft','sent','confirmed','partially_received','received','cancelled','closed');
-CREATE TYPE goods_receipt_status AS ENUM ('draft','completed','cancelled');
-CREATE TYPE asset_status AS ENUM ('available','assigned','in_use','under_maintenance','lost','damaged','retired','disposed');
-CREATE TYPE maintenance_type AS ENUM ('preventive','corrective','emergency','inspection');
-CREATE TYPE maintenance_status AS ENUM ('scheduled','in_progress','completed','cancelled','overdue');
-CREATE TYPE audit_status AS ENUM ('planned','in_progress','completed','cancelled');
-CREATE TYPE inventory_unit AS ENUM ('piece','box','carton','kg','g','liter','ml','meter','set','pair','dozen','roll','pack','bundle','other');
+DO $$ BEGIN CREATE TYPE stock_movement_type AS ENUM ('in','out','transfer_in','transfer_out','adjustment_up','adjustment_down','damaged','expired','reserved','unreserved','returned'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE stock_transfer_status AS ENUM ('draft','in_transit','completed','cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE purchase_request_status AS ENUM ('draft','pending_approval','approved','rejected','ordered','cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE purchase_order_status AS ENUM ('draft','sent','confirmed','partially_received','received','cancelled','closed'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE goods_receipt_status AS ENUM ('draft','completed','cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE asset_status AS ENUM ('available','assigned','in_use','under_maintenance','lost','damaged','retired','disposed'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE inventory_maintenance_type AS ENUM ('preventive','corrective','emergency','inspection'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE inventory_maintenance_status AS ENUM ('scheduled','in_progress','completed','cancelled','overdue'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE inventory_audit_status AS ENUM ('planned','in_progress','completed','cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE inventory_unit AS ENUM ('piece','box','carton','kg','g','liter','ml','meter','set','pair','dozen','roll','pack','bundle','other'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- ============================================================
 -- 1. WAREHOUSES
@@ -595,8 +595,8 @@ CREATE TABLE asset_maintenance (
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   festival_id UUID REFERENCES festivals(id) ON DELETE CASCADE,
   asset_id UUID NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
-  maintenance_type maintenance_type NOT NULL DEFAULT 'preventive',
-  status maintenance_status NOT NULL DEFAULT 'scheduled',
+  inventory_maintenance_type inventory_maintenance_type NOT NULL DEFAULT 'preventive',
+  status inventory_maintenance_status NOT NULL DEFAULT 'scheduled',
   title TEXT NOT NULL,
   description TEXT,
   scheduled_date DATE,
@@ -661,7 +661,7 @@ CREATE TABLE inventory_audits (
   warehouse_id UUID NOT NULL REFERENCES warehouses(id) ON DELETE CASCADE,
   audit_number TEXT NOT NULL UNIQUE,
   audit_date DATE DEFAULT CURRENT_DATE,
-  status audit_status NOT NULL DEFAULT 'planned',
+  status inventory_audit_status NOT NULL DEFAULT 'planned',
   conducted_by UUID REFERENCES auth.users(id),
   verified_by UUID REFERENCES auth.users(id),
   notes TEXT,
@@ -691,37 +691,37 @@ ALTER TABLE inventory_audit_items ENABLE ROW LEVEL SECURITY;
 -- ============================================================
 -- RLS POLICIES
 -- ============================================================
-CREATE POLICY "org_access_all" ON warehouses FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON warehouse_locations FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON inventory_categories FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON inventory_items FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON inventory_variants FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON inventory_units FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON inventory_stock FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON stock_transactions FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON stock_adjustments FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON stock_transfers FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON stock_reservations FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON purchase_requests FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON purchase_request_items FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON purchase_orders FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON purchase_order_items FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON goods_receipts FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON goods_receipt_items FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON vendors FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON vendor_contacts FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON vendor_documents FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON vendor_ratings FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON vendor_payments FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON asset_categories FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON assets FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON asset_assignments FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON asset_movements FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON asset_maintenance FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON maintenance_logs FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON asset_disposals FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON inventory_audits FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON inventory_audit_items FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
+CREATE POLICY "org_access_all" ON warehouses FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON warehouse_locations FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON inventory_categories FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON inventory_items FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON inventory_variants FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON inventory_units FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON inventory_stock FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON stock_transactions FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON stock_adjustments FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON stock_transfers FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON stock_reservations FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON purchase_requests FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON purchase_request_items FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON purchase_orders FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON purchase_order_items FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON goods_receipts FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON goods_receipt_items FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON vendors FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON vendor_contacts FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON vendor_documents FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON vendor_ratings FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON vendor_payments FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON asset_categories FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON assets FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON asset_assignments FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON asset_movements FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON asset_maintenance FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON maintenance_logs FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON asset_disposals FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON inventory_audits FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON inventory_audit_items FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
 
 -- ============================================================
 -- AUTO-UPDATE TRIGGERS

@@ -7,7 +7,7 @@ import type { UserRole } from "@/types"
 const publicRoutes = [
   "/",
   "/login",
-  "/register",
+  "/signup",
   "/forgot-password",
   "/verify",
   "/auth/callback",
@@ -34,7 +34,7 @@ const publicRoutes = [
   "/manifest.json",
 ]
 
-const authRoutes = ["/login", "/register", "/forgot-password", "/verify"]
+const authRoutes = ["/login", "/signup", "/forgot-password", "/verify"]
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl

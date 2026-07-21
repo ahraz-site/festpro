@@ -5,15 +5,32 @@
 -- ENUMS
 -- ====================
 
-CREATE TYPE user_role AS ENUM (
+DO $$ BEGIN CREATE TYPE user_role AS ENUM (
   'platform_owner',
   'platform_admin',
   'organization_owner',
   'organization_admin',
+  'festival_director',
+  'division_coordinator',
+  'sector_coordinator',
+  'unit_coordinator',
+  'media',
+  'reception',
+  'finance',
+  'public_user',
   'judge',
   'volunteer',
   'participant'
-);
+); EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'festival_director';
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'division_coordinator';
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'sector_coordinator';
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'unit_coordinator';
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'media';
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'reception';
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'finance';
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'public_user';
 
 -- ====================
 -- TABLES
@@ -45,6 +62,20 @@ CREATE TABLE profiles (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- VIEW for backward compatibility with user_profiles(user_id)
+CREATE OR REPLACE VIEW user_profiles AS
+SELECT 
+  id AS user_id,
+  id,
+  email,
+  first_name,
+  last_name,
+  role,
+  created_at,
+  updated_at
+FROM public.profiles;
+
+
 -- Organization members (many-to-many)
 CREATE TABLE organization_members (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -55,6 +86,17 @@ CREATE TABLE organization_members (
   joined_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(organization_id, user_id)
 );
+
+-- VIEW for backward compatibility with user_organizations
+CREATE OR REPLACE VIEW user_organizations AS
+SELECT 
+  organization_id,
+  user_id,
+  role,
+  joined_at
+FROM public.organization_members;
+
+ALTER TABLE organization_members ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
 
 -- ====================
 -- INDEXES
@@ -73,6 +115,14 @@ CREATE INDEX idx_organizations_slug ON organizations(slug);
 
 -- Auto-update updated_at
 CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = NOW();
@@ -132,7 +182,7 @@ CREATE POLICY "Admins can read all profiles"
   USING (
     EXISTS (
       SELECT 1 FROM profiles
-      WHERE id = auth.uid() AND role IN ('platform_owner', 'platform_admin')
+      WHERE id = auth.uid() AND role::text IN ('platform_owner', 'platform_admin')
     )
   );
 
@@ -153,7 +203,7 @@ CREATE POLICY "Owners can update their organization"
       SELECT 1 FROM organization_members
       WHERE organization_id = organizations.id
       AND user_id = auth.uid()
-      AND role IN ('organization_owner', 'platform_owner', 'platform_admin')
+      AND role::text IN ('organization_owner', 'platform_owner', 'platform_admin')
     )
   );
 
@@ -162,7 +212,7 @@ CREATE POLICY "Platform admins can CRUD organizations"
   USING (
     EXISTS (
       SELECT 1 FROM profiles
-      WHERE id = auth.uid() AND role IN ('platform_owner', 'platform_admin')
+      WHERE id = auth.uid() AND role::text IN ('platform_owner', 'platform_admin')
     )
   );
 
@@ -178,7 +228,7 @@ CREATE POLICY "Org admins can manage members"
       SELECT 1 FROM organization_members
       WHERE organization_id = organization_members.organization_id
       AND user_id = auth.uid()
-      AND role IN ('organization_owner', 'organization_admin', 'platform_owner', 'platform_admin')
+      AND role::text IN ('organization_owner', 'organization_admin', 'platform_owner', 'platform_admin')
     )
   );
 

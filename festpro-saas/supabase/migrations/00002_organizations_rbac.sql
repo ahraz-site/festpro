@@ -3,26 +3,191 @@
 
 -- ====================
 -- EXTEND ENUMS
--- ====================
-
-ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'festival_director';
-ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'division_coordinator';
-ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'sector_coordinator';
-ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'unit_coordinator';
-ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'media';
-ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'reception';
-ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'finance';
-ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'public_user';
-
-CREATE TYPE invitation_status AS ENUM ('pending', 'accepted', 'expired', 'cancelled');
-CREATE TYPE activity_action AS ENUM (
-  'organization.created', 'organization.updated', 'organization.deleted',
-  'member.invited', 'member.joined', 'member.removed', 'member.suspended', 'member.reactivated',
-  'member.role_changed', 'member.left',
+-- ====================
+DO $$ BEGIN CREATE TYPE invitation_status AS ENUM ('pending', 'accepted', 'expired', 'cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE activity_action AS ENUM (
+  'organization.created',
+  'organization.updated',
+  'organization.deleted',
+  'member.invited',
+  'member.joined',
+  'member.removed',
+  'member.suspended',
+  'member.reactivated',
+  'member.role_changed',
+  'member.left',
   'profile.updated',
   'settings.updated',
-  'login', 'logout'
-);
+  'login',
+  'logout',
+  'festival.created',
+  'festival.updated',
+  'festival.deleted',
+  'festival.archived',
+  'festival.restored',
+  'festival.duplicated',
+  'festival.status_changed',
+  'competition.created',
+  'competition.updated',
+  'competition.deleted',
+  'competition.category_created',
+  'competition.category_updated',
+  'competition.category_deleted',
+  'competition.judge_assigned',
+  'competition.judge_unassigned',
+  'competition.stage_assigned',
+  'competition.scheduled',
+  'participant.created',
+  'participant.updated',
+  'participant.deleted',
+  'participant.restored',
+  'participant.registered',
+  'participant.registration_approved',
+  'participant.registration_rejected',
+  'participant.checked_in',
+  'participant.qr_generated',
+  'team.created',
+  'team.member_added',
+  'team.member_removed',
+  'schedule.created',
+  'schedule.updated',
+  'schedule.published',
+  'schedule.conflict_detected',
+  'schedule.queue_changed',
+  'schedule.performance_started',
+  'schedule.performance_completed',
+  'schedule.participant_called',
+  'schedule.announcement_created',
+  'judge.assigned',
+  'judge.unassigned',
+  'judge.score_submitted',
+  'judge.score_locked',
+  'judge.score_approved',
+  'judge.chief_approval',
+  'result.calculated',
+  'result.published',
+  'result.unpublished',
+  'result.override',
+  'result.appeal_submitted',
+  'result.resolved',
+  'result.certificate_generated',
+  'payment.created',
+  'payment.completed',
+  'payment.failed',
+  'payment.refunded',
+  'budget.allocated',
+  'budget.exceeded',
+  'invoice.generated',
+  'expense.recorded',
+  'notification.sent',
+  'broadcast.sent',
+  'template.created',
+  'workflow.triggered',
+  'webhook.sent',
+  'admin.setting_changed',
+  'admin.security_alert',
+  'admin.export_data',
+  'admin.import_data',
+  'admin.backup_created',
+  'admin.restore_performed',
+  'admin.audit_log_viewed',
+  'admin.maintenance_toggled',
+  'portal.viewed',
+  'portal.setting_changed',
+  'portal.theme_changed',
+  'portal.banner_updated',
+  'portal.announcement_posted',
+  'portal.faq_updated',
+  'portal.sponsor_added',
+  'portal.contact_form_submitted',
+  'portal.cache_cleared',
+  'portal.api_token_created',
+  'portal.api_token_revoked'
+); EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'festival.created';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'festival.updated';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'festival.deleted';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'festival.archived';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'festival.restored';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'festival.duplicated';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'festival.status_changed';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'competition.created';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'competition.updated';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'competition.deleted';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'competition.category_created';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'competition.category_updated';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'competition.category_deleted';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'competition.judge_assigned';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'competition.judge_unassigned';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'competition.stage_assigned';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'competition.scheduled';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'participant.created';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'participant.updated';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'participant.deleted';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'participant.restored';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'participant.registered';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'participant.registration_approved';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'participant.registration_rejected';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'participant.checked_in';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'participant.qr_generated';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'team.created';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'team.member_added';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'team.member_removed';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'schedule.created';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'schedule.updated';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'schedule.published';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'schedule.conflict_detected';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'schedule.queue_changed';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'schedule.performance_started';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'schedule.performance_completed';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'schedule.participant_called';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'schedule.announcement_created';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'judge.assigned';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'judge.unassigned';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'judge.score_submitted';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'judge.score_locked';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'judge.score_approved';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'judge.chief_approval';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'result.calculated';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'result.published';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'result.unpublished';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'result.override';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'result.appeal_submitted';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'result.resolved';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'result.certificate_generated';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'payment.created';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'payment.completed';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'payment.failed';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'payment.refunded';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'budget.allocated';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'budget.exceeded';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'invoice.generated';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'expense.recorded';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'notification.sent';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'broadcast.sent';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'template.created';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'workflow.triggered';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'webhook.sent';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'admin.setting_changed';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'admin.security_alert';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'admin.export_data';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'admin.import_data';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'admin.backup_created';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'admin.restore_performed';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'admin.audit_log_viewed';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'admin.maintenance_toggled';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'portal.viewed';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'portal.setting_changed';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'portal.theme_changed';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'portal.banner_updated';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'portal.announcement_posted';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'portal.faq_updated';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'portal.sponsor_added';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'portal.contact_form_submitted';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'portal.cache_cleared';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'portal.api_token_created';
+ALTER TYPE activity_action ADD VALUE IF NOT EXISTS 'portal.api_token_revoked';
 
 -- ====================
 -- EXTEND ORGANIZATIONS
@@ -88,6 +253,7 @@ CREATE TABLE IF NOT EXISTS activity_logs (
   user_agent TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE activity_logs ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
 
 -- ====================
 -- INVITATIONS
@@ -122,6 +288,52 @@ CREATE TABLE IF NOT EXISTS permissions (
   module VARCHAR(50) NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 
 -- Seed core permissions
 INSERT INTO permissions (code, name, description, module) VALUES
@@ -175,6 +387,52 @@ CREATE TABLE IF NOT EXISTS role_permissions (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(role, permission_code)
 );
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 
 -- Seed role-permissions for organization_owner
 INSERT INTO role_permissions (role, permission_code)
@@ -329,7 +587,7 @@ CREATE POLICY "Admins can manage org settings"
       SELECT 1 FROM organization_members
       WHERE organization_id = organization_settings.organization_id
       AND user_id = auth.uid()
-      AND role IN ('organization_owner', 'organization_admin', 'platform_owner', 'platform_admin')
+      AND role::text IN ('organization_owner', 'organization_admin', 'platform_owner', 'platform_admin')
     )
   );
 
@@ -355,7 +613,7 @@ CREATE POLICY "Platform admins can view all activity"
   USING (
     EXISTS (
       SELECT 1 FROM profiles
-      WHERE id = auth.uid() AND role IN ('platform_owner', 'platform_admin')
+      WHERE id = auth.uid() AND role::text IN ('platform_owner', 'platform_admin')
     )
   );
 
@@ -383,7 +641,7 @@ CREATE POLICY "Admins can manage invitations"
       SELECT 1 FROM organization_members
       WHERE organization_id = invitations.organization_id
       AND user_id = auth.uid()
-      AND role IN ('organization_owner', 'organization_admin', 'platform_owner', 'platform_admin')
+      AND role::text IN ('organization_owner', 'organization_admin', 'platform_owner', 'platform_admin')
     )
   );
 

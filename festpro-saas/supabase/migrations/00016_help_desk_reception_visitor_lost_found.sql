@@ -4,13 +4,14 @@
 -- ============================================================
 
 -- ENUMS
-CREATE TYPE ticket_priority AS ENUM ('low','medium','high','urgent','critical');
-CREATE TYPE ticket_status AS ENUM ('new','open','assigned','in_progress','resolved','closed','reopened','on_hold','cancelled');
-CREATE TYPE escalation_level AS ENUM ('level1','level2','level3','level4');
-CREATE TYPE visitor_category AS ENUM ('general','guest','vip','media','sponsor','government','organization','volunteer','staff','participant');
-CREATE TYPE lost_item_category AS ENUM ('mobile_phone','wallet','bag','id_card','certificate','documents','jewellery','watch','electronics','keys','clothing','umbrella','water_bottle','laptop','tablet','headphones','books','other');
-CREATE TYPE claim_status AS ENUM ('pending','under_review','verified','approved','rejected','collected','closed');
-CREATE TYPE feedback_status AS ENUM ('draft','published','closed');
+DO $$ BEGIN CREATE TYPE ticket_priority AS ENUM ('low','medium','high','urgent','critical'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE ticket_status AS ENUM ('new','open','assigned','in_progress','resolved','closed','reopened','on_hold','cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE escalation_level AS ENUM ('level1','level2','level3','level4'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE visitor_category AS ENUM ('general','guest','vip','media','sponsor','government','organization','volunteer','staff','participant'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE lost_item_category AS ENUM ('mobile_phone','wallet','bag','id_card','certificate','documents','jewellery','watch','electronics','keys','clothing','umbrella','water_bottle','laptop','tablet','headphones','books','other'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE claim_status AS ENUM ('pending','under_review','verified','approved','rejected','collected','closed'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE feedback_status AS ENUM ('draft','published','closed'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE lost_item_status AS ENUM ('reported','claimed','matched','disposed','returned'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- ============================================================
 -- 1. HELP DESKS (physical desk locations)
@@ -683,37 +684,37 @@ ALTER TABLE service_ratings ENABLE ROW LEVEL SECURITY;
 -- ============================================================
 -- RLS POLICIES
 -- ============================================================
-CREATE POLICY "org_access_all" ON help_desks FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON help_desk_staff FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON support_categories FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON support_priorities FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON support_statuses FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON support_tickets FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON ticket_comments FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON ticket_attachments FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON ticket_history FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON ticket_assignments FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON ticket_sla FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON ticket_escalations FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON knowledge_base_categories FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON knowledge_articles FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON faq_items FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON visitor_categories FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON visitors FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON visitor_groups FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON visitor_passes FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON visitor_checkins FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON visitor_checkout_logs FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON visitor_hosts FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON meeting_logs FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON lost_items FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON found_items FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON claim_requests FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON claim_verifications FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON item_handover_logs FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON feedback_forms FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON feedback_responses FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON service_ratings FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
+CREATE POLICY "org_access_all" ON help_desks FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON help_desk_staff FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON support_categories FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON support_priorities FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON support_statuses FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON support_tickets FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON ticket_comments FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON ticket_attachments FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON ticket_history FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON ticket_assignments FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON ticket_sla FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON ticket_escalations FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON knowledge_base_categories FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON knowledge_articles FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON faq_items FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON visitor_categories FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON visitors FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON visitor_groups FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON visitor_passes FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON visitor_checkins FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON visitor_checkout_logs FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON visitor_hosts FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON meeting_logs FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON lost_items FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON found_items FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON claim_requests FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON claim_verifications FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON item_handover_logs FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON feedback_forms FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON feedback_responses FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON service_ratings FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
 
 -- ============================================================
 -- AUTO-UPDATE TRIGGERS

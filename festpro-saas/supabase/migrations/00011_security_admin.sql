@@ -3,27 +3,27 @@
 
 -- 1. ENUMS
 -- =================================================================
-CREATE TYPE audit_action AS ENUM (
+DO $$ BEGIN CREATE TYPE audit_action AS ENUM (
   'login','logout','registration','role_change','permission_change',
   'festival_created','competition_updated','participant_registered',
   'result_published','certificate_generated','payment_added',
   'notification_sent','settings_changed','delete_operation',
   'api_token_created','api_token_revoked','backup_created','backup_restored',
   'feature_flag_changed','security_event','system_update','user_impersonated'
-);
+); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
-CREATE TYPE audit_status AS ENUM ('success','failure','pending','blocked');
-CREATE TYPE security_event_type AS ENUM (
+DO $$ BEGIN CREATE TYPE audit_status AS ENUM ('success','failure','pending','blocked'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE security_event_type AS ENUM (
   'suspicious_login','brute_force','account_lockout','password_reset',
   '2fa_attempt','rate_limit_exceeded','ip_blocked','session_hijack',
   'token_reused','unusual_location','mass_operation','data_export'
-);
-CREATE TYPE security_event_severity AS ENUM ('low','medium','high','critical');
-CREATE TYPE device_type AS ENUM ('desktop','mobile','tablet','unknown');
-CREATE TYPE backup_status AS ENUM ('pending','running','completed','failed','verified');
-CREATE TYPE health_status AS ENUM ('healthy','degraded','down','unknown');
-CREATE TYPE maintenance_scope AS ENUM ('full','read_only','specific_module');
-CREATE TYPE token_permission AS ENUM ('read','write','admin','custom');
+); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE security_event_severity AS ENUM ('low','medium','high','critical'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE device_type AS ENUM ('desktop','mobile','tablet','unknown'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE backup_status AS ENUM ('pending','running','completed','failed','verified'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE health_status AS ENUM ('healthy','degraded','down','unknown'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE maintenance_scope AS ENUM ('full','read_only','specific_module'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE token_permission AS ENUM ('read','write','admin','custom'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- 2. TABLES
 -- =================================================================
@@ -115,6 +115,35 @@ CREATE TABLE failed_logins (
   blocked_until TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE failed_logins ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 CREATE INDEX idx_failed_logins_ip ON failed_logins(ip_address);
 CREATE INDEX idx_failed_logins_email ON failed_logins(email);
 
@@ -138,7 +167,7 @@ CREATE TABLE active_sessions (
 );
 CREATE INDEX idx_active_sessions_user ON active_sessions(user_id);
 CREATE INDEX idx_active_sessions_token ON active_sessions(session_token);
-CREATE INDEX idx_active_sessions_expires ON active_sessions(expires_at) WHERE expires_at > now();
+CREATE INDEX idx_active_sessions_expires ON active_sessions(expires_at);
 
 -- Devices
 CREATE TABLE devices (
@@ -390,13 +419,13 @@ CREATE POLICY failed_logins_org_access ON failed_logins FOR ALL USING (
 
 CREATE POLICY active_sessions_org_access ON active_sessions FOR ALL USING (
   user_id = auth.uid() OR organization_id IN (
-    SELECT organization_id FROM organization_members WHERE user_id = auth.uid() AND role IN ('owner','admin','security_admin')
+    SELECT organization_id FROM organization_members WHERE user_id = auth.uid() AND role::text IN ('organization_owner','organization_admin','platform_owner','platform_admin')
   )
 );
 
 CREATE POLICY devices_org_access ON devices FOR ALL USING (
   user_id = auth.uid() OR organization_id IN (
-    SELECT organization_id FROM organization_members WHERE user_id = auth.uid() AND role IN ('owner','admin','security_admin')
+    SELECT organization_id FROM organization_members WHERE user_id = auth.uid() AND role::text IN ('organization_owner','organization_admin','platform_owner','platform_admin')
   )
 );
 
@@ -446,9 +475,9 @@ CREATE POLICY activity_stream_org_access ON activity_stream FOR ALL USING (
 -- =================================================================
 CREATE OR REPLACE FUNCTION create_audit_log(
   p_organization_id UUID,
+  p_action audit_action,
   p_festival_id UUID DEFAULT NULL,
   p_user_id UUID DEFAULT NULL,
-  p_action audit_action,
   p_entity_type VARCHAR DEFAULT NULL,
   p_entity_id UUID DEFAULT NULL,
   p_description TEXT DEFAULT NULL,

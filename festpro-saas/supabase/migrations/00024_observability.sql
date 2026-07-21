@@ -6,45 +6,34 @@
 -- ENUMS
 -- ============================================================
 
-CREATE TYPE health_status AS ENUM ('healthy', 'degraded', 'unhealthy', 'down', 'unknown');
-CREATE TYPE service_name AS ENUM ('app', 'database', 'storage', 'realtime', 'api', 'queue', 'auth', 'webhook', 'integration', 'email', 'sms', 'cdn');
-CREATE TYPE log_level AS ENUM ('debug', 'info', 'warn', 'error', 'fatal', 'trace');
-CREATE TYPE log_source AS ENUM ('app', 'api', 'auth', 'database', 'queue', 'notification', 'security', 'cron', 'webhook', 'integration', 'admin');
-CREATE TYPE backup_status AS ENUM ('pending', 'running', 'completed', 'failed', 'cancelled', 'expired');
-CREATE TYPE backup_type AS ENUM ('full', 'incremental', 'differential', 'point_in_time');
-CREATE TYPE backup_storage AS ENUM ('supabase', 'aws_s3', 'cloudflare_r2', 'gcs', 'local');
-CREATE TYPE restore_status AS ENUM ('pending', 'running', 'validating', 'completed', 'failed', 'cancelled');
-CREATE TYPE restore_type AS ENUM ('full', 'point_in_time', 'selective');
-CREATE TYPE alert_severity AS ENUM ('critical', 'high', 'medium', 'low', 'info');
-CREATE TYPE alert_status AS ENUM ('active', 'acknowledged', 'resolved', 'silenced', 'expired');
-CREATE TYPE alert_channel AS ENUM ('email', 'push', 'sms', 'slack', 'webhook', 'pager');
-CREATE TYPE incident_severity AS ENUM ('critical', 'major', 'minor', 'warning', 'info');
-CREATE TYPE incident_status AS ENUM ('detected', 'investigating', 'identified', 'mitigated', 'resolved', 'closed', 'postmortem');
-CREATE TYPE maintenance_status AS ENUM ('scheduled', 'in_progress', 'completed', 'cancelled', 'extended');
+DO $$ BEGIN CREATE TYPE obs_health_status AS ENUM ('healthy', 'degraded', 'unhealthy', 'down', 'unknown'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE service_name AS ENUM ('app', 'database', 'storage', 'realtime', 'api', 'queue', 'auth', 'webhook', 'integration', 'email', 'sms', 'cdn'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE log_level AS ENUM ('debug', 'info', 'warn', 'error', 'fatal', 'trace'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE log_source AS ENUM ('app', 'api', 'auth', 'database', 'queue', 'notification', 'security', 'cron', 'webhook', 'integration', 'admin'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE obs_backup_status AS ENUM ('pending', 'running', 'completed', 'failed', 'cancelled', 'expired'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE backup_type AS ENUM ('full', 'incremental', 'differential', 'point_in_time'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE backup_storage AS ENUM ('supabase', 'aws_s3', 'cloudflare_r2', 'gcs', 'local'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE restore_status AS ENUM ('pending', 'running', 'validating', 'completed', 'failed', 'cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE restore_type AS ENUM ('full', 'point_in_time', 'selective'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE alert_severity AS ENUM ('critical', 'high', 'medium', 'low', 'info'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE alert_status AS ENUM ('active', 'acknowledged', 'resolved', 'silenced', 'expired'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE alert_channel AS ENUM ('email', 'push', 'sms', 'slack', 'webhook', 'pager'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE obs_incident_severity AS ENUM ('critical', 'major', 'minor', 'warning', 'info'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE obs_incident_status AS ENUM ('detected', 'investigating', 'identified', 'mitigated', 'resolved', 'closed', 'postmortem'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE obs_maintenance_status AS ENUM ('scheduled', 'in_progress', 'completed', 'cancelled', 'extended'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- ============================================================
 -- SYSTEM HEALTH & MONITORING
 -- ============================================================
 
-CREATE TABLE system_health (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  service service_name NOT NULL,
-  status health_status NOT NULL DEFAULT 'healthy',
-  message TEXT,
-  response_time_ms INTEGER,
-  last_checked_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  next_check_at TIMESTAMPTZ,
-  consecutive_failures INTEGER NOT NULL DEFAULT 0,
-  metadata JSONB DEFAULT '{}',
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+
 
 CREATE TABLE health_checks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   check_name TEXT NOT NULL,
   check_type TEXT NOT NULL,
   service service_name NOT NULL,
-  status health_status NOT NULL DEFAULT 'healthy',
+  status obs_health_status NOT NULL DEFAULT 'healthy',
   response_time_ms INTEGER,
   error_message TEXT,
   check_interval_seconds INTEGER NOT NULL DEFAULT 60,
@@ -54,12 +43,25 @@ CREATE TABLE health_checks (
   metadata JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE health_checks ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE health_checks ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE health_checks ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE health_checks ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE health_checks ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE health_checks ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE health_checks ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE health_checks ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE health_checks ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE health_checks ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE health_checks ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE health_checks ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE health_checks ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 
 CREATE TABLE service_status (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   service service_name NOT NULL,
-  status health_status NOT NULL DEFAULT 'healthy',
-  previous_status health_status,
+  status obs_health_status NOT NULL DEFAULT 'healthy',
+  previous_status obs_health_status,
   uptime_percent DECIMAL(5,2) NOT NULL DEFAULT 100.00,
   version TEXT,
   environment TEXT NOT NULL DEFAULT 'production',
@@ -73,17 +75,43 @@ CREATE TABLE service_status (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(service, environment)
 );
+ALTER TABLE service_status ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE service_status ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE service_status ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE service_status ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE service_status ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE service_status ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE service_status ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE service_status ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE service_status ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE service_status ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE service_status ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE service_status ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE service_status ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 
 CREATE TABLE uptime_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   service service_name NOT NULL,
   environment TEXT NOT NULL DEFAULT 'production',
-  status health_status NOT NULL,
+  status obs_health_status NOT NULL,
   duration_seconds INTEGER NOT NULL DEFAULT 0,
   is_available BOOLEAN NOT NULL DEFAULT true,
   response_time_ms INTEGER,
   checked_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE uptime_logs ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE uptime_logs ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE uptime_logs ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE uptime_logs ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE uptime_logs ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE uptime_logs ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE uptime_logs ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE uptime_logs ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE uptime_logs ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE uptime_logs ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE uptime_logs ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE uptime_logs ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE uptime_logs ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 
 -- ============================================================
 -- LOGGING
@@ -108,27 +136,7 @@ CREATE TABLE application_logs (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE error_logs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
-  log_level log_level NOT NULL DEFAULT 'error',
-  error_code TEXT,
-  error_type TEXT NOT NULL,
-  message TEXT NOT NULL,
-  stack_trace TEXT,
-  metadata JSONB DEFAULT '{}',
-  ip_address TEXT,
-  user_agent TEXT,
-  request_path TEXT,
-  request_method TEXT,
-  status_code INTEGER,
-  request_id TEXT,
-  correlation_id TEXT,
-  is_resolved BOOLEAN NOT NULL DEFAULT false,
-  resolved_at TIMESTAMPTZ,
-  resolved_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+
 
 CREATE TABLE exception_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -194,6 +202,19 @@ CREATE TABLE database_metrics (
   replication_lag_seconds INTEGER DEFAULT 0,
   recorded_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE database_metrics ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE database_metrics ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE database_metrics ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE database_metrics ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE database_metrics ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE database_metrics ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE database_metrics ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE database_metrics ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE database_metrics ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE database_metrics ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE database_metrics ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE database_metrics ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE database_metrics ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 
 CREATE TABLE api_metrics (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -240,7 +261,7 @@ CREATE TABLE backup_jobs (
   organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
   backup_name TEXT NOT NULL,
   backup_type backup_type NOT NULL DEFAULT 'full',
-  status backup_status NOT NULL DEFAULT 'pending',
+  status obs_backup_status NOT NULL DEFAULT 'pending',
   storage_location backup_storage NOT NULL DEFAULT 'supabase',
   storage_path TEXT,
   file_size_bytes BIGINT,
@@ -270,6 +291,19 @@ CREATE TABLE backup_history (
   metadata JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE backup_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE backup_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE backup_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE backup_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE backup_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE backup_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE backup_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE backup_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE backup_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE backup_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE backup_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE backup_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE backup_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 
 CREATE TABLE restore_jobs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -304,6 +338,19 @@ CREATE TABLE restore_history (
   metadata JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE restore_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE restore_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE restore_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE restore_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE restore_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE restore_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE restore_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE restore_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE restore_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE restore_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE restore_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE restore_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE restore_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 
 CREATE TABLE retention_policies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -350,8 +397,8 @@ CREATE TABLE incident_logs (
   organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
   incident_name TEXT NOT NULL,
   incident_id TEXT UNIQUE NOT NULL DEFAULT 'INC-' || upper(encode(gen_random_bytes(4), 'hex')),
-  severity incident_severity NOT NULL DEFAULT 'warning',
-  status incident_status NOT NULL DEFAULT 'detected',
+  severity obs_incident_severity NOT NULL DEFAULT 'warning',
+  status obs_incident_status NOT NULL DEFAULT 'detected',
   description TEXT NOT NULL,
   impact TEXT,
   root_cause TEXT,
@@ -383,7 +430,7 @@ CREATE TABLE maintenance_windows (
   title TEXT NOT NULL,
   description TEXT,
   affected_services service_name[] DEFAULT '{}',
-  status maintenance_status NOT NULL DEFAULT 'scheduled',
+  status obs_maintenance_status NOT NULL DEFAULT 'scheduled',
   scheduled_start TIMESTAMPTZ NOT NULL,
   scheduled_end TIMESTAMPTZ NOT NULL,
   actual_start TIMESTAMPTZ,
@@ -425,9 +472,9 @@ CREATE INDEX idx_app_logs_org ON application_logs(organization_id, created_at DE
 CREATE INDEX idx_app_logs_level ON application_logs(log_level, created_at DESC);
 CREATE INDEX idx_app_logs_source ON application_logs(log_source, created_at DESC);
 CREATE INDEX idx_app_logs_correlation ON application_logs(correlation_id);
-CREATE INDEX idx_error_logs_org ON error_logs(organization_id, created_at DESC);
-CREATE INDEX idx_error_logs_type ON error_logs(error_type, created_at DESC);
-CREATE INDEX idx_error_logs_resolved ON error_logs(is_resolved, created_at DESC);
+
+
+
 CREATE INDEX idx_exception_logs_org ON exception_logs(organization_id, created_at DESC);
 CREATE INDEX idx_exception_type ON exception_logs(exception_type, created_at DESC);
 CREATE INDEX idx_crash_reports_org ON crash_reports(organization_id, created_at DESC);
@@ -469,7 +516,7 @@ CREATE TRIGGER update_maintenance_windows_timestamp BEFORE UPDATE ON maintenance
 -- ============================================================
 
 ALTER TABLE application_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE error_logs ENABLE ROW LEVEL SECURITY;
+
 ALTER TABLE exception_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE crash_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE performance_metrics ENABLE ROW LEVEL SECURITY;
@@ -490,7 +537,7 @@ ALTER TABLE performance_metrics ENABLE ROW LEVEL SECURITY;
 -- Tenant isolation for org-scoped tables
 DO $$
 DECLARE
-  tables TEXT[] := ARRAY['application_logs','error_logs','exception_logs','crash_reports',
+  tables TEXT[] := ARRAY['application_logs','exception_logs','crash_reports',
     'performance_metrics','api_metrics','queue_metrics','notification_metrics',
     'backup_jobs','backup_history','restore_jobs','restore_history','retention_policies',
     'system_alerts','incident_logs','maintenance_windows','deployment_history'];
@@ -499,44 +546,40 @@ BEGIN
   FOREACH t IN ARRAY tables LOOP
     EXECUTE format('CREATE POLICY org_isolation_select ON %I FOR SELECT USING (
       organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid())
-      OR EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role IN (''super_admin'', ''platform_admin'', ''devops'', ''support_admin''))
+      OR EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role::text IN (''super_admin'', ''platform_admin'', ''devops'', ''support_admin''))
     )', t);
     EXECUTE format('CREATE POLICY org_isolation_insert ON %I FOR INSERT WITH CHECK (
       organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid())
-      OR EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role IN (''super_admin'', ''platform_admin'', ''devops'', ''support_admin''))
+      OR EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role::text IN (''super_admin'', ''platform_admin'', ''devops'', ''support_admin''))
     )', t);
     EXECUTE format('CREATE POLICY org_isolation_update ON %I FOR UPDATE USING (
       organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid())
-      OR EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role IN (''super_admin'', ''platform_admin'', ''devops'', ''support_admin''))
+      OR EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role::text IN (''super_admin'', ''platform_admin'', ''devops'', ''support_admin''))
     )', t);
     EXECUTE format('CREATE POLICY org_isolation_delete ON %I FOR DELETE USING (
       organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid())
-      OR EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role IN (''super_admin'', ''platform_admin'', ''devops'', ''support_admin''))
+      OR EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role::text IN (''super_admin'', ''platform_admin'', ''devops'', ''support_admin''))
     )', t);
   END LOOP;
 END;
 $$;
 
 -- Global tables: super_admin / platform_admin / devops only
-CREATE POLICY global_select ON system_health FOR SELECT USING (
-  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role IN ('super_admin', 'platform_admin', 'devops'))
-);
-CREATE POLICY global_admin ON system_health FOR ALL USING (
-  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role IN ('super_admin', 'platform_admin'))
-);
+
+
 
 CREATE POLICY global_select ON health_checks FOR SELECT USING (
-  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role IN ('super_admin', 'platform_admin', 'devops'))
+  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role::text IN ('super_admin', 'platform_admin', 'devops'))
 );
 
 CREATE POLICY global_select ON service_status FOR SELECT USING (
-  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role IN ('super_admin', 'platform_admin', 'devops'))
+  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role::text IN ('super_admin', 'platform_admin', 'devops'))
 );
 
 CREATE POLICY global_select ON uptime_logs FOR SELECT USING (
-  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role IN ('super_admin', 'platform_admin', 'devops'))
+  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role::text IN ('super_admin', 'platform_admin', 'devops'))
 );
 
 CREATE POLICY global_select ON database_metrics FOR SELECT USING (
-  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role IN ('super_admin', 'platform_admin', 'devops'))
+  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role::text IN ('super_admin', 'platform_admin', 'devops'))
 );

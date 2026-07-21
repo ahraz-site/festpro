@@ -3,14 +3,14 @@
 -- ============================================================
 
 -- ENUMS
-CREATE TYPE sponsor_category AS ENUM ('platinum','gold','silver','bronze','media','partner','associate','supporter');
-CREATE TYPE sponsor_status AS ENUM ('lead','negotiation','active','completed','cancelled');
-CREATE TYPE donor_type AS ENUM ('individual','family','organization','trust','institution','anonymous');
-CREATE TYPE campaign_status AS ENUM ('draft','active','paused','completed','cancelled');
-CREATE TYPE donation_method AS ENUM ('cash','upi','bank_transfer','cheque','card','online','other');
-CREATE TYPE pledge_status AS ENUM ('pending','partial','completed','cancelled','defaulted');
-CREATE TYPE receipt_status AS ENUM ('draft','issued','cancelled');
-CREATE TYPE crm_activity_type AS ENUM ('call','meeting','email','note','followup','task','whatsapp','sms');
+DO $$ BEGIN CREATE TYPE crm_sponsor_category AS ENUM ('platinum','gold','silver','bronze','media','partner','associate','supporter'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE sponsor_status AS ENUM ('lead','negotiation','active','completed','cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE donor_type AS ENUM ('individual','family','organization','trust','institution','anonymous'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE campaign_status AS ENUM ('draft','active','paused','completed','cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE donation_method AS ENUM ('cash','upi','bank_transfer','cheque','card','online','other'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE pledge_status AS ENUM ('pending','partial','completed','cancelled','defaulted'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE receipt_status AS ENUM ('draft','issued','cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE crm_activity_type AS ENUM ('call','meeting','email','note','followup','task','whatsapp','sms'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- ============================================================
 -- 1. SPONSOR CATEGORIES
@@ -19,7 +19,7 @@ CREATE TABLE sponsor_categories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  category sponsor_category NOT NULL DEFAULT 'silver',
+  category crm_sponsor_category NOT NULL DEFAULT 'silver',
   description TEXT,
   min_amount NUMERIC DEFAULT 0,
   max_amount NUMERIC,
@@ -426,45 +426,13 @@ ALTER TABLE receipt_templates ENABLE ROW LEVEL SECURITY;
 -- ============================================================
 -- 20. PAYMENT METHODS
 -- ============================================================
-CREATE TABLE payment_methods (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  festival_id UUID REFERENCES festivals(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  method donation_method NOT NULL DEFAULT 'cash',
-  account_name TEXT,
-  account_number TEXT,
-  bank_name TEXT,
-  upi_id TEXT,
-  qr_code_url TEXT,
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-ALTER TABLE payment_methods ENABLE ROW LEVEL SECURITY;
+
 
 -- ============================================================
 -- 21. TRANSACTIONS
 -- ============================================================
-CREATE TABLE transactions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  festival_id UUID REFERENCES festivals(id) ON DELETE SET NULL,
-  transaction_number TEXT NOT NULL UNIQUE,
-  type TEXT NOT NULL DEFAULT 'donation',
-  category TEXT NOT NULL,
-  amount NUMERIC NOT NULL,
-  payment_method donation_method NOT NULL,
-  transaction_date DATE NOT NULL,
-  donor_name TEXT,
-  description TEXT,
-  reference_id UUID,
-  reference_type TEXT,
-  status TEXT DEFAULT 'completed',
-  created_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
+
+
 
 -- ============================================================
 -- 22. CRM TAGS
@@ -583,7 +551,7 @@ CREATE INDEX idx_pledges_status ON pledges(status);
 CREATE INDEX idx_donation_receipts_number ON donation_receipts(receipt_number);
 CREATE INDEX idx_crm_activities_entity ON crm_activities(entity_type, entity_id);
 CREATE INDEX idx_crm_notes_entity ON crm_notes(entity_type, entity_id);
-CREATE INDEX idx_transactions_festival ON transactions(festival_id);
+
 
 -- ============================================================
 -- AUTO-UPDATE TRIGGERS
@@ -603,7 +571,6 @@ CREATE TRIGGER trg_collector_assignments_updated_at BEFORE UPDATE ON collector_a
 CREATE TRIGGER trg_pledges_updated_at BEFORE UPDATE ON pledges FOR EACH ROW EXECUTE FUNCTION update_sponsor_crm_updated_at();
 CREATE TRIGGER trg_pledge_installments_updated_at BEFORE UPDATE ON pledge_installments FOR EACH ROW EXECUTE FUNCTION update_sponsor_crm_updated_at();
 CREATE TRIGGER trg_receipt_templates_updated_at BEFORE UPDATE ON receipt_templates FOR EACH ROW EXECUTE FUNCTION update_sponsor_crm_updated_at();
-CREATE TRIGGER trg_payment_methods_updated_at BEFORE UPDATE ON payment_methods FOR EACH ROW EXECUTE FUNCTION update_sponsor_crm_updated_at();
 CREATE TRIGGER trg_crm_notes_updated_at BEFORE UPDATE ON crm_notes FOR EACH ROW EXECUTE FUNCTION update_sponsor_crm_updated_at();
 CREATE TRIGGER trg_crm_tasks_updated_at BEFORE UPDATE ON crm_tasks FOR EACH ROW EXECUTE FUNCTION update_sponsor_crm_updated_at();
 
@@ -705,15 +672,11 @@ CREATE POLICY org_isolation_insert ON receipt_templates FOR INSERT WITH CHECK (o
 CREATE POLICY org_isolation_update ON receipt_templates FOR UPDATE USING (organization_id = get_current_org());
 CREATE POLICY org_isolation_delete ON receipt_templates FOR DELETE USING (organization_id = get_current_org());
 
-CREATE POLICY org_isolation_select ON payment_methods FOR SELECT USING (organization_id = get_current_org());
-CREATE POLICY org_isolation_insert ON payment_methods FOR INSERT WITH CHECK (organization_id = get_current_org());
-CREATE POLICY org_isolation_update ON payment_methods FOR UPDATE USING (organization_id = get_current_org());
-CREATE POLICY org_isolation_delete ON payment_methods FOR DELETE USING (organization_id = get_current_org());
 
-CREATE POLICY org_isolation_select ON transactions FOR SELECT USING (organization_id = get_current_org());
-CREATE POLICY org_isolation_insert ON transactions FOR INSERT WITH CHECK (organization_id = get_current_org());
-CREATE POLICY org_isolation_update ON transactions FOR UPDATE USING (organization_id = get_current_org());
-CREATE POLICY org_isolation_delete ON transactions FOR DELETE USING (organization_id = get_current_org());
+
+
+
+
 
 CREATE POLICY org_isolation_select ON crm_tags FOR SELECT USING (organization_id = get_current_org());
 CREATE POLICY org_isolation_insert ON crm_tags FOR INSERT WITH CHECK (organization_id = get_current_org());

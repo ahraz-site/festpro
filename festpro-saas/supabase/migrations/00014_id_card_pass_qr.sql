@@ -3,14 +3,19 @@
 -- ============================================================
 
 -- ENUMS
-CREATE TYPE id_card_type AS ENUM ('participant','judge','volunteer','staff','team_manager','organization_admin','festival_director','reception','media','guest','vip','security','medical','technical');
-CREATE TYPE badge_type AS ENUM ('stage_access','judge','volunteer','staff','guest','vip','media','security');
-CREATE TYPE pass_type AS ENUM ('general','vip','guest','media','vehicle','parking','backstage','stage_access');
-CREATE TYPE pass_status AS ENUM ('active','used','expired','revoked','cancelled');
-CREATE TYPE card_status AS ENUM ('draft','active','expired','revoked','cancelled');
-CREATE TYPE print_status AS ENUM ('queued','processing','completed','failed','cancelled');
-CREATE TYPE verification_method AS ENUM ('qr_scan','barcode_scan','manual_search','api');
-CREATE TYPE verification_result AS ENUM ('valid','invalid','expired','revoked','not_found');
+DO $$ BEGIN CREATE TYPE id_card_type AS ENUM ('participant','judge','volunteer','staff','team_manager','organization_admin','festival_director','reception','media','guest','vip','security','medical','technical'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE badge_type AS ENUM ('stage_access','judge','volunteer','staff','guest','vip','media','security'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE pass_type AS ENUM ('general','vip','guest','media','vehicle','parking','backstage','stage_access'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE pass_status AS ENUM ('active','used','expired','revoked','cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE card_status AS ENUM ('draft','active','expired','revoked','cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE print_status AS ENUM ('queued','processing','completed','failed','cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE verification_method AS ENUM ('qr_scan','barcode_scan','manual_search','api'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE verification_result AS ENUM ('valid','invalid','expired','revoked','not_found'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+CREATE OR REPLACE FUNCTION get_current_org()
+RETURNS UUID AS $$
+  SELECT organization_id FROM user_organizations WHERE user_id = auth.uid() LIMIT 1;
+$$ LANGUAGE sql STABLE SECURITY DEFINER;
 
 -- ============================================================
 -- 1. ID CARD TEMPLATES

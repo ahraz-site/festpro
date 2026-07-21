@@ -6,17 +6,17 @@
 -- ENUMS
 -- ============================================================
 
-CREATE TYPE mobile_device_platform AS ENUM ('ios', 'android', 'web', 'desktop');
-CREATE TYPE mobile_device_status AS ENUM ('active', 'inactive', 'suspended', 'revoked');
-CREATE TYPE mobile_session_status AS ENUM ('active', 'expired', 'terminated', 'revoked');
-CREATE TYPE sync_operation AS ENUM ('create', 'update', 'delete', 'upsert');
-CREATE TYPE sync_status AS ENUM ('pending', 'syncing', 'completed', 'failed', 'conflict');
-CREATE TYPE sync_priority AS ENUM ('high', 'medium', 'low');
-CREATE TYPE push_provider AS ENUM ('web_push', 'firebase', 'apns', 'custom');
-CREATE TYPE push_status AS ENUM ('pending', 'sent', 'delivered', 'failed', 'clicked');
-CREATE TYPE mobile_activity_type AS ENUM ('login', 'logout', 'sync', 'scan', 'form_submit', 'media_upload', 'view', 'search', 'settings_change', 'error');
-CREATE TYPE mobile_role AS ENUM ('platform_owner', 'organization_admin', 'festival_admin', 'judge', 'volunteer', 'reception', 'medical', 'finance', 'inventory', 'participant');
-CREATE TYPE offline_form_status AS ENUM ('draft', 'queued', 'submitted', 'synced', 'failed');
+DO $$ BEGIN CREATE TYPE mobile_device_platform AS ENUM ('ios', 'android', 'web', 'desktop'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE mobile_device_status AS ENUM ('active', 'inactive', 'suspended', 'revoked'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE mobile_session_status AS ENUM ('active', 'expired', 'terminated', 'revoked'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE sync_operation AS ENUM ('create', 'update', 'delete', 'upsert'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE sync_status AS ENUM ('pending', 'syncing', 'completed', 'failed', 'conflict'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE sync_priority AS ENUM ('high', 'medium', 'low'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE push_provider AS ENUM ('web_push', 'firebase', 'apns', 'custom'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE push_status AS ENUM ('pending', 'sent', 'delivered', 'failed', 'clicked'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE mobile_activity_type AS ENUM ('login', 'logout', 'sync', 'scan', 'form_submit', 'media_upload', 'view', 'search', 'settings_change', 'error'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE mobile_role AS ENUM ('platform_owner', 'organization_admin', 'festival_admin', 'judge', 'volunteer', 'reception', 'medical', 'finance', 'inventory', 'participant'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE offline_form_status AS ENUM ('draft', 'queued', 'submitted', 'synced', 'failed'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- ============================================================
 -- 1. MOBILE DEVICES
@@ -173,26 +173,9 @@ ALTER TABLE mobile_settings ENABLE ROW LEVEL security;
 -- 7. PUSH SUBSCRIPTIONS
 -- ============================================================
 
-CREATE TABLE push_subscriptions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  device_id UUID NOT NULL REFERENCES mobile_devices(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  subscription JSONB NOT NULL,
-  provider push_provider NOT NULL DEFAULT 'web_push',
-  endpoint TEXT NOT NULL,
-  p256dh_key TEXT,
-  auth_key TEXT,
-  is_active BOOLEAN DEFAULT true,
-  failed_attempts INTEGER DEFAULT 0,
-  last_sent_at TIMESTAMPTZ,
-  expires_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(device_id, user_id, provider)
-);
-ALTER TABLE push_subscriptions ENABLE ROW LEVEL security;
-CREATE INDEX idx_push_sub_user ON push_subscriptions(user_id, is_active);
+
+
+
 
 -- ============================================================
 -- 8. PUSH DELIVERY LOGS
@@ -312,7 +295,7 @@ CREATE POLICY "org_access_all" ON sync_logs FOR ALL USING (organization_id = aut
 -- Mobile Settings
 CREATE POLICY "org_access_all" ON mobile_settings FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
 -- Push Subscriptions
-CREATE POLICY "org_access_all" ON push_subscriptions FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
+
 -- Push Delivery Logs
 CREATE POLICY "org_access_all" ON push_delivery_logs FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
 -- Mobile Activity Logs
@@ -329,6 +312,6 @@ CREATE POLICY "org_access_all" ON offline_media_uploads FOR ALL USING (organizat
 CREATE TRIGGER update_mobile_devices_updated_at BEFORE UPDATE ON mobile_devices FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER update_offline_sync_queue_updated_at BEFORE UPDATE ON offline_sync_queue FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER update_mobile_settings_updated_at BEFORE UPDATE ON mobile_settings FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-CREATE TRIGGER update_push_subscriptions_updated_at BEFORE UPDATE ON push_subscriptions FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
 CREATE TRIGGER update_offline_forms_updated_at BEFORE UPDATE ON offline_forms FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER update_offline_media_uploads_updated_at BEFORE UPDATE ON offline_media_uploads FOR EACH ROW EXECUTE FUNCTION update_updated_at();

@@ -6,20 +6,20 @@
 -- ENUMS
 -- ============================================================
 
-CREATE TYPE medical_center_type AS ENUM ('medical_desk', 'first_aid_station', 'emergency_clinic', 'isolation_room', 'mobile_medical_unit', 'ambulance_station');
-CREATE TYPE medical_center_status AS ENUM ('active', 'inactive', 'under_maintenance', 'closed');
-CREATE TYPE medical_staff_role AS ENUM ('medical_director', 'doctor', 'nurse', 'paramedic', 'medical_volunteer', 'emergency_coordinator', 'security');
-CREATE TYPE patient_type AS ENUM ('participant', 'judge', 'volunteer', 'guest', 'visitor', 'staff');
-CREATE TYPE blood_group AS ENUM ('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-');
-CREATE TYPE medical_case_status AS ENUM ('open', 'in_treatment', 'referred', 'discharged', 'closed');
-CREATE TYPE case_severity AS ENUM ('minor', 'moderate', 'serious', 'critical', 'deceased');
-CREATE TYPE medicine_category AS ENUM ('tablet', 'capsule', 'syrup', 'injection', 'cream', 'ointment', 'drops', 'spray', 'inhaler', 'other');
-CREATE TYPE medicine_transaction_type AS ENUM ('received', 'issued', 'returned', 'expired', 'damaged', 'transferred');
-CREATE TYPE incident_category AS ENUM ('medical', 'fire', 'security', 'accident', 'missing_person', 'natural_disaster', 'technical_failure', 'other_emergency');
-CREATE TYPE incident_severity AS ENUM ('low', 'medium', 'high', 'critical');
-CREATE TYPE incident_status AS ENUM ('reported', 'investigating', 'assigned', 'in_progress', 'resolved', 'closed');
-CREATE TYPE ambulance_status AS ENUM ('available', 'en_route', 'on_scene', 'transporting', 'unavailable', 'maintenance');
-CREATE TYPE emergency_dispatch_status AS ENUM ('pending', 'dispatched', 'en_route', 'on_scene', 'completed', 'cancelled');
+DO $$ BEGIN CREATE TYPE medical_center_type AS ENUM ('medical_desk', 'first_aid_station', 'emergency_clinic', 'isolation_room', 'mobile_medical_unit', 'ambulance_station'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE medical_center_status AS ENUM ('active', 'inactive', 'under_maintenance', 'closed'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE medical_staff_role AS ENUM ('medical_director', 'doctor', 'nurse', 'paramedic', 'medical_volunteer', 'emergency_coordinator', 'security'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE patient_type AS ENUM ('participant', 'judge', 'volunteer', 'guest', 'visitor', 'staff'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE blood_group AS ENUM ('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE medical_case_status AS ENUM ('open', 'in_treatment', 'referred', 'discharged', 'closed'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE case_severity AS ENUM ('minor', 'moderate', 'serious', 'critical', 'deceased'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE medicine_category AS ENUM ('tablet', 'capsule', 'syrup', 'injection', 'cream', 'ointment', 'drops', 'spray', 'inhaler', 'other'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE medicine_transaction_type AS ENUM ('received', 'issued', 'returned', 'expired', 'damaged', 'transferred'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE incident_category AS ENUM ('medical', 'fire', 'security', 'accident', 'missing_person', 'natural_disaster', 'technical_failure', 'other_emergency'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE incident_severity AS ENUM ('low', 'medium', 'high', 'critical'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE incident_status AS ENUM ('reported', 'investigating', 'assigned', 'in_progress', 'resolved', 'closed'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE ambulance_status AS ENUM ('available', 'en_route', 'on_scene', 'transporting', 'unavailable', 'maintenance'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE emergency_dispatch_status AS ENUM ('pending', 'dispatched', 'en_route', 'on_scene', 'completed', 'cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- ============================================================
 -- 1. MEDICAL CENTERS
@@ -72,6 +72,7 @@ CREATE TABLE medical_staff (
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE medical_staff ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
 ALTER TABLE medical_staff ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
@@ -740,37 +741,37 @@ CREATE INDEX idx_medical_certificates_patient ON medical_certificates(patient_id
 -- RLS POLICIES
 -- ============================================================
 
-CREATE POLICY "org_access_all" ON medical_centers FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON medical_staff FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON medical_specializations FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON medical_shifts FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON medical_inventory FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON medical_suppliers FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON patients FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON medical_cases FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON medical_case_history FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON medical_observations FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON medical_treatments FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON prescriptions FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON medications FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON medicine_inventory FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON medicine_transactions FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON allergies FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON medical_conditions FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON emergency_contacts FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON ambulances FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON ambulance_drivers FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON ambulance_trips FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON incident_categories FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON incidents FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON incident_updates FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON incident_assignments FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON incident_evidence FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON emergency_response_teams FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON emergency_dispatch_logs FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON hospital_referrals FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON insurance_records FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON medical_certificates FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
+CREATE POLICY "org_access_all" ON medical_centers FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON medical_staff FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON medical_specializations FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON medical_shifts FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON medical_inventory FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON medical_suppliers FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON patients FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON medical_cases FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON medical_case_history FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON medical_observations FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON medical_treatments FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON prescriptions FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON medications FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON medicine_inventory FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON medicine_transactions FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON allergies FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON medical_conditions FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON emergency_contacts FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON ambulances FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON ambulance_drivers FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON ambulance_trips FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON incident_categories FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON incidents FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON incident_updates FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON incident_assignments FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON incident_evidence FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON emergency_response_teams FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON emergency_dispatch_logs FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON hospital_referrals FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON insurance_records FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON medical_certificates FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
 
 -- ============================================================
 -- TRIGGERS

@@ -3,16 +3,16 @@
 
 -- 1. ENUMS
 -- =================================================================
-CREATE TYPE finance_account_type AS ENUM ('asset','liability','equity','income','expense');
-CREATE TYPE transaction_type AS ENUM ('credit','debit');
-CREATE TYPE payment_status AS ENUM ('pending','completed','failed','refunded','cancelled');
-CREATE TYPE payment_gateway AS ENUM ('razorpay','stripe','paypal','cash','bank_transfer','upi','other');
-CREATE TYPE expense_status AS ENUM ('draft','approved','paid','cancelled');
-CREATE TYPE budget_status AS ENUM ('draft','active','closed','cancelled');
-CREATE TYPE report_format AS ENUM ('pdf','excel','csv');
-CREATE TYPE report_schedule AS ENUM ('none','daily','weekly','monthly','quarterly','yearly');
-CREATE TYPE chart_type AS ENUM ('bar','pie','line','area','heatmap');
-CREATE TYPE widget_type AS ENUM ('stat','chart','table','list','metric');
+DO $$ BEGIN CREATE TYPE finance_account_type AS ENUM ('asset','liability','equity','income','expense'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE transaction_type AS ENUM ('credit','debit'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE payment_status AS ENUM ('pending','completed','failed','refunded','cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE payment_gateway AS ENUM ('razorpay','stripe','paypal','cash','bank_transfer','upi','other'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE expense_status AS ENUM ('draft','approved','paid','cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE budget_status AS ENUM ('draft','active','closed','cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE report_format AS ENUM ('pdf','excel','csv'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE report_schedule AS ENUM ('none','daily','weekly','monthly','quarterly','yearly'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE chart_type AS ENUM ('bar','pie','line','area','heatmap'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE widget_type AS ENUM ('stat','chart','table','list','metric'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- 2. TABLES
 -- =================================================================
@@ -54,6 +54,11 @@ CREATE TABLE payment_methods (
   gateway payment_gateway NOT NULL DEFAULT 'cash',
   is_online BOOLEAN NOT NULL DEFAULT false,
   account_details JSONB,
+  account_name TEXT,
+  account_number TEXT,
+  bank_name TEXT,
+  upi_id TEXT,
+  qr_code_url TEXT,
   is_active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(organization_id, method_name)
@@ -92,7 +97,7 @@ CREATE TABLE registration_payments (
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   festival_id UUID NOT NULL REFERENCES festivals(id) ON DELETE CASCADE,
   participant_id UUID NOT NULL REFERENCES participants(id) ON DELETE CASCADE,
-  registration_id UUID REFERENCES competition_registrations(id) ON DELETE SET NULL,
+  registration_id UUID REFERENCES registrations(id) ON DELETE SET NULL,
   transaction_id UUID REFERENCES transactions(id) ON DELETE SET NULL,
   amount DECIMAL(12,2) NOT NULL CHECK (amount > 0),
   discount_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
@@ -196,49 +201,9 @@ CREATE TABLE budgets (
 CREATE INDEX idx_budgets_festival ON budgets(festival_id);
 CREATE INDEX idx_budgets_status ON budgets(status);
 
--- Sponsors
-CREATE TABLE sponsors (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  festival_id UUID REFERENCES festivals(id) ON DELETE CASCADE,
-  sponsor_name VARCHAR(300) NOT NULL,
-  contact_person VARCHAR(200),
-  email VARCHAR(200),
-  phone VARCHAR(50),
-  address TEXT,
-  logo_url TEXT,
-  website VARCHAR(300),
-  sponsorship_tier VARCHAR(100),
-  amount DECIMAL(12,2) NOT NULL DEFAULT 0,
-  is_active BOOLEAN NOT NULL DEFAULT true,
-  agreement_url TEXT,
-  notes TEXT,
-  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
 
-CREATE INDEX idx_sponsors_festival ON sponsors(festival_id);
 
--- Donations
-CREATE TABLE donations (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  festival_id UUID REFERENCES festivals(id) ON DELETE CASCADE,
-  transaction_id UUID REFERENCES transactions(id) ON DELETE SET NULL,
-  donor_name VARCHAR(300) NOT NULL,
-  donor_email VARCHAR(200),
-  donor_phone VARCHAR(50),
-  amount DECIMAL(12,2) NOT NULL CHECK (amount > 0),
-  message TEXT,
-  is_anonymous BOOLEAN NOT NULL DEFAULT false,
-  payment_method_id UUID REFERENCES payment_methods(id) ON DELETE SET NULL,
-  status payment_status NOT NULL DEFAULT 'pending',
-  receipt_sent BOOLEAN NOT NULL DEFAULT false,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
 
-CREATE INDEX idx_donations_festival ON donations(festival_id);
 
 -- Financial Reports
 CREATE TABLE financial_reports (
@@ -337,7 +302,7 @@ CREATE TRIGGER update_registration_payments_updated_at BEFORE UPDATE ON registra
 CREATE TRIGGER update_expenses_updated_at BEFORE UPDATE ON expenses FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_income_updated_at BEFORE UPDATE ON income FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_budgets_updated_at BEFORE UPDATE ON budgets FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_sponsors_updated_at BEFORE UPDATE ON sponsors FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 CREATE TRIGGER update_report_templates_updated_at BEFORE UPDATE ON report_templates FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_saved_reports_updated_at BEFORE UPDATE ON saved_reports FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_dashboard_widgets_updated_at BEFORE UPDATE ON dashboard_widgets FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -372,8 +337,8 @@ ALTER TABLE expense_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE income ENABLE ROW LEVEL SECURITY;
 ALTER TABLE budgets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE sponsors ENABLE ROW LEVEL SECURITY;
-ALTER TABLE donations ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE financial_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE report_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE saved_reports ENABLE ROW LEVEL SECURITY;
@@ -417,13 +382,9 @@ CREATE POLICY income_org_isolation ON income
 CREATE POLICY budgets_org_isolation ON budgets
   USING (organization_id = (SELECT organization_id FROM user_organizations WHERE user_id = auth.uid() LIMIT 1));
 
--- Sponsors
-CREATE POLICY sponsors_org_isolation ON sponsors
-  USING (organization_id = (SELECT organization_id FROM user_organizations WHERE user_id = auth.uid() LIMIT 1));
 
--- Donations
-CREATE POLICY donations_org_isolation ON donations
-  USING (organization_id = (SELECT organization_id FROM user_organizations WHERE user_id = auth.uid() LIMIT 1));
+
+
 
 -- Financial Reports
 CREATE POLICY financial_reports_org_isolation ON financial_reports
@@ -453,15 +414,25 @@ CREATE POLICY finance_audit_log_org_isolation ON finance_audit_log
 -- =================================================================
 
 -- Default Expense Categories
-INSERT INTO expense_categories (organization_id, name, description, color) VALUES
-  ('00000000-0000-0000-0000-000000000000', 'Travel', 'Travel expenses for participants and staff', '#3b82f6'),
-  ('00000000-0000-0000-0000-000000000000', 'Food', 'Food and catering expenses', '#f59e0b'),
-  ('00000000-0000-0000-0000-000000000000', 'Accommodation', 'Lodging and accommodation expenses', '#8b5cf6'),
-  ('00000000-0000-0000-0000-000000000000', 'Printing', 'Printing and stationery expenses', '#06b6d4'),
-  ('00000000-0000-0000-0000-000000000000', 'Decoration', 'Stage and venue decoration expenses', '#ec4899'),
-  ('00000000-0000-0000-0000-000000000000', 'Stage', 'Stage setup and equipment expenses', '#f97316'),
-  ('00000000-0000-0000-0000-000000000000', 'Sound', 'Sound system and audio equipment expenses', '#10b981'),
-  ('00000000-0000-0000-0000-000000000000', 'Lighting', 'Lighting equipment and setup expenses', '#6366f1'),
-  ('00000000-0000-0000-0000-000000000000', 'Prize', 'Prize money and award expenses', '#ef4444'),
-  ('00000000-0000-0000-0000-000000000000', 'Miscellaneous', 'Other miscellaneous expenses', '#6b7280')
-ON CONFLICT DO NOTHING;
+INSERT INTO expense_categories (organization_id, name, description, color)
+SELECT id, 'Travel', 'Travel expenses for participants and staff', '#3b82f6' FROM organizations
+UNION ALL
+SELECT id, 'Food', 'Food and catering expenses', '#f59e0b' FROM organizations
+UNION ALL
+SELECT id, 'Accommodation', 'Lodging and accommodation expenses', '#8b5cf6' FROM organizations
+UNION ALL
+SELECT id, 'Printing', 'Printing and stationery expenses', '#06b6d4' FROM organizations
+UNION ALL
+SELECT id, 'Decoration', 'Stage and venue decoration expenses', '#ec4899' FROM organizations
+UNION ALL
+SELECT id, 'Stage', 'Stage setup and equipment expenses', '#f97316' FROM organizations
+UNION ALL
+SELECT id, 'Sound', 'Sound system and audio equipment expenses', '#10b981' FROM organizations
+UNION ALL
+SELECT id, 'Lighting', 'Lighting equipment and setup expenses', '#6366f1' FROM organizations
+UNION ALL
+SELECT id, 'Prize', 'Prize money and award expenses', '#ef4444' FROM organizations
+UNION ALL
+SELECT id, 'Miscellaneous', 'Other miscellaneous expenses', '#6b7280' FROM organizations
+ON CONFLICT (organization_id, name) DO NOTHING;
+

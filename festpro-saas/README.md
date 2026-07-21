@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FestPro — Enterprise Festival Management SaaS Platform
+
+FestPro is a multi-tenant, enterprise-grade SaaS platform for managing arts, cultural, and competitive festivals end-to-end: registration, competitions, judging, scheduling, results, certificates, finance, volunteers, accommodation, medical, AI, and more.
+
+## Tech Stack
+
+- **Framework:** Next.js 14 (App Router)
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS + shadcn/ui
+- **Database:** PostgreSQL (Supabase)
+- **Auth:** Supabase Auth
+- **Backend:** Supabase (Postgres + RLS + Edge Functions)
+- **State/Data:** Server Actions + Supabase client
+- **Deployment:** Vercel (frontend), Supabase (backend)
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
+cp .env.example .env.local   # fill in Supabase keys
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+See `.env.example`. Required:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
 
-## Learn More
+## Database Migrations
 
-To learn more about Next.js, take a look at the following resources:
+All schema migrations live in `supabase/migrations/` numbered `00001`–`00030` (one per module) plus helper files `00001a_enum_values.sql`, `00001b_seed_roles.sql`, `00003b_pre_fix.sql`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Apply via Supabase CLI:
+```bash
+supabase db push
+```
+Or via psql in order (skip `00008_result_schema.sql`, `00004b_fix_rls.sql`, `00007b_fix_rls.sql` — those are superseded).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Layout
 
-## Deploy on Vercel
+- `src/app/(auth)` — login / signup
+- `src/app/(public)` — public portal
+- `src/app/dashboard` — organization admin console
+- `src/app/mobile` — mobile/PWA views
+- `src/app/api` — route handlers
+- `src/lib/actions` — Server Actions
+- `src/lib/supabase` — client/server DB helpers
+- `src/components` — shared UI
+- `supabase/migrations` — SQL schema
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Documentation
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `AI_CONTEXT.md` — orientation for AI coding tools
+- `AGENTS.md` — agent/developer operating rules
+- `PROJECT_STRUCTURE.md` — directory map
+- `DATABASE.md` — schema & RLS overview
+- `FEATURES.md` — the 30 modules
+- `DESIGN_SYSTEM.md` — UI conventions
+- `API.md` — Server Actions & routes
+- `CHANGELOG.md` — history
+
+## License
+
+Proprietary — all rights reserved.

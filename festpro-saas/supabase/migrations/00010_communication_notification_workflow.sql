@@ -3,14 +3,14 @@
 
 -- 1. ENUMS
 -- =================================================================
-CREATE TYPE notification_channel AS ENUM ('email','sms','push','in_app','browser','whatsapp');
-CREATE TYPE notification_priority AS ENUM ('low','normal','high','urgent');
-CREATE TYPE notification_status AS ENUM ('pending','sent','delivered','read','failed','cancelled');
-CREATE TYPE announcement_target AS ENUM ('festival','stage','judge','volunteer','participant','organization','all');
-CREATE TYPE announcement_status AS ENUM ('draft','scheduled','published','archived');
-CREATE TYPE workflow_trigger_type AS ENUM ('event','schedule','manual');
-CREATE TYPE workflow_action_type AS ENUM ('send_email','send_sms','send_push','send_in_app','create_announcement','update_status','webhook','delay');
-CREATE TYPE workflow_status AS ENUM ('active','inactive','paused','completed','failed');
+DO $$ BEGIN CREATE TYPE notification_channel AS ENUM ('email','sms','push','in_app','browser','whatsapp'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE notification_priority AS ENUM ('low','normal','high','urgent'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE notification_status AS ENUM ('pending','sent','delivered','read','failed','cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE announcement_target AS ENUM ('festival','stage','judge','volunteer','participant','organization','all'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE comm_announcement_status AS ENUM ('draft','scheduled','published','archived'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE workflow_trigger_type AS ENUM ('event','schedule','manual'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE workflow_action_type AS ENUM ('send_email','send_sms','send_push','send_in_app','create_announcement','update_status','webhook','delay'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE workflow_status AS ENUM ('active','inactive','paused','completed','failed'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- 2. TABLES
 -- =================================================================
@@ -56,6 +56,7 @@ CREATE TABLE notifications (
   created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
 
 CREATE INDEX idx_notifications_user ON notifications(user_id, is_read, is_archived);
 CREATE INDEX idx_notifications_festival ON notifications(festival_id);
@@ -174,6 +175,7 @@ CREATE TABLE push_subscriptions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(user_id, endpoint)
 );
+ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
 
 -- Push Notification Logs
 CREATE TABLE push_logs (
@@ -188,6 +190,7 @@ CREATE TABLE push_logs (
   error_message TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE push_logs ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
 
 -- Announcement Templates
 CREATE TABLE announcement_templates (
@@ -216,7 +219,7 @@ CREATE TABLE announcements (
   body TEXT NOT NULL,
   target announcement_target NOT NULL DEFAULT 'festival',
   priority notification_priority NOT NULL DEFAULT 'normal',
-  status announcement_status NOT NULL DEFAULT 'draft',
+  status comm_announcement_status NOT NULL DEFAULT 'draft',
   is_pinned BOOLEAN NOT NULL DEFAULT false,
   is_emergency BOOLEAN NOT NULL DEFAULT false,
   scheduled_at TIMESTAMPTZ,
@@ -241,6 +244,53 @@ CREATE TABLE announcement_receivers (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(announcement_id, user_id)
 );
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE announcement_receivers ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 
 -- Workflow Rules
 CREATE TABLE workflow_rules (

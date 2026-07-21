@@ -4,15 +4,15 @@
 -- ============================================================
 
 -- ENUMS
-CREATE TYPE room_type_enum AS ENUM ('dormitory','standard','vip','judge','volunteer','staff','medical','guest');
-CREATE TYPE allocation_status AS ENUM ('confirmed','checked_in','checked_out','cancelled','no_show');
-CREATE TYPE booking_status AS ENUM ('pending','confirmed','cancelled','completed');
-CREATE TYPE vehicle_category AS ENUM ('bus','van','car','mini_bus','ambulance','utility');
-CREATE TYPE vehicle_status AS ENUM ('available','in_use','under_maintenance','out_of_service','retired');
-CREATE TYPE driver_status AS ENUM ('available','on_trip','off_duty','sick','vacation');
-CREATE TYPE trip_status AS ENUM ('scheduled','in_progress','completed','cancelled','delayed');
-CREATE TYPE maintenance_type AS ENUM ('routine','repair','emergency','inspection','insurance');
-CREATE TYPE transport_request_status AS ENUM ('pending','approved','rejected','assigned','completed','cancelled');
+DO $$ BEGIN CREATE TYPE room_type_enum AS ENUM ('dormitory','standard','vip','judge','volunteer','staff','medical','guest'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE allocation_status AS ENUM ('confirmed','checked_in','checked_out','cancelled','no_show'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE booking_status AS ENUM ('pending','confirmed','cancelled','completed'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE vehicle_category AS ENUM ('bus','van','car','mini_bus','ambulance','utility'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE vehicle_status AS ENUM ('available','in_use','under_maintenance','out_of_service','retired'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE driver_status AS ENUM ('available','on_trip','off_duty','sick','vacation'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE trip_status AS ENUM ('scheduled','in_progress','completed','cancelled','delayed'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE transport_maintenance_type AS ENUM ('routine','repair','emergency','inspection','insurance'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE transport_request_status AS ENUM ('pending','approved','rejected','assigned','completed','cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- ============================================================
 -- 1. ACCOMMODATION LOCATIONS (centers/venues)
@@ -251,7 +251,7 @@ ALTER TABLE room_change_requests ENABLE ROW LEVEL SECURITY;
 -- ============================================================
 -- 12. CHECK-INS
 -- ============================================================
-CREATE TABLE checkins (
+CREATE TABLE room_checkins (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   festival_id UUID NOT NULL REFERENCES festivals(id) ON DELETE CASCADE,
@@ -271,7 +271,7 @@ CREATE TABLE checkins (
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
-ALTER TABLE checkins ENABLE ROW LEVEL SECURITY;
+ALTER TABLE room_checkins ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
 -- 13. CHECK-OUTS
@@ -281,7 +281,7 @@ CREATE TABLE checkouts (
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   festival_id UUID NOT NULL REFERENCES festivals(id) ON DELETE CASCADE,
   allocation_id UUID NOT NULL REFERENCES room_allocations(id) ON DELETE CASCADE,
-  checkin_id UUID REFERENCES checkins(id) ON DELETE SET NULL,
+  checkin_id UUID REFERENCES room_checkins(id) ON DELETE SET NULL,
   room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
   occupant_name TEXT NOT NULL,
   occupant_type TEXT,
@@ -600,7 +600,7 @@ CREATE TABLE vehicle_maintenance (
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   festival_id UUID NOT NULL REFERENCES festivals(id) ON DELETE CASCADE,
   vehicle_id UUID NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
-  maintenance_type maintenance_type NOT NULL DEFAULT 'routine',
+  transport_maintenance_type transport_maintenance_type NOT NULL DEFAULT 'routine',
   title TEXT NOT NULL,
   description TEXT,
   scheduled_date DATE,
@@ -734,39 +734,39 @@ ALTER TABLE gps_tracking_logs ENABLE ROW LEVEL SECURITY;
 -- ============================================================
 -- RLS POLICIES
 -- ============================================================
-CREATE POLICY "org_access_all" ON accommodation_locations FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON accommodation_buildings FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON building_floors FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON room_types FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON rooms FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON beds FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON room_facilities FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON room_maintenance FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON room_allocations FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON bed_allocations FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON room_change_requests FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON checkins FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON checkouts FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON occupancy_logs FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON transport_hubs FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON routes FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON route_stops FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON vehicle_categories FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON vehicles FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON vehicle_documents FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON drivers FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON driver_documents FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON driver_assignments FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON trip_schedules FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON trip_assignments FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON trip_logs FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON fuel_logs FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON vehicle_maintenance FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON transport_requests FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON transport_bookings FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON pickup_points FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON drop_points FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
-CREATE POLICY "org_access_all" ON gps_tracking_logs FOR ALL USING (organization_id = auth.jwt() ->> 'org_id');
+CREATE POLICY "org_access_all" ON accommodation_locations FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON accommodation_buildings FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON building_floors FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON room_types FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON rooms FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON beds FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON room_facilities FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON room_maintenance FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON room_allocations FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON bed_allocations FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON room_change_requests FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON room_checkins FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON checkouts FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON occupancy_logs FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON transport_hubs FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON routes FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON route_stops FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON vehicle_categories FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON vehicles FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON vehicle_documents FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON drivers FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON driver_documents FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON driver_assignments FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON trip_schedules FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON trip_assignments FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON trip_logs FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON fuel_logs FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON vehicle_maintenance FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON transport_requests FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON transport_bookings FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON pickup_points FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON drop_points FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
+CREATE POLICY "org_access_all" ON gps_tracking_logs FOR ALL USING (organization_id = (auth.jwt() ->> 'org_id')::uuid);
 
 -- ============================================================
 -- AUTO-UPDATE TRIGGERS

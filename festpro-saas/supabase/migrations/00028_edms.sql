@@ -8,16 +8,16 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 -- ENUMS
 -- ============================================================
 
-CREATE TYPE document_status AS ENUM ('draft', 'submitted', 'under_review', 'approved', 'rejected', 'published', 'archived', 'deleted');
-CREATE TYPE document_version_type AS ENUM ('major', 'minor');
-CREATE TYPE approval_status AS ENUM ('pending', 'approved', 'rejected', 'escalated', 'skipped');
-CREATE TYPE approval_step_type AS ENUM ('single', 'parallel', 'conditional', 'escalation');
-CREATE TYPE signature_status AS ENUM ('pending', 'signed', 'declined', 'expired');
-CREATE TYPE archive_status AS ENUM ('pending', 'archiving', 'archived', 'restoring', 'restored', 'failed');
-CREATE TYPE retention_action AS ENUM ('archive', 'delete', 'review', 'notify');
-CREATE TYPE knowledge_article_status AS ENUM ('draft', 'published', 'archived', 'deprecated');
-CREATE TYPE share_access_level AS ENUM ('view', 'comment', 'edit');
-CREATE TYPE share_target_type AS ENUM ('user', 'organization', 'public');
+DO $$ BEGIN CREATE TYPE document_status AS ENUM ('draft', 'submitted', 'under_review', 'approved', 'rejected', 'published', 'archived', 'deleted'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE document_version_type AS ENUM ('major', 'minor'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE approval_status AS ENUM ('pending', 'approved', 'rejected', 'escalated', 'skipped'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE approval_step_type AS ENUM ('single', 'parallel', 'conditional', 'escalation'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE signature_status AS ENUM ('pending', 'signed', 'declined', 'expired'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE archive_status AS ENUM ('pending', 'archiving', 'archived', 'restoring', 'restored', 'failed'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE retention_action AS ENUM ('archive', 'delete', 'review', 'notify'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE knowledge_article_status AS ENUM ('draft', 'published', 'archived', 'deprecated'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE share_access_level AS ENUM ('view', 'comment', 'edit'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE share_target_type AS ENUM ('user', 'organization', 'public'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- ============================================================
 -- TABLES
@@ -37,7 +37,7 @@ CREATE TABLE document_folders (
   is_archived BOOLEAN NOT NULL DEFAULT false,
   path TEXT DEFAULT '',
   depth INTEGER NOT NULL DEFAULT 0,
-  created_by UUID REFERENCES user_profiles(user_id) ON DELETE SET NULL,
+  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -67,6 +67,45 @@ CREATE TABLE document_tags (
   UNIQUE(organization_id, tag_name)
 );
 
+-- Document Templates
+CREATE TABLE document_templates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  template_name VARCHAR(255) NOT NULL,
+  template_type VARCHAR(100) NOT NULL DEFAULT 'document',
+  description TEXT DEFAULT '',
+  content TEXT DEFAULT '',
+  schema JSONB DEFAULT '{}',
+  variables TEXT[] DEFAULT '{}',
+  category_id UUID REFERENCES document_categories(id) ON DELETE SET NULL,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  is_public BOOLEAN NOT NULL DEFAULT false,
+  current_version INTEGER NOT NULL DEFAULT 1,
+  thumbnail_url TEXT DEFAULT '',
+  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+
+-- Retention Rules
+CREATE TABLE retention_rules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  rule_name VARCHAR(255) NOT NULL,
+  description TEXT DEFAULT '',
+  document_type VARCHAR(100) DEFAULT NULL,
+  category_id UUID REFERENCES document_categories(id) ON DELETE SET NULL,
+  retention_days INTEGER NOT NULL,
+  action_on_expiry retention_action NOT NULL DEFAULT 'archive',
+  is_legal_hold BOOLEAN NOT NULL DEFAULT false,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+
 -- Documents (core table)
 CREATE TABLE documents (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -91,13 +130,13 @@ CREATE TABLE documents (
   tags TEXT[] DEFAULT '{}',
   category_ids UUID[] DEFAULT '{}',
   is_locked BOOLEAN NOT NULL DEFAULT false,
-  locked_by UUID REFERENCES user_profiles(user_id) ON DELETE SET NULL,
+  locked_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
   locked_at TIMESTAMPTZ,
   retention_rule_id UUID REFERENCES retention_rules(id) ON DELETE SET NULL,
   archive_at TIMESTAMPTZ,
   expires_at TIMESTAMPTZ,
-  created_by UUID REFERENCES user_profiles(user_id) ON DELETE SET NULL,
-  updated_by UUID REFERENCES user_profiles(user_id) ON DELETE SET NULL,
+  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  updated_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -118,10 +157,18 @@ CREATE TABLE document_versions (
   is_restored BOOLEAN NOT NULL DEFAULT false,
   restored_from_version INTEGER DEFAULT NULL,
   metadata JSONB DEFAULT '{}',
-  created_by UUID REFERENCES user_profiles(user_id) ON DELETE SET NULL,
+  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(document_id, version)
 );
+ALTER TABLE document_versions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_versions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_versions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_versions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_versions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_versions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_versions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_versions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 
 -- Document Files (physical file references)
 CREATE TABLE document_files (
@@ -136,9 +183,17 @@ CREATE TABLE document_files (
   checksum VARCHAR(64) DEFAULT '',
   is_encrypted BOOLEAN NOT NULL DEFAULT false,
   metadata JSONB DEFAULT '{}',
-  created_by UUID REFERENCES user_profiles(user_id) ON DELETE SET NULL,
+  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE document_files ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_files ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_files ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_files ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_files ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_files ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_files ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_files ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 
 -- Document Metadata (extensible key-value)
 CREATE TABLE document_metadata (
@@ -150,13 +205,21 @@ CREATE TABLE document_metadata (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(document_id, meta_key)
 );
+ALTER TABLE document_metadata ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_metadata ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_metadata ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_metadata ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_metadata ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_metadata ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_metadata ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_metadata ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 
 -- Document Permissions (fine-grained)
 CREATE TABLE document_permissions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES user_profiles(user_id) ON DELETE CASCADE,
-  role_id UUID REFERENCES organization_roles(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  role_id UUID,
   can_view BOOLEAN NOT NULL DEFAULT false,
   can_edit BOOLEAN NOT NULL DEFAULT false,
   can_delete BOOLEAN NOT NULL DEFAULT false,
@@ -166,6 +229,14 @@ CREATE TABLE document_permissions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(document_id, user_id)
 );
+ALTER TABLE document_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_permissions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 
 -- Document Shares
 CREATE TABLE document_shares (
@@ -183,7 +254,7 @@ CREATE TABLE document_shares (
   max_downloads INTEGER DEFAULT NULL,
   download_count INTEGER NOT NULL DEFAULT 0,
   is_active BOOLEAN NOT NULL DEFAULT true,
-  created_by UUID REFERENCES user_profiles(user_id) ON DELETE SET NULL,
+  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -199,16 +270,24 @@ CREATE TABLE document_comments (
   x_position NUMERIC(10,4) DEFAULT NULL,
   y_position NUMERIC(10,4) DEFAULT NULL,
   is_resolved BOOLEAN NOT NULL DEFAULT false,
-  created_by UUID REFERENCES user_profiles(user_id) ON DELETE SET NULL,
+  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE document_comments ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_comments ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_comments ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_comments ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_comments ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_comments ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_comments ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_comments ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 
 -- Document Reviews
 CREATE TABLE document_reviews (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-  reviewer_id UUID NOT NULL REFERENCES user_profiles(user_id) ON DELETE CASCADE,
+  reviewer_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   review_type VARCHAR(50) NOT NULL DEFAULT 'peer',
   status approval_status NOT NULL DEFAULT 'pending',
   comments TEXT DEFAULT '',
@@ -216,19 +295,14 @@ CREATE TABLE document_reviews (
   due_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
--- Document Approvals
-CREATE TABLE document_approvals (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-  workflow_id UUID REFERENCES approval_workflows(id) ON DELETE SET NULL,
-  step_id UUID REFERENCES approval_steps(id) ON DELETE SET NULL,
-  approver_id UUID NOT NULL REFERENCES user_profiles(user_id) ON DELETE CASCADE,
-  status approval_status NOT NULL DEFAULT 'pending',
-  comments TEXT DEFAULT '',
-  signed_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+ALTER TABLE document_reviews ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_reviews ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_reviews ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_reviews ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_reviews ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_reviews ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_reviews ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_reviews ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 
 -- Approval Workflows
 CREATE TABLE approval_workflows (
@@ -239,10 +313,11 @@ CREATE TABLE approval_workflows (
   document_category_id UUID REFERENCES document_categories(id) ON DELETE SET NULL,
   is_active BOOLEAN NOT NULL DEFAULT true,
   config JSONB DEFAULT '{}',
-  created_by UUID REFERENCES user_profiles(user_id) ON DELETE SET NULL,
+  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
 
 -- Approval Steps
 CREATE TABLE approval_steps (
@@ -258,6 +333,38 @@ CREATE TABLE approval_steps (
   config JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE approval_steps ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE approval_steps ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE approval_steps ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE approval_steps ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE approval_steps ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE approval_steps ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE approval_steps ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE approval_steps ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+
+
+-- Document Approvals
+CREATE TABLE document_approvals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  workflow_id UUID REFERENCES approval_workflows(id) ON DELETE SET NULL,
+  step_id UUID REFERENCES approval_steps(id) ON DELETE SET NULL,
+  approver_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  status approval_status NOT NULL DEFAULT 'pending',
+  comments TEXT DEFAULT '',
+  signed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE document_approvals ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_approvals ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_approvals ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_approvals ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_approvals ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_approvals ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_approvals ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_approvals ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+
+
 
 -- Approval History
 CREATE TABLE approval_history (
@@ -268,30 +375,19 @@ CREATE TABLE approval_history (
   from_status VARCHAR(50) DEFAULT '',
   to_status VARCHAR(50) DEFAULT '',
   comments TEXT DEFAULT '',
-  changed_by UUID REFERENCES user_profiles(user_id) ON DELETE SET NULL,
+  changed_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
   metadata JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE approval_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE approval_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE approval_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE approval_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE approval_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE approval_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE approval_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE approval_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 
--- Document Templates
-CREATE TABLE document_templates (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  template_name VARCHAR(255) NOT NULL,
-  template_type VARCHAR(100) NOT NULL DEFAULT 'document',
-  description TEXT DEFAULT '',
-  content TEXT DEFAULT '',
-  schema JSONB DEFAULT '{}',
-  variables TEXT[] DEFAULT '{}',
-  category_id UUID REFERENCES document_categories(id) ON DELETE SET NULL,
-  is_active BOOLEAN NOT NULL DEFAULT true,
-  is_public BOOLEAN NOT NULL DEFAULT false,
-  current_version INTEGER NOT NULL DEFAULT 1,
-  thumbnail_url TEXT DEFAULT '',
-  created_by UUID REFERENCES user_profiles(user_id) ON DELETE SET NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
 
 -- Template Versions
 CREATE TABLE template_versions (
@@ -302,39 +398,18 @@ CREATE TABLE template_versions (
   schema JSONB DEFAULT '{}',
   variables TEXT[] DEFAULT '{}',
   change_notes TEXT DEFAULT '',
-  created_by UUID REFERENCES user_profiles(user_id) ON DELETE SET NULL,
+  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(template_id, version)
 );
-
--- Document Signatures
-CREATE TABLE document_signatures (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-  version_id UUID REFERENCES document_versions(id) ON DELETE SET NULL,
-  signer_id UUID NOT NULL REFERENCES user_profiles(user_id) ON DELETE CASCADE,
-  signature_data TEXT DEFAULT '',
-  signature_hash VARCHAR(255) DEFAULT '',
-  certificate_id UUID REFERENCES digital_certificates(id) ON DELETE SET NULL,
-  ip_address VARCHAR(45) DEFAULT '',
-  user_agent TEXT DEFAULT '',
-  signed_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- Signature Requests
-CREATE TABLE signature_requests (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-  signer_email VARCHAR(255) NOT NULL,
-  signer_name VARCHAR(255) DEFAULT '',
-  message TEXT DEFAULT '',
-  status signature_status NOT NULL DEFAULT 'pending',
-  token VARCHAR(255) UNIQUE DEFAULT '',
-  expires_at TIMESTAMPTZ,
-  signed_at TIMESTAMPTZ,
-  created_by UUID REFERENCES user_profiles(user_id) ON DELETE SET NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+ALTER TABLE template_versions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE template_versions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE template_versions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE template_versions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE template_versions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE template_versions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE template_versions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE template_versions ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 
 -- Digital Certificates
 CREATE TABLE digital_certificates (
@@ -350,46 +425,95 @@ CREATE TABLE digital_certificates (
   valid_until TIMESTAMPTZ,
   is_revoked BOOLEAN NOT NULL DEFAULT false,
   revoked_at TIMESTAMPTZ,
-  created_by UUID REFERENCES user_profiles(user_id) ON DELETE SET NULL,
+  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+
+-- Document Signatures
+CREATE TABLE document_signatures (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  version_id UUID REFERENCES document_versions(id) ON DELETE SET NULL,
+  signer_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  signature_data TEXT DEFAULT '',
+  signature_hash VARCHAR(255) DEFAULT '',
+  certificate_id UUID REFERENCES digital_certificates(id) ON DELETE SET NULL,
+  ip_address VARCHAR(45) DEFAULT '',
+  user_agent TEXT DEFAULT '',
+  signed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE document_signatures ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_signatures ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_signatures ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_signatures ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_signatures ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_signatures ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_signatures ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_signatures ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+
+
+
+-- Signature Requests
+CREATE TABLE signature_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  signer_email VARCHAR(255) NOT NULL,
+  signer_name VARCHAR(255) DEFAULT '',
+  message TEXT DEFAULT '',
+  status signature_status NOT NULL DEFAULT 'pending',
+  token VARCHAR(255) UNIQUE DEFAULT '',
+  expires_at TIMESTAMPTZ,
+  signed_at TIMESTAMPTZ,
+  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE signature_requests ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE signature_requests ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE signature_requests ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE signature_requests ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE signature_requests ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE signature_requests ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE signature_requests ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE signature_requests ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+
 
 -- Document Bookmarks
 CREATE TABLE document_bookmarks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES user_profiles(user_id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
   folder_id UUID REFERENCES document_folders(id) ON DELETE SET NULL,
   note TEXT DEFAULT '',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(user_id, document_id)
 );
+ALTER TABLE document_bookmarks ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_bookmarks ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_bookmarks ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_bookmarks ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_bookmarks ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_bookmarks ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_bookmarks ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_bookmarks ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 
 -- Document Favorites
 CREATE TABLE document_favorites (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES user_profiles(user_id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(user_id, document_id)
 );
+ALTER TABLE document_favorites ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_favorites ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_favorites ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_favorites ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_favorites ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_favorites ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_favorites ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE document_favorites ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 
--- Retention Rules
-CREATE TABLE retention_rules (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  rule_name VARCHAR(255) NOT NULL,
-  description TEXT DEFAULT '',
-  document_type VARCHAR(100) DEFAULT NULL,
-  category_id UUID REFERENCES document_categories(id) ON DELETE SET NULL,
-  retention_days INTEGER NOT NULL,
-  action_on_expiry retention_action NOT NULL DEFAULT 'archive',
-  is_legal_hold BOOLEAN NOT NULL DEFAULT false,
-  is_active BOOLEAN NOT NULL DEFAULT true,
-  created_by UUID REFERENCES user_profiles(user_id) ON DELETE SET NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
 
 -- Archive Policies
 CREATE TABLE archive_policies (
@@ -403,7 +527,7 @@ CREATE TABLE archive_policies (
   encrypt_archives BOOLEAN NOT NULL DEFAULT false,
   storage_location TEXT DEFAULT 'archive',
   is_active BOOLEAN NOT NULL DEFAULT true,
-  created_by UUID REFERENCES user_profiles(user_id) ON DELETE SET NULL,
+  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -425,7 +549,7 @@ CREATE TABLE archive_jobs (
   completed_at TIMESTAMPTZ,
   duration_seconds INTEGER DEFAULT 0,
   error_message TEXT DEFAULT '',
-  created_by UUID REFERENCES user_profiles(user_id) ON DELETE SET NULL,
+  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -440,35 +564,20 @@ CREATE TABLE archive_history (
   file_size_bytes BIGINT DEFAULT 0,
   status VARCHAR(50) DEFAULT '',
   message TEXT DEFAULT '',
-  created_by UUID REFERENCES user_profiles(user_id) ON DELETE SET NULL,
+  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE archive_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE archive_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE archive_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE archive_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE archive_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE archive_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE archive_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE archive_history ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 
 -- Knowledge Articles
-CREATE TABLE knowledge_articles (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  festival_id UUID REFERENCES festivals(id) ON DELETE SET NULL,
-  category_id UUID REFERENCES knowledge_categories(id) ON DELETE SET NULL,
-  title VARCHAR(500) NOT NULL,
-  slug VARCHAR(500) DEFAULT '',
-  content TEXT NOT NULL DEFAULT '',
-  excerpt TEXT DEFAULT '',
-  article_type VARCHAR(100) NOT NULL DEFAULT 'article',
-  status knowledge_article_status NOT NULL DEFAULT 'draft',
-  is_featured BOOLEAN NOT NULL DEFAULT false,
-  is_public BOOLEAN NOT NULL DEFAULT false,
-  view_count INTEGER NOT NULL DEFAULT 0,
-  helpful_count INTEGER NOT NULL DEFAULT 0,
-  tags TEXT[] DEFAULT '{}',
-  related_document_ids UUID[] DEFAULT '{}',
-  metadata JSONB DEFAULT '{}',
-  created_by UUID REFERENCES user_profiles(user_id) ON DELETE SET NULL,
-  updated_by UUID REFERENCES user_profiles(user_id) ON DELETE SET NULL,
-  published_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+
 
 -- Knowledge Categories
 CREATE TABLE knowledge_categories (
@@ -495,18 +604,34 @@ CREATE TABLE knowledge_relationships (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(article_id, related_article_id)
 );
+ALTER TABLE knowledge_relationships ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE knowledge_relationships ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE knowledge_relationships ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE knowledge_relationships ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE knowledge_relationships ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE knowledge_relationships ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE knowledge_relationships ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE knowledge_relationships ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 
 -- Knowledge Feedback
 CREATE TABLE knowledge_feedback (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   article_id UUID NOT NULL REFERENCES knowledge_articles(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES user_profiles(user_id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   rating INTEGER NOT NULL DEFAULT 0,
   comment TEXT DEFAULT '',
   is_helpful BOOLEAN DEFAULT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(article_id, user_id)
 );
+ALTER TABLE knowledge_feedback ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE knowledge_feedback ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE knowledge_feedback ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE knowledge_feedback ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE knowledge_feedback ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE knowledge_feedback ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE knowledge_feedback ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE knowledge_feedback ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 
 -- ============================================================
 -- INDEXES
@@ -534,8 +659,8 @@ CREATE INDEX idx_approval_steps_workflow ON approval_steps(workflow_id);
 CREATE INDEX idx_doc_templates_org ON document_templates(organization_id);
 CREATE INDEX idx_retention_rules_org ON retention_rules(organization_id);
 CREATE INDEX idx_archive_jobs_org ON archive_jobs(organization_id);
-CREATE INDEX idx_knowledge_articles_org ON knowledge_articles(organization_id);
-CREATE INDEX idx_knowledge_articles_status ON knowledge_articles(status);
+
+
 CREATE INDEX idx_knowledge_categories_org ON knowledge_categories(organization_id);
 CREATE INDEX idx_knowledge_feedback_article ON knowledge_feedback(article_id);
 
@@ -569,38 +694,36 @@ ALTER TABLE retention_rules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE archive_policies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE archive_jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE archive_history ENABLE ROW LEVEL SECURITY;
-ALTER TABLE knowledge_articles ENABLE ROW LEVEL SECURITY;
+
 ALTER TABLE knowledge_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE knowledge_relationships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE knowledge_feedback ENABLE ROW LEVEL SECURITY;
 
 -- Platform admin: full access
 CREATE POLICY platform_admin_all ON documents FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role IN ('super_admin', 'platform_admin'))
+  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role::text IN ('super_admin', 'platform_admin'))
 );
 CREATE POLICY platform_admin_folders ON document_folders FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role IN ('super_admin', 'platform_admin'))
+  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role::text IN ('super_admin', 'platform_admin'))
 );
 CREATE POLICY platform_admin_templates ON document_templates FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role IN ('super_admin', 'platform_admin'))
+  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role::text IN ('super_admin', 'platform_admin'))
 );
-CREATE POLICY platform_admin_knowledge ON knowledge_articles FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role IN ('super_admin', 'platform_admin'))
-);
+
 CREATE POLICY platform_admin_retention ON retention_rules FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role IN ('super_admin', 'platform_admin'))
+  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role::text IN ('super_admin', 'platform_admin'))
 );
 CREATE POLICY platform_admin_archive ON archive_jobs FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role IN ('super_admin', 'platform_admin'))
+  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role::text IN ('super_admin', 'platform_admin'))
 );
 CREATE POLICY platform_admin_categories ON document_categories FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role IN ('super_admin', 'platform_admin'))
+  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role::text IN ('super_admin', 'platform_admin'))
 );
 CREATE POLICY platform_admin_tags ON document_tags FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role IN ('super_admin', 'platform_admin'))
+  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role::text IN ('super_admin', 'platform_admin'))
 );
 CREATE POLICY platform_admin_certificates ON digital_certificates FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role IN ('super_admin', 'platform_admin'))
+  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role::text IN ('super_admin', 'platform_admin'))
 );
 
 -- Organization-scoped access
@@ -610,9 +733,7 @@ CREATE POLICY org_access_docs ON documents FOR ALL TO authenticated USING (
 CREATE POLICY org_access_folders ON document_folders FOR ALL TO authenticated USING (
   EXISTS (SELECT 1 FROM organization_members WHERE organization_id = document_folders.organization_id AND user_id = auth.uid())
 );
-CREATE POLICY org_access_knowledge ON knowledge_articles FOR ALL TO authenticated USING (
-  is_public = true OR EXISTS (SELECT 1 FROM organization_members WHERE organization_id = knowledge_articles.organization_id AND user_id = auth.uid())
-);
+
 CREATE POLICY org_access_templates ON document_templates FOR ALL TO authenticated USING (
   is_public = true OR EXISTS (SELECT 1 FROM organization_members WHERE organization_id = document_templates.organization_id AND user_id = auth.uid())
 );
@@ -647,7 +768,7 @@ CREATE TRIGGER update_workflows_updated_at BEFORE UPDATE ON approval_workflows F
 CREATE TRIGGER update_templates_updated_at BEFORE UPDATE ON document_templates FOR EACH ROW EXECUTE FUNCTION update_edms_updated_at();
 CREATE TRIGGER update_retention_updated_at BEFORE UPDATE ON retention_rules FOR EACH ROW EXECUTE FUNCTION update_edms_updated_at();
 CREATE TRIGGER update_archive_policies_updated_at BEFORE UPDATE ON archive_policies FOR EACH ROW EXECUTE FUNCTION update_edms_updated_at();
-CREATE TRIGGER update_knowledge_updated_at BEFORE UPDATE ON knowledge_articles FOR EACH ROW EXECUTE FUNCTION update_edms_updated_at();
+
 CREATE TRIGGER update_knowledge_categories_updated_at BEFORE UPDATE ON knowledge_categories FOR EACH ROW EXECUTE FUNCTION update_edms_updated_at();
 
 -- Update tag usage count

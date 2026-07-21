@@ -9,3 +9,15 @@ build/
 .vscode/
 .idea/
 *.tsbuildinfo
+
+# Static site (not part of Next.js app)
+festize.com/
+
+# Cached external resources (not Vercel-compatible)
+fonts.googleapis.com/
+fonts.gstatic.com/
+static.cloudflareinsights.com/
+
+# Root-level artifacts
+download-report.txt
+package-lock.json

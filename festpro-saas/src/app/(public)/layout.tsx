@@ -62,7 +62,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
               <div className="space-y-2 text-sm">
                 <Link href="/downloads" className="block hover:text-white">Downloads</Link>
                 <Link href="/faq" className="block hover:text-white">FAQ</Link>
-                <Link href="/verify" className="block hover:text-white">Certificate Verification</Link>
+                <Link href="/certificate" className="block hover:text-white">Certificate Verification</Link>
               </div>
             </div>
             <div>

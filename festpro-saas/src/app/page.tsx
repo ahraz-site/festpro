@@ -11,7 +11,7 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-3">
             <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-gray-900 px-3 py-2">Sign In</Link>
-            <Link href="/register" className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 shadow-sm">Get Started</Link>
+            <Link href="/signup" className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 shadow-sm">Get Started</Link>
           </div>
         </div>
       </header>
@@ -28,7 +28,7 @@ export default function LandingPage() {
               madrasa competitions, sports meets, and more.
             </p>
             <div className="mt-8 flex justify-center gap-4">
-              <Link href="/register" className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-3 text-base font-medium text-white hover:from-indigo-700 hover:to-purple-700 shadow-md">
+              <Link href="/signup" className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-3 text-base font-medium text-white hover:from-indigo-700 hover:to-purple-700 shadow-md">
                 Start Free
               </Link>
               <Link href="/login" className="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-8 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 shadow-sm">
