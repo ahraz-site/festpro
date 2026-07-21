@@ -14,22 +14,6 @@ const publicRoutes = [
   "/accept-invite",
   "/api",
   "/mobile",
-  "/mobile/login",
-  "/mobile/attendance",
-  "/mobile/schedule",
-  "/mobile/qr",
-  "/mobile/judging",
-  "/mobile/results",
-  "/mobile/tasks",
-  "/mobile/settings",
-  "/mobile/help-desk",
-  "/mobile/stages",
-  "/mobile/meal-verification",
-  "/mobile/visitor-checkin",
-  "/mobile/medical",
-  "/mobile/inventory",
-  "/mobile/announcements",
-  "/mobile/finance",
   "/sw.js",
   "/manifest.json",
 ]
@@ -39,58 +23,78 @@ const authRoutes = ["/login", "/signup", "/forgot-password", "/verify"]
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  if (publicRoutes.some((route) => pathname.startsWith(route))) {
-    return await updateSession(request)
-  }
-
-  let response = NextResponse.next({ request })
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          response = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
+  const isPublicRoute = publicRoutes.some((route) =>
+    route === "/" ? pathname === "/" : pathname.startsWith(route)
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    const loginUrl = new URL("/login", request.url)
-    loginUrl.searchParams.set("redirect", pathname)
-    return NextResponse.redirect(loginUrl)
+  if (isPublicRoute) {
+    try {
+      if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        return await updateSession(request)
+      }
+    } catch (e) {
+      console.error("Middleware session update error:", e)
+    }
+    return NextResponse.next({ request })
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single()
+  try {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      return NextResponse.next({ request })
+    }
 
-  const role = (profile?.role as UserRole) || "participant"
+    let response = NextResponse.next({ request })
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+            response = NextResponse.next({ request })
+            cookiesToSet.forEach(({ name, value, options }) =>
+              response.cookies.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
 
-  if (!canAccessRoute(role, pathname)) {
-    const dashboardUrl = new URL("/dashboard", request.url)
-    return NextResponse.redirect(dashboardUrl)
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      const loginUrl = new URL("/login", request.url)
+      loginUrl.searchParams.set("redirect", pathname)
+      return NextResponse.redirect(loginUrl)
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single()
+
+    const role = (profile?.role as UserRole) || "participant"
+
+    if (!canAccessRoute(role, pathname)) {
+      const dashboardUrl = new URL("/dashboard", request.url)
+      return NextResponse.redirect(dashboardUrl)
+    }
+
+    if (authRoutes.some((route) => pathname === route || pathname.startsWith(route + "/"))) {
+      return NextResponse.redirect(new URL("/dashboard", request.url))
+    }
+
+    return response
+  } catch (err) {
+    console.error("Middleware error:", err)
+    return NextResponse.next({ request })
   }
-
-  if (authRoutes.some((route) => pathname.startsWith(route))) {
-    return NextResponse.redirect(new URL("/dashboard", request.url))
-  }
-
-  return response
 }
 
 export const config = {
