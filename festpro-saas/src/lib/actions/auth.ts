@@ -36,11 +36,9 @@ export async function signUp(formData: {
   }
 
   const adminClient = createAdminClient()
+  const orgSlug = `${formData.first_name.toLowerCase().replace(/[^a-z0-9]/g, "")}-${Math.random().toString(36).substring(2, 6)}`
 
-  // Profile auto-created by on_auth_user_created trigger
-
-  const orgSlug = `${formData.first_name.toLowerCase()}-${Math.random().toString(36).substring(2, 6)}`
-
+  // 1. Create Organization
   const { data: org, error: orgError } = await adminClient
     .from("organizations")
     .insert({
@@ -54,7 +52,8 @@ export async function signUp(formData: {
     return { error: orgError.message }
   }
 
-  const { error: memberError } = await adminClient.from("organization_members").insert({
+  // 2. Add Organization Member
+  const { error: memberError } = await adminClient.from("organization_members").upsert({
     organization_id: org.id,
     user_id: authData.user.id,
     role: "organization_owner",
@@ -64,13 +63,20 @@ export async function signUp(formData: {
     return { error: memberError.message }
   }
 
-  const { error: updateError } = await adminClient
+  // 3. Explicitly Upsert Profile (Guarantees profile row exists regardless of DB trigger)
+  const { error: profileError } = await adminClient
     .from("profiles")
-    .update({ organization_id: org.id })
-    .eq("id", authData.user.id)
+    .upsert({
+      id: authData.user.id,
+      email: formData.email,
+      first_name: formData.first_name,
+      last_name: formData.last_name,
+      role: "organization_owner",
+      organization_id: org.id,
+    })
 
-  if (updateError) {
-    return { error: updateError.message }
+  if (profileError) {
+    return { error: profileError.message }
   }
 
   revalidatePath("/", "layout")
@@ -94,14 +100,63 @@ export async function signIn(formData: { email: string; password: string }) {
   }
 
   const adminClient = createAdminClient()
-  const { data: profile } = await adminClient
+  let { data: profile } = await adminClient
     .from("profiles")
     .select("*")
     .eq("id", data.user.id)
     .single()
 
+  // Auto-heal missing profile
   if (!profile) {
-    return { error: "Profile not found" }
+    const userMeta = data.user.user_metadata || {}
+    const firstName = userMeta.first_name || data.user.email?.split("@")[0] || "User"
+    const lastName = userMeta.last_name || ""
+
+    const orgSlug = `org-${data.user.id.substring(0, 8)}`
+    let { data: org } = await adminClient
+      .from("organizations")
+      .select("id")
+      .eq("slug", orgSlug)
+      .single()
+
+    if (!org) {
+      const { data: newOrg } = await adminClient
+        .from("organizations")
+        .insert({
+          name: `${firstName}'s Organization`,
+          slug: orgSlug,
+        })
+        .select()
+        .single()
+      org = newOrg
+    }
+
+    if (org) {
+      await adminClient.from("organization_members").upsert({
+        organization_id: org.id,
+        user_id: data.user.id,
+        role: "organization_owner",
+      })
+    }
+
+    const { data: newProfile, error: createProfileError } = await adminClient
+      .from("profiles")
+      .upsert({
+        id: data.user.id,
+        email: data.user.email!,
+        first_name: firstName,
+        last_name: lastName,
+        role: "organization_owner",
+        organization_id: org?.id || null,
+      })
+      .select("*")
+      .single()
+
+    if (createProfileError || !newProfile) {
+      return { error: createProfileError?.message || "Profile initialization error" }
+    }
+
+    profile = newProfile
   }
 
   revalidatePath("/", "layout")
