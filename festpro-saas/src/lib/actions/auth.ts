@@ -7,6 +7,81 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { getDashboardForRole } from "@/config/roles"
 import type { UserRole } from "@/types"
 
+export async function ensureUserProfile() {
+  try {
+    const supabase = await createServerClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return null
+
+    const adminClient = createAdminClient()
+    let { data: profile } = await adminClient
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single()
+
+    if (!profile) {
+      const userMeta = user.user_metadata || {}
+      const firstName =
+        String(userMeta.first_name || user.email?.split("@")[0] || "User")
+          .replace(/[^\x00-\x7F]/g, "")
+          .trim() || "User"
+      const lastName = String(userMeta.last_name || "")
+        .replace(/[^\x00-\x7F]/g, "")
+        .trim()
+
+      const orgSlug = `org-${user.id.substring(0, 8)}`
+      let { data: org } = await adminClient
+        .from("organizations")
+        .select("id")
+        .eq("slug", orgSlug)
+        .single()
+
+      if (!org) {
+        const { data: newOrg } = await adminClient
+          .from("organizations")
+          .insert({
+            name: `${firstName} Organization`,
+            slug: orgSlug,
+          })
+          .select()
+          .single()
+        org = newOrg
+      }
+
+      if (org) {
+        await adminClient.from("organization_members").upsert({
+          organization_id: org.id,
+          user_id: user.id,
+          role: "organization_owner",
+        })
+      }
+
+      const { data: newProfile } = await adminClient
+        .from("profiles")
+        .upsert({
+          id: user.id,
+          email: user.email!,
+          first_name: firstName,
+          last_name: lastName,
+          role: "organization_owner",
+          organization_id: org?.id || null,
+        })
+        .select("*")
+        .single()
+
+      profile = newProfile
+    }
+
+    return profile
+  } catch (err) {
+    console.error("ensureUserProfile error:", err)
+    return null
+  }
+}
+
 export async function signUp(formData: {
   first_name: string
   last_name: string
@@ -108,64 +183,10 @@ export async function signIn(formData: { email: string; password: string }) {
       return { error: "Invalid credentials" }
     }
 
-    const adminClient = createAdminClient()
-    let { data: profile } = await adminClient
-      .from("profiles")
-      .select("*")
-      .eq("id", data.user.id)
-      .single()
+    const profile = await ensureUserProfile()
 
-    // Auto-heal missing profile
     if (!profile) {
-      const userMeta = data.user.user_metadata || {}
-      const firstName = String(userMeta.first_name || data.user.email?.split("@")[0] || "User").replace(/[^\x00-\x7F]/g, "").trim() || "User"
-      const lastName = String(userMeta.last_name || "").replace(/[^\x00-\x7F]/g, "").trim()
-
-      const orgSlug = `org-${data.user.id.substring(0, 8)}`
-      let { data: org } = await adminClient
-        .from("organizations")
-        .select("id")
-        .eq("slug", orgSlug)
-        .single()
-
-      if (!org) {
-        const { data: newOrg } = await adminClient
-          .from("organizations")
-          .insert({
-            name: `${firstName} Organization`,
-            slug: orgSlug,
-          })
-          .select()
-          .single()
-        org = newOrg
-      }
-
-      if (org) {
-        await adminClient.from("organization_members").upsert({
-          organization_id: org.id,
-          user_id: data.user.id,
-          role: "organization_owner",
-        })
-      }
-
-      const { data: newProfile, error: createProfileError } = await adminClient
-        .from("profiles")
-        .upsert({
-          id: data.user.id,
-          email: data.user.email!,
-          first_name: firstName,
-          last_name: lastName,
-          role: "organization_owner",
-          organization_id: org?.id || null,
-        })
-        .select("*")
-        .single()
-
-      if (createProfileError || !newProfile) {
-        return { error: createProfileError?.message || "Profile initialization error" }
-      }
-
-      profile = newProfile
+      return { error: "Profile initialization error" }
     }
 
     revalidatePath("/", "layout")
@@ -246,17 +267,7 @@ export async function updateProfile(formData: {
 }
 
 export async function getProfile() {
-  const supabase = await createServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return null
-
-  const adminClient = createAdminClient()
-  const { data } = await adminClient.from("profiles").select("*").eq("id", user.id).single()
-
-  return data
+  return await ensureUserProfile()
 }
 
 export async function resendVerificationEmail() {

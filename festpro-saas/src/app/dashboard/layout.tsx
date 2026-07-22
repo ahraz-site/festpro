@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
-import { signOut } from "@/lib/actions/auth"
+import { signOut, ensureUserProfile } from "@/lib/actions/auth"
 import {
   Bell, LogOut, User, Menu, X, LayoutDashboard, Building2, Settings,
   Users, Activity, ChevronDown, Plus, Check,   CalendarDays, MapPin,
@@ -59,7 +59,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push("/login"); return }
 
-      const { data: prof } = await supabase.from("profiles").select("*").eq("id", user.id).single()
+      let { data: prof } = await supabase.from("profiles").select("*").eq("id", user.id).single()
+      if (!prof) {
+        prof = await ensureUserProfile()
+      }
       setProfile(prof)
 
       // Load organizations the user belongs to
