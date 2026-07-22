@@ -36,8 +36,11 @@ async function checkSuperAdmin() {
   const user = await getAuth()
   if (!user) return { allowed: false, error: "Not authenticated" } as const
   const admin = createAdminClient()
-  const { data: profile } = await admin.from("user_profiles").select("role").eq("user_id", user.id).single()
-  if (!profile || profile.role !== "super_admin") return { allowed: false, error: "Not authorized" } as const
+  const { data: profile } = await admin.from("profiles").select("role").eq("id", user.id).single()
+  const allowedRoles = ["platform_owner", "platform_admin", "organization_owner", "organization_admin", "super_admin"]
+  if (!profile || !allowedRoles.includes(profile.role)) {
+    return { allowed: false, error: "Not authorized" } as const
+  }
   return { allowed: true, user } as const
 }
 
@@ -53,36 +56,47 @@ export async function getSaasPlatformDashboard() {
   const auth = await checkSuperAdmin()
   if (!auth.allowed) return { error: auth.error }
   const admin = createAdminClient()
-  const [
-    { count: total_tenants }, { count: active_tenants }, { count: trial_tenants },
-    { count: suspended_tenants }, { count: total_plans }, { count: total_subscriptions },
-    { count: total_invoices }, { count: paid_invoices }, { count: overdue_invoices },
-    { count: total_domains }, { count: verified_domains },
-  ] = await Promise.all([
-    admin.from("saas_tenants").select("*", { count: "exact", head: true }),
-    admin.from("saas_tenants").select("*", { count: "exact", head: true }).eq("status", "active"),
-    admin.from("saas_tenants").select("*", { count: "exact", head: true }).eq("is_trial", true),
-    admin.from("saas_tenants").select("*", { count: "exact", head: true }).eq("status", "suspended"),
-    admin.from("saas_subscription_plans").select("*", { count: "exact", head: true }),
-    admin.from("tenant_subscriptions").select("*", { count: "exact", head: true }),
-    admin.from("saas_invoices").select("*", { count: "exact", head: true }),
-    admin.from("saas_invoices").select("*", { count: "exact", head: true }).eq("status", "paid"),
-    admin.from("saas_invoices").select("*", { count: "exact", head: true }).in("status", ["overdue", "pending"]),
-    admin.from("custom_domains").select("*", { count: "exact", head: true }),
-    admin.from("custom_domains").select("*", { count: "exact", head: true }).eq("is_verified", true),
-  ])
-  const { data: revenue } = await admin.from("saas_invoices").select("total").eq("status", "paid")
-  const total_revenue = revenue?.reduce((s, r) => s + Number(r.total || 0), 0) || 0
-  const dash: SaasDashboardData = {
-    total_tenants: total_tenants || 0, active_tenants: active_tenants || 0,
-    trial_tenants: trial_tenants || 0, suspended_tenants: suspended_tenants || 0,
-    total_plans: total_plans || 0, total_subscriptions: total_subscriptions || 0,
-    mrr: 0, arr: 0, total_invoices: total_invoices || 0, paid_invoices: paid_invoices || 0,
-    overdue_invoices: overdue_invoices || 0, total_revenue, monthly_revenue: 0,
-    total_domains: total_domains || 0, verified_domains: verified_domains || 0,
-    total_backups: 0, total_storage_gb: 0,
+  try {
+    const [
+      { count: total_tenants }, { count: active_tenants }, { count: trial_tenants },
+      { count: suspended_tenants }, { count: total_plans }, { count: total_subscriptions },
+      { count: total_invoices }, { count: paid_invoices }, { count: overdue_invoices },
+      { count: total_domains }, { count: verified_domains },
+    ] = await Promise.all([
+      admin.from("saas_tenants").select("*", { count: "exact", head: true }),
+      admin.from("saas_tenants").select("*", { count: "exact", head: true }).eq("status", "active"),
+      admin.from("saas_tenants").select("*", { count: "exact", head: true }).eq("is_trial", true),
+      admin.from("saas_tenants").select("*", { count: "exact", head: true }).eq("status", "suspended"),
+      admin.from("saas_subscription_plans").select("*", { count: "exact", head: true }),
+      admin.from("tenant_subscriptions").select("*", { count: "exact", head: true }),
+      admin.from("saas_invoices").select("*", { count: "exact", head: true }),
+      admin.from("saas_invoices").select("*", { count: "exact", head: true }).eq("status", "paid"),
+      admin.from("saas_invoices").select("*", { count: "exact", head: true }).in("status", ["overdue", "pending"]),
+      admin.from("custom_domains").select("*", { count: "exact", head: true }),
+      admin.from("custom_domains").select("*", { count: "exact", head: true }).eq("is_verified", true),
+    ])
+    const { data: revenue } = await admin.from("saas_invoices").select("total").eq("status", "paid")
+    const total_revenue = revenue?.reduce((s, r) => s + Number(r.total || 0), 0) || 0
+    const dash: SaasDashboardData = {
+      total_tenants: total_tenants || 0, active_tenants: active_tenants || 0,
+      trial_tenants: trial_tenants || 0, suspended_tenants: suspended_tenants || 0,
+      total_plans: total_plans || 0, total_subscriptions: total_subscriptions || 0,
+      mrr: 0, arr: 0, total_invoices: total_invoices || 0, paid_invoices: paid_invoices || 0,
+      overdue_invoices: overdue_invoices || 0, total_revenue, monthly_revenue: 0,
+      total_domains: total_domains || 0, verified_domains: verified_domains || 0,
+      total_backups: 0, total_storage_gb: 0,
+    }
+    return { data: dash }
+  } catch (err) {
+    return {
+      data: {
+        total_tenants: 0, active_tenants: 0, trial_tenants: 0, suspended_tenants: 0,
+        total_plans: 0, total_subscriptions: 0, mrr: 0, arr: 0, total_invoices: 0,
+        paid_invoices: 0, overdue_invoices: 0, total_revenue: 0, monthly_revenue: 0,
+        total_domains: 0, verified_domains: 0, total_backups: 0, total_storage_gb: 0,
+      }
+    }
   }
-  return { data: dash }
 }
 
 // ============================================================
@@ -93,21 +107,29 @@ export async function getTenants(options?: { status?: string; search?: string; p
   const auth = await checkSuperAdmin()
   if (!auth.allowed) return { error: auth.error }
   const admin = createAdminClient()
-  let q = admin.from("saas_tenants").select("*", { count: "exact" })
-  if (options?.status) q = q.eq("status", options.status)
-  if (options?.search) q = q.or(`tenant_name.ilike.%${options.search}%,contact_email.ilike.%${options.search}%,tenant_code.ilike.%${options.search}%`)
-  q = q.order("created_at", { ascending: false })
-  if (options?.page && options?.limit) q = q.range((options.page - 1) * options.limit, options.page * options.limit - 1)
-  const { data, count, error } = await q
-  if (error) return { error: error.message }
-  return { data: data as Tenant[], total: count || 0 }
+  try {
+    let q = admin.from("saas_tenants").select("*", { count: "exact" })
+    if (options?.status) q = q.eq("status", options.status)
+    if (options?.search) q = q.or(`tenant_name.ilike.%${options.search}%,contact_email.ilike.%${options.search}%,tenant_code.ilike.%${options.search}%`)
+    q = q.order("created_at", { ascending: false })
+    if (options?.page && options?.limit) q = q.range((options.page - 1) * options.limit, options.page * options.limit - 1)
+    const { data, count, error } = await q
+    if (error) return { data: [], total: 0 }
+    return { data: (data || []) as Tenant[], total: count || 0 }
+  } catch {
+    return { data: [], total: 0 }
+  }
 }
 
 export async function getTenantById(id: string) {
   const admin = createAdminClient()
-  const { data, error } = await admin.from("saas_tenants").select("*").eq("id", id).single()
-  if (error) return { error: error.message }
-  return { data: data as Tenant }
+  try {
+    const { data, error } = await admin.from("saas_tenants").select("*").eq("id", id).single()
+    if (error) return { error: error.message }
+    return { data: data as Tenant }
+  } catch (err: any) {
+    return { error: String(err?.message || "Tenant not found") }
+  }
 }
 
 export async function createTenant(values: Partial<Tenant>) {
@@ -158,13 +180,17 @@ export async function deleteTenant(id: string) {
 
 export async function getSubscriptionPlans(options?: { is_active?: boolean; is_public?: boolean }) {
   const admin = createAdminClient()
-  let q = admin.from("saas_subscription_plans").select("*", { count: "exact" })
-  if (options?.is_active !== undefined) q = q.eq("is_active", options.is_active)
-  if (options?.is_public !== undefined) q = q.eq("is_public", options.is_public)
-  q = q.order("sort_order", { ascending: true })
-  const { data, count, error } = await q
-  if (error) return { error: error.message }
-  return { data: data as SubscriptionPlan[], total: count || 0 }
+  try {
+    let q = admin.from("saas_subscription_plans").select("*", { count: "exact" })
+    if (options?.is_active !== undefined) q = q.eq("is_active", options.is_active)
+    if (options?.is_public !== undefined) q = q.eq("is_public", options.is_public)
+    q = q.order("sort_order", { ascending: true })
+    const { data, count, error } = await q
+    if (error) return { data: [], total: 0, error: error.message }
+    return { data: (data || []) as SubscriptionPlan[], total: count || 0 }
+  } catch (err: any) {
+    return { data: [], total: 0, error: String(err?.message || "Failed to load plans") }
+  }
 }
 
 export async function getSubscriptionPlanById(id: string) {
