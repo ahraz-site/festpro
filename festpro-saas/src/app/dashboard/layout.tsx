@@ -284,7 +284,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             { label: "Settings", href: "/dashboard/platform/settings", icon: Settings },
           ].map((item) => {
             const fullHref = item.href
-            const isActive = pathname === fullHref || pathname.startsWith(fullHref + "/")
+            const isIndex = fullHref === "/dashboard/platform"
+            const isActive = isIndex ? pathname === fullHref : (pathname === fullHref || pathname.startsWith(fullHref + "/"))
             return (
               <Link
                 key={item.label}
@@ -320,7 +321,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             { label: "Maintenance", href: "/dashboard/platform/observability/maintenance", icon: Clock },
           ].map((item) => {
             const fullHref = item.href
-            const isActive = pathname === fullHref || pathname.startsWith(fullHref + "/")
+            const isIndex = fullHref === "/dashboard/platform/observability"
+            const isActive = isIndex ? pathname === fullHref : (pathname === fullHref || pathname.startsWith(fullHref + "/"))
             return (
               <Link
                 key={item.label}
@@ -358,7 +360,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             { label: "Cost", href: "/dashboard/platform/ai/cost", icon: DollarSign },
           ].map((item) => {
             const fullHref = item.href
-            const isActive = pathname === fullHref || pathname.startsWith(fullHref + "/")
+            const isIndex = fullHref === "/dashboard/platform/ai"
+            const isActive = isIndex ? pathname === fullHref : (pathname === fullHref || pathname.startsWith(fullHref + "/"))
             return (
               <Link
                 key={item.label}
@@ -394,7 +397,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             { label: "Text to Speech", href: "/dashboard/platform/localization/tts", icon: Mic },
           ].map((item) => {
             const fullHref = item.href
-            const isActive = pathname === fullHref || pathname.startsWith(fullHref + "/")
+            const isIndex = fullHref === "/dashboard/platform/localization"
+            const isActive = isIndex ? pathname === fullHref : (pathname === fullHref || pathname.startsWith(fullHref + "/"))
             return (
               <Link
                 key={item.label}
@@ -431,7 +435,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             { label: "Archive", href: "/dashboard/platform/edms/archive", icon: ArchiveIcon },
           ].map((item) => {
             const fullHref = item.href
-            const isActive = pathname === fullHref || pathname.startsWith(fullHref + "/")
+            const isIndex = fullHref === "/dashboard/platform/edms"
+            const isActive = isIndex ? pathname === fullHref : (pathname === fullHref || pathname.startsWith(fullHref + "/"))
             return (
               <Link
                 key={item.label}
@@ -471,7 +476,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             { label: "Settings", href: "/dashboard/platform/devops/settings", icon: Settings },
           ].map((item) => {
             const fullHref = item.href
-            const isActive = pathname === fullHref || pathname.startsWith(fullHref + "/")
+            const isIndex = fullHref === "/dashboard/platform/devops"
+            const isActive = isIndex ? pathname === fullHref : (pathname === fullHref || pathname.startsWith(fullHref + "/"))
             return (
               <Link
                 key={item.label}
@@ -505,7 +511,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             { label: "Reports", href: "/dashboard/platform/reports", icon: BarChart3 },
           ].map((item) => {
             const fullHref = item.href
-            const isActive = pathname === fullHref || pathname.startsWith(fullHref + "/")
+            const isIndex = fullHref === "/dashboard/platform/security"
+            const isActive = isIndex ? pathname === fullHref : (pathname === fullHref || pathname.startsWith(fullHref + "/"))
             return (
               <Link
                 key={item.label}
