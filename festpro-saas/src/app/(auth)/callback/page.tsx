@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -12,33 +12,36 @@ import { Lock } from "lucide-react"
 
 export default function CallbackPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [mode, setMode] = useState<"loading" | "recovery" | "error">("loading")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
+    const code = searchParams.get("code")
+    const redirectTo = searchParams.get("redirect_to")
+
+    if (!code) {
+      setMode("error")
+      return
+    }
+
     const supabase = createClient()
 
-    supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setMode("recovery")
-      } else if (event === "SIGNED_IN") {
-        const params = new URLSearchParams(window.location.search)
-        const redirectTo = params.get("redirect_to") || "/dashboard"
-        router.push(redirectTo)
-      } else {
-        const params = new URLSearchParams(window.location.search)
-        const code = params.get("code")
-        if (code) {
-          await supabase.auth.exchangeCodeForSession(code)
-          const redirectTo = params.get("redirect_to") || "/dashboard"
-          router.push(redirectTo)
+    supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN") {
+        if (redirectTo === "/profile") {
+          setMode("recovery")
         } else {
-          setMode("error")
+          router.push(redirectTo || "/dashboard")
         }
+      } else if (event === "PASSWORD_RECOVERY") {
+        setMode("recovery")
       }
     })
-  }, [router])
+
+    supabase.auth.exchangeCodeForSession(code)
+  }, [router, searchParams])
 
   async function handleResetPassword(e: React.FormEvent) {
     e.preventDefault()
