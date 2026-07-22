@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useEffect, useState, Suspense } from "react"
+import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -10,16 +10,16 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Lock } from "lucide-react"
 
-export default function CallbackPage() {
+function CallbackContent() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [mode, setMode] = useState<"loading" | "recovery" | "error">("loading")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    const code = searchParams.get("code")
-    const redirectTo = searchParams.get("redirect_to")
+    const params = new URLSearchParams(window.location.search)
+    const code = params.get("code")
+    const redirectTo = params.get("redirect_to")
 
     if (!code) {
       setMode("error")
@@ -41,7 +41,7 @@ export default function CallbackPage() {
     })
 
     supabase.auth.exchangeCodeForSession(code)
-  }, [router, searchParams])
+  }, [router])
 
   async function handleResetPassword(e: React.FormEvent) {
     e.preventDefault()
@@ -107,5 +107,19 @@ export default function CallbackPage() {
         </form>
       </CardContent>
     </Card>
+  )
+}
+
+export default function CallbackPage() {
+  return (
+    <Suspense fallback={
+      <Card className="w-full max-w-md">
+        <CardContent className="pt-8 text-center">
+          <p className="text-gray-500">Loading...</p>
+        </CardContent>
+      </Card>
+    }>
+      <CallbackContent />
+    </Suspense>
   )
 }
