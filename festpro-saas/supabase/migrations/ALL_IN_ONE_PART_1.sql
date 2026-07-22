@@ -2,6 +2,12 @@
 -- ALL_IN_ONE_PART_1
 -- ==========================================
 
+-- Grant schema and table permissions upfront
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres, anon, authenticated, service_role;
+GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO postgres, anon, authenticated, service_role;
+
 -- >>> START OF FILE: 00001_auth_schema.sql <<<
 -- FestPro SaaS Module 1: Authentication Schema
 -- Run this in Supabase SQL Editor
