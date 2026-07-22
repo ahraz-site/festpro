@@ -99,7 +99,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     )
   }
 
-  if (!profile) return null
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+        <div className="text-center max-w-sm">
+          <div className="flex justify-center mb-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white text-lg font-bold">F</div>
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Setting Up Your Workspace</h2>
+          <p className="text-sm text-gray-500 mb-6">Initializing your profile and organization details. Please refresh if this takes a moment.</p>
+          <Button onClick={() => window.location.reload()} className="w-full">
+            Refresh Workspace
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   const currentOrg = organizations.find((o) => o.id === currentOrgId)
 
