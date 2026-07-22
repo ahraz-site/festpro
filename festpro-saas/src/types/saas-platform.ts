@@ -108,3 +108,8 @@ export interface SaasDashboardData {
   total_revenue: number; monthly_revenue: number; total_domains: number; verified_domains: number
   total_backups: number; total_storage_gb: number
 }
+
+export interface TenantResourceUsage {
+  id: string; tenant_id: string; metric_name: string; quantity: number
+  unit: string; recorded_at: string; created_at: string
+}

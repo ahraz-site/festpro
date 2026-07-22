@@ -38,8 +38,9 @@ async function checkIntegrationAdmin() {
   const user = await getAuth()
   if (!user) return { allowed: false, error: "Not authenticated" } as const
   const admin = createAdminClient()
-  const { data: profile } = await admin.from("user_profiles").select("role").eq("user_id", user.id).single()
-  if (!profile || !["super_admin", "platform_admin", "integration_admin"].includes(profile.role)) return { allowed: false, error: "Not authorized" } as const
+  const { data: profile } = await admin.from("profiles").select("role").eq("id", user.id).single()
+  const allowedRoles = ["platform_owner", "platform_admin", "organization_owner", "organization_admin", "integration_admin", "super_admin"]
+  if (!profile || !allowedRoles.includes(profile.role)) return { allowed: false, error: "Not authorized" } as const
   return { allowed: true, user } as const
 }
 

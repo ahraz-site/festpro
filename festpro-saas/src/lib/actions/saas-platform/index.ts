@@ -1,22 +1,22 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { createClient } from "@/lib/supabase/server"
+import { createClient as createServerClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import crypto from "crypto"
 import type {
-  Tenant, SubscriptionPlan, SubscriptionPlanInterval, PlanFeature, TenantSubscription,
-  BillingAccount, PaymentGateway, Invoice, InvoicePayment, CustomDomain, TenantBranding,
-  LicenseKey, SaasDashboardData, SubscriptionStatus, InvoiceStatus, PaymentStatus,
+  Tenant, SubscriptionPlan, TenantSubscription, BillingAccount,
+  PaymentGateway, Invoice, InvoicePayment, CustomDomain, TenantBranding,
+  LicenseKey, TenantResourceUsage, SaasDashboardData, InvoiceStatus
 } from "@/types/saas-platform"
 
 async function getAuth() {
-  const supabase = await createClient()
+  const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   return user
 }
 
-async function checkOrgAccess(festivalId?: string) {
+async function checkOrgAccess(organizationId?: string, festivalId?: string) {
   const user = await getAuth()
   if (!user) return { allowed: false, error: "Not authenticated" } as const
   const admin = createAdminClient()
@@ -195,9 +195,13 @@ export async function getSubscriptionPlans(options?: { is_active?: boolean; is_p
 
 export async function getSubscriptionPlanById(id: string) {
   const admin = createAdminClient()
-  const { data, error } = await admin.from("saas_subscription_plans").select("*").eq("id", id).single()
-  if (error) return { error: error.message }
-  return { data: data as SubscriptionPlan }
+  try {
+    const { data, error } = await admin.from("saas_subscription_plans").select("*").eq("id", id).single()
+    if (error) return { error: error.message }
+    return { data: data as SubscriptionPlan }
+  } catch (err: any) {
+    return { error: String(err?.message || "Plan not found") }
+  }
 }
 
 export async function createSubscriptionPlan(values: Partial<SubscriptionPlan>) {
@@ -232,55 +236,24 @@ export async function deleteSubscriptionPlan(id: string) {
 }
 
 // ============================================================
-// PLAN FEATURES
-// ============================================================
-
-export async function getPlanFeatures(planId: string) {
-  const admin = createAdminClient()
-  const { data, error } = await admin.from("saas_plan_features").select("*").eq("plan_id", planId).order("sort_order", { ascending: true })
-  if (error) return { error: error.message }
-  return { data: data as PlanFeature[] }
-}
-
-export async function upsertPlanFeature(values: Partial<PlanFeature>) {
-  const auth = await checkSuperAdmin()
-  if (!auth.allowed) return { error: auth.error }
-  const admin = createAdminClient()
-  const { data, error } = await admin.from("saas_plan_features").upsert(values).select().single()
-  if (error) return { error: error.message }
-  revalidatePath("/dashboard/platform/plans")
-  return { data: data as PlanFeature }
-}
-
-export async function deletePlanFeature(id: string) {
-  const auth = await checkSuperAdmin()
-  if (!auth.allowed) return { error: auth.error }
-  const admin = createAdminClient()
-  const { error } = await admin.from("saas_plan_features").delete().eq("id", id)
-  if (error) return { error: error.message }
-  revalidatePath("/dashboard/platform/plans")
-  return { success: true }
-}
-
-// ============================================================
 // TENANT SUBSCRIPTIONS
 // ============================================================
 
-export async function getTenantSubscriptions(tenantId?: string) {
+export async function getTenantSubscriptions(options?: { tenant_id?: string; status?: string } | string) {
   const admin = createAdminClient()
-  let q = admin.from("tenant_subscriptions").select("*, saas_subscription_plans(*)")
-  if (tenantId) q = q.eq("tenant_id", tenantId)
-  q = q.order("created_at", { ascending: false })
-  const { data, error } = await q
-  if (error) return { error: error.message }
-  return { data }
-}
-
-export async function getTenantSubscriptionById(id: string) {
-  const admin = createAdminClient()
-  const { data, error } = await admin.from("tenant_subscriptions").select("*, saas_subscription_plans(*)").eq("id", id).single()
-  if (error) return { error: error.message }
-  return { data }
+  try {
+    const tenantId = typeof options === "string" ? options : options?.tenant_id
+    const status = typeof options === "string" ? undefined : options?.status
+    let q = admin.from("tenant_subscriptions").select("*, saas_subscription_plans(*)")
+    if (tenantId) q = q.eq("tenant_id", tenantId)
+    if (status) q = q.eq("status", status)
+    q = q.order("created_at", { ascending: false })
+    const { data, error } = await q
+    if (error) return { data: [] }
+    return { data: (data || []) as TenantSubscription[] }
+  } catch {
+    return { data: [] }
+  }
 }
 
 export async function createTenantSubscription(values: Partial<TenantSubscription>) {
@@ -290,7 +263,7 @@ export async function createTenantSubscription(values: Partial<TenantSubscriptio
   const { data, error } = await admin.from("tenant_subscriptions").insert(values).select().single()
   if (error) return { error: error.message }
   revalidatePath("/dashboard/platform/tenants")
-  return { data }
+  return { data: data as TenantSubscription }
 }
 
 export async function updateTenantSubscription(id: string, values: Partial<TenantSubscription>) {
@@ -310,48 +283,32 @@ export async function cancelTenantSubscription(id: string) {
 }
 
 // ============================================================
-// BILLING ACCOUNTS
+// BILLING ACCOUNTS & GATEWAYS
 // ============================================================
 
 export async function getBillingAccounts(tenantId: string) {
   const admin = createAdminClient()
-  const { data, error } = await admin.from("billing_accounts").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: false })
-  if (error) return { error: error.message }
-  return { data: data as BillingAccount[] }
+  try {
+    const { data, error } = await admin.from("billing_accounts").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: false })
+    if (error) return { data: [] }
+    return { data: (data || []) as BillingAccount[] }
+  } catch {
+    return { data: [] }
+  }
 }
-
-export async function upsertBillingAccount(values: Partial<BillingAccount>) {
-  const auth = await checkSuperAdmin()
-  if (!auth.allowed) return { error: auth.error }
-  const admin = createAdminClient()
-  const { data, error } = await admin.from("billing_accounts").upsert(values).select().single()
-  if (error) return { error: error.message }
-  revalidatePath("/dashboard/platform/tenants")
-  return { data: data as BillingAccount }
-}
-
-// ============================================================
-// PAYMENT GATEWAYS
-// ============================================================
 
 export async function getPaymentGateways(tenantId?: string | null) {
   const admin = createAdminClient()
-  let q = admin.from("payment_gateways").select("*")
-  if (tenantId !== undefined) q = q.eq("tenant_id", tenantId)
-  q = q.order("is_default", { ascending: false })
-  const { data, error } = await q
-  if (error) return { error: error.message }
-  return { data: data as PaymentGateway[] }
-}
-
-export async function upsertPaymentGateway(values: Partial<PaymentGateway>) {
-  const auth = await checkSuperAdmin()
-  if (!auth.allowed) return { error: auth.error }
-  const admin = createAdminClient()
-  const { data, error } = await admin.from("payment_gateways").upsert(values).select().single()
-  if (error) return { error: error.message }
-  revalidatePath("/dashboard/platform/gateways")
-  return { data: data as PaymentGateway }
+  try {
+    let q = admin.from("payment_gateways").select("*")
+    if (tenantId !== undefined) q = q.eq("tenant_id", tenantId)
+    q = q.order("is_default", { ascending: false })
+    const { data, error } = await q
+    if (error) return { data: [] }
+    return { data: (data || []) as PaymentGateway[] }
+  } catch {
+    return { data: [] }
+  }
 }
 
 // ============================================================
@@ -360,21 +317,29 @@ export async function upsertPaymentGateway(values: Partial<PaymentGateway>) {
 
 export async function getInvoices(options?: { tenant_id?: string; status?: InvoiceStatus; page?: number; limit?: number }) {
   const admin = createAdminClient()
-  let q = admin.from("saas_invoices").select("*, saas_tenants!inner(tenant_name,tenant_code)", { count: "exact" })
-  if (options?.tenant_id) q = q.eq("tenant_id", options.tenant_id)
-  if (options?.status) q = q.eq("status", options.status)
-  q = q.order("created_at", { ascending: false })
-  if (options?.page && options?.limit) q = q.range((options.page - 1) * options.limit, options.page * options.limit - 1)
-  const { data, count, error } = await q
-  if (error) return { error: error.message }
-  return { data, total: count || 0 }
+  try {
+    let q = admin.from("saas_invoices").select("*, saas_tenants!inner(tenant_name,tenant_code)", { count: "exact" })
+    if (options?.tenant_id) q = q.eq("tenant_id", options.tenant_id)
+    if (options?.status) q = q.eq("status", options.status)
+    q = q.order("created_at", { ascending: false })
+    if (options?.page && options?.limit) q = q.range((options.page - 1) * options.limit, options.page * options.limit - 1)
+    const { data, count, error } = await q
+    if (error) return { data: [], total: 0, error: error.message }
+    return { data: data || [], total: count || 0 }
+  } catch (err: any) {
+    return { data: [], total: 0, error: String(err?.message || "Failed to load invoices") }
+  }
 }
 
 export async function getInvoiceById(id: string) {
   const admin = createAdminClient()
-  const { data, error } = await admin.from("saas_invoices").select("*, saas_tenants(*)").eq("id", id).single()
-  if (error) return { error: error.message }
-  return { data }
+  try {
+    const { data, error } = await admin.from("saas_invoices").select("*, saas_tenants(*)").eq("id", id).single()
+    if (error) return { error: error.message }
+    return { data }
+  } catch (err: any) {
+    return { error: String(err?.message || "Invoice not found") }
+  }
 }
 
 export async function createInvoice(values: Partial<Invoice>) {
@@ -398,48 +363,25 @@ export async function updateInvoice(id: string, values: Partial<Invoice>) {
   return { data }
 }
 
-export async function sendInvoice(id: string) {
-  return updateInvoice(id, { status: "sent" } as Partial<Invoice>)
-}
-
-export async function markInvoicePaid(id: string) {
-  return updateInvoice(id, { status: "paid", paid_date: new Date().toISOString(), amount_paid: 0 } as Partial<Invoice>)
-}
-
-// ============================================================
-// INVOICE PAYMENTS
-// ============================================================
-
-export async function getInvoicePayments(invoiceId: string) {
-  const admin = createAdminClient()
-  const { data, error } = await admin.from("invoice_payments").select("*").eq("invoice_id", invoiceId).order("created_at", { ascending: false })
-  if (error) return { error: error.message }
-  return { data: data as InvoicePayment[] }
-}
-
-export async function createInvoicePayment(values: Partial<InvoicePayment>) {
-  const auth = await checkSuperAdmin()
-  if (!auth.allowed) return { error: auth.error }
-  const admin = createAdminClient()
-  const { data, error } = await admin.from("invoice_payments").insert(values).select().single()
-  if (error) return { error: error.message }
-  revalidatePath("/dashboard/platform/billing")
-  return { data: data as InvoicePayment }
-}
-
 // ============================================================
 // CUSTOM DOMAINS
 // ============================================================
 
-export async function getCustomDomains(options?: { tenant_id?: string; is_verified?: boolean }) {
+export async function getCustomDomains(options?: { tenant_id?: string; is_verified?: boolean } | string) {
   const admin = createAdminClient()
-  let q = admin.from("custom_domains").select("*, saas_tenants(tenant_name)")
-  if (options?.tenant_id) q = q.eq("tenant_id", options.tenant_id)
-  if (options?.is_verified !== undefined) q = q.eq("is_verified", options.is_verified)
-  q = q.order("created_at", { ascending: false })
-  const { data, error } = await q
-  if (error) return { error: error.message }
-  return { data }
+  try {
+    const tenantId = typeof options === "string" ? options : options?.tenant_id
+    const isVerified = typeof options === "string" ? undefined : options?.is_verified
+    let q = admin.from("custom_domains").select("*, saas_tenants(tenant_name)")
+    if (tenantId) q = q.eq("tenant_id", tenantId)
+    if (isVerified !== undefined) q = q.eq("is_verified", isVerified)
+    q = q.order("created_at", { ascending: false })
+    const { data, error } = await q
+    if (error) return { data: [], error: error.message }
+    return { data: data || [] }
+  } catch (err: any) {
+    return { data: [], error: String(err?.message || "Failed to load domains") }
+  }
 }
 
 export async function addCustomDomain(values: Partial<CustomDomain>) {
@@ -463,38 +405,32 @@ export async function deleteCustomDomain(id: string) {
 }
 
 // ============================================================
-// TENANT BRANDING (WHITE LABEL)
+// LICENSE KEYS & BRANDING
 // ============================================================
 
 export async function getTenantBranding(tenantId: string) {
   const admin = createAdminClient()
-  const { data, error } = await admin.from("tenant_branding").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: false }).limit(1)
-  if (error) return { error: error.message }
-  return { data: (data?.[0] || null) as TenantBranding | null }
+  try {
+    const { data, error } = await admin.from("tenant_branding").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: false }).limit(1)
+    if (error) return { data: null }
+    return { data: (data?.[0] || null) as TenantBranding | null }
+  } catch {
+    return { data: null }
+  }
 }
-
-export async function upsertTenantBranding(values: Partial<TenantBranding>) {
-  const auth = await checkSuperAdmin()
-  if (!auth.allowed) return { error: auth.error }
-  const admin = createAdminClient()
-  const { data, error } = await admin.from("tenant_branding").upsert(values).select().single()
-  if (error) return { error: error.message }
-  revalidatePath("/dashboard/platform/tenants")
-  return { data: data as TenantBranding }
-}
-
-// ============================================================
-// LICENSE KEYS
-// ============================================================
 
 export async function getLicenseKeys(tenantId?: string) {
   const admin = createAdminClient()
-  let q = admin.from("saas_license_keys").select("*, saas_tenants(tenant_name)")
-  if (tenantId) q = q.eq("tenant_id", tenantId)
-  q = q.order("created_at", { ascending: false })
-  const { data, error } = await q
-  if (error) return { error: error.message }
-  return { data }
+  try {
+    let q = admin.from("saas_license_keys").select("*, saas_tenants(tenant_name)")
+    if (tenantId) q = q.eq("tenant_id", tenantId)
+    q = q.order("created_at", { ascending: false })
+    const { data, error } = await q
+    if (error) return { data: [], error: error.message }
+    return { data: data || [] }
+  } catch (err: any) {
+    return { data: [], error: String(err?.message || "Failed to load license keys") }
+  }
 }
 
 export async function createLicenseKey(values: Partial<LicenseKey>) {
@@ -518,60 +454,77 @@ export async function updateLicenseKey(id: string, values: Partial<LicenseKey>) 
   return { data }
 }
 
-// ============================================================
-// RESOURCE USAGE
-// ============================================================
-
 export async function getTenantResourceUsage(tenantId: string, period?: string) {
   const admin = createAdminClient()
-  let q = admin.from("tenant_resource_usage").select("*").eq("tenant_id", tenantId)
-  if (period) {
-    const since = new Date()
-    if (period === "daily") since.setDate(since.getDate() - 1)
-    else if (period === "weekly") since.setDate(since.getDate() - 7)
-    else if (period === "monthly") since.setMonth(since.getMonth() - 1)
-    else if (period === "yearly") since.setFullYear(since.getFullYear() - 1)
-    q = q.gte("recorded_at", since.toISOString())
+  try {
+    let q = admin.from("tenant_resource_usage").select("*").eq("tenant_id", tenantId)
+    if (period) {
+      const since = new Date()
+      if (period === "daily") since.setDate(since.getDate() - 1)
+      else if (period === "weekly") since.setDate(since.getDate() - 7)
+      else if (period === "monthly") since.setMonth(since.getMonth() - 1)
+      else if (period === "yearly") since.setFullYear(since.getFullYear() - 1)
+      q = q.gte("recorded_at", since.toISOString())
+    }
+    q = q.order("recorded_at", { ascending: false }).limit(100)
+    const { data, error } = await q
+    if (error) return { data: [] }
+    return { data: data || [] }
+  } catch {
+    return { data: [] }
   }
-  q = q.order("recorded_at", { ascending: false }).limit(100)
-  const { data, error } = await q
-  if (error) return { error: error.message }
-  return { data }
 }
-
-// ============================================================
-// TENANT-LEVEL (User-facing)
-// ============================================================
 
 export async function getMyTenant(organizationId: string) {
   const auth = await checkOrgAccess()
   if (!auth.allowed) return { error: auth.error }
   const admin = createAdminClient()
-  const { data, error } = await admin.from("saas_tenants").select("*").eq("organization_id", organizationId).single()
-  if (error) return { error: error.message }
-  return { data: data as Tenant }
+  try {
+    const { data, error } = await admin.from("saas_tenants").select("*").eq("organization_id", organizationId).single()
+    if (error) return { error: error.message }
+    return { data: data as Tenant }
+  } catch (err: any) {
+    return { error: String(err?.message || "Tenant not found") }
+  }
 }
 
 export async function getMySubscription(tenantId: string) {
+  const auth = await checkOrgAccess()
+  if (!auth.allowed) return { error: auth.error }
   const admin = createAdminClient()
-  const { data, error } = await admin.from("tenant_subscriptions")
-    .select("*, saas_subscription_plans(*)").eq("tenant_id", tenantId).order("created_at", { ascending: false }).limit(1)
-  if (error) return { error: error.message }
-  return { data: (data?.[0] || null) }
-}
-
-export async function getMyInvoices(tenantId: string) {
-  return getInvoices({ tenant_id: tenantId })
+  try {
+    const { data, error } = await admin
+      .from("tenant_subscriptions")
+      .select("*, saas_subscription_plans(*)")
+      .eq("tenant_id", tenantId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+    if (error) return { error: error.message }
+    return { data: data?.[0] as TenantSubscription | null }
+  } catch (err: any) {
+    return { error: String(err?.message || "Subscription not found") }
+  }
 }
 
 export async function getMyBranding(tenantId: string) {
   return getTenantBranding(tenantId)
 }
 
-export async function updateMyBranding(tenantId: string, values: Partial<TenantBranding>) {
-  return upsertTenantBranding({ ...values, tenant_id: tenantId })
+export async function getMyInvoices(tenantId: string) {
+  return getInvoices({ tenant_id: tenantId })
 }
 
 export async function getMyResourceUsage(tenantId: string) {
-  return getTenantResourceUsage(tenantId, "monthly")
+  return getTenantResourceUsage(tenantId)
+}
+
+export async function getPlanFeatures(planId: string) {
+  const admin = createAdminClient()
+  try {
+    const { data, error } = await admin.from("saas_plan_features").select("*").eq("plan_id", planId).order("sort_order", { ascending: true })
+    if (error) return { data: [] }
+    return { data: data || [] }
+  } catch {
+    return { data: [] }
+  }
 }
