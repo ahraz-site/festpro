@@ -26,7 +26,15 @@ const publicRoutes = [
 const authRoutes = ["/login", "/signup", "/forgot-password", "/verify"]
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  const { pathname, searchParams } = request.nextUrl
+
+  // Auto-forward any incoming auth code (e.g. password reset / magic link) to /auth/callback
+  const code = searchParams.get("code")
+  if (code && !pathname.startsWith("/auth/callback")) {
+    const callbackUrl = new URL("/auth/callback", request.url)
+    callbackUrl.search = request.nextUrl.search
+    return NextResponse.redirect(callbackUrl)
+  }
 
   const isPublicRoute = publicRoutes.some((route) =>
     route === "/" ? pathname === "/" : pathname.startsWith(route)

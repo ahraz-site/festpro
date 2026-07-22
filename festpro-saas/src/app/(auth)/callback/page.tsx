@@ -19,7 +19,6 @@ function CallbackContent() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const code = params.get("code")
-    const redirectTo = params.get("redirect_to")
 
     if (!code) {
       setMode("error")
@@ -28,19 +27,22 @@ function CallbackContent() {
 
     const supabase = createClient()
 
-    supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") {
-        if (redirectTo === "/profile") {
-          setMode("recovery")
+    async function processCode() {
+      try {
+        const { error } = await supabase.auth.exchangeCodeForSession(code!)
+        if (error) {
+          console.error("Code exchange error:", error)
+          setMode("error")
         } else {
-          router.push(redirectTo || "/dashboard")
+          setMode("recovery")
         }
-      } else if (event === "PASSWORD_RECOVERY") {
-        setMode("recovery")
+      } catch (err) {
+        console.error("Callback exception:", err)
+        setMode("error")
       }
-    })
+    }
 
-    supabase.auth.exchangeCodeForSession(code)
+    processCode()
   }, [router])
 
   async function handleResetPassword(e: React.FormEvent) {
@@ -55,15 +57,15 @@ function CallbackContent() {
     if (error) {
       return toast.error(error.message)
     }
-    toast.success("Password updated! Redirecting to login...")
-    setTimeout(() => router.push("/login"), 2000)
+    toast.success("Password updated successfully! Redirecting to login...")
+    setTimeout(() => router.push("/login"), 1500)
   }
 
   if (mode === "loading") {
     return (
       <Card className="w-full max-w-md">
         <CardContent className="pt-8 text-center">
-          <p className="text-gray-500">Processing...</p>
+          <p className="text-gray-500 font-medium">Verifying reset link...</p>
         </CardContent>
       </Card>
     )
@@ -73,7 +75,7 @@ function CallbackContent() {
     return (
       <Card className="w-full max-w-md">
         <CardContent className="pt-8 text-center space-y-4">
-          <p className="text-red-500">Invalid or expired link.</p>
+          <p className="text-red-500 font-medium">Invalid or expired reset link.</p>
           <Button onClick={() => router.push("/forgot-password")}>
             Request new reset link
           </Button>
@@ -85,12 +87,12 @@ function CallbackContent() {
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl">Set New Password</CardTitle>
+        <CardTitle className="text-2xl font-bold">Set New Password</CardTitle>
         <CardDescription>Enter your new password below</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleResetPassword} className="space-y-4">
-          <div className="space-y-2">
+          <div className="space-y-2 text-left">
             <Label htmlFor="password">New Password</Label>
             <Input
               id="password"
@@ -99,6 +101,7 @@ function CallbackContent() {
               icon={<Lock className="h-4 w-4" />}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
             />
           </div>
           <Button type="submit" className="w-full" size="lg" loading={isLoading}>
@@ -112,14 +115,16 @@ function CallbackContent() {
 
 export default function CallbackPage() {
   return (
-    <Suspense fallback={
-      <Card className="w-full max-w-md">
-        <CardContent className="pt-8 text-center">
-          <p className="text-gray-500">Loading...</p>
-        </CardContent>
-      </Card>
-    }>
-      <CallbackContent />
-    </Suspense>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <Suspense fallback={
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-8 text-center">
+            <p className="text-gray-500">Loading...</p>
+          </CardContent>
+        </Card>
+      }>
+        <CallbackContent />
+      </Suspense>
+    </div>
   )
 }
