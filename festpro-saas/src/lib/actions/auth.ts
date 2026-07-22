@@ -13,157 +13,170 @@ export async function signUp(formData: {
   email: string
   password: string
 }) {
-  const supabase = await createServerClient()
+  try {
+    const supabase = await createServerClient()
 
-  const { data: authData, error: authError } = await supabase.auth.signUp({
-    email: formData.email,
-    password: formData.password,
-    options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
-      data: {
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-      },
-    },
-  })
+    const firstName = String(formData.first_name || "User").replace(/[^\x00-\x7F]/g, "").trim()
+    const lastName = String(formData.last_name || "").replace(/[^\x00-\x7F]/g, "").trim()
 
-  if (authError) {
-    return { error: authError.message }
-  }
-
-  if (!authData.user) {
-    return { error: "Failed to create user" }
-  }
-
-  const adminClient = createAdminClient()
-  const orgSlug = `${formData.first_name.toLowerCase().replace(/[^a-z0-9]/g, "")}-${Math.random().toString(36).substring(2, 6)}`
-
-  // 1. Create Organization
-  const { data: org, error: orgError } = await adminClient
-    .from("organizations")
-    .insert({
-      name: `${formData.first_name}'s Organization`,
-      slug: orgSlug,
-    })
-    .select()
-    .single()
-
-  if (orgError) {
-    return { error: orgError.message }
-  }
-
-  // 2. Add Organization Member
-  const { error: memberError } = await adminClient.from("organization_members").upsert({
-    organization_id: org.id,
-    user_id: authData.user.id,
-    role: "organization_owner",
-  })
-
-  if (memberError) {
-    return { error: memberError.message }
-  }
-
-  // 3. Explicitly Upsert Profile (Guarantees profile row exists regardless of DB trigger)
-  const { error: profileError } = await adminClient
-    .from("profiles")
-    .upsert({
-      id: authData.user.id,
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email: formData.email,
-      first_name: formData.first_name,
-      last_name: formData.last_name,
-      role: "organization_owner",
-      organization_id: org.id,
+      password: formData.password,
+      options: {
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+        },
+      },
     })
 
-  if (profileError) {
-    return { error: profileError.message }
-  }
+    if (authError) {
+      return { error: authError.message }
+    }
 
-  revalidatePath("/", "layout")
-  return { success: true }
-}
+    if (!authData.user) {
+      return { error: "Failed to create user" }
+    }
 
-export async function signIn(formData: { email: string; password: string }) {
-  const supabase = await createServerClient()
+    const adminClient = createAdminClient()
+    const orgSlug = `${firstName.toLowerCase().replace(/[^a-z0-9]/g, "") || "user"}-${Math.random().toString(36).substring(2, 6)}`
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: formData.email,
-    password: formData.password,
-  })
-
-  if (error) {
-    return { error: error.message }
-  }
-
-  if (!data.user) {
-    return { error: "Invalid credentials" }
-  }
-
-  const adminClient = createAdminClient()
-  let { data: profile } = await adminClient
-    .from("profiles")
-    .select("*")
-    .eq("id", data.user.id)
-    .single()
-
-  // Auto-heal missing profile
-  if (!profile) {
-    const userMeta = data.user.user_metadata || {}
-    const firstName = userMeta.first_name || data.user.email?.split("@")[0] || "User"
-    const lastName = userMeta.last_name || ""
-
-    const orgSlug = `org-${data.user.id.substring(0, 8)}`
-    let { data: org } = await adminClient
+    // 1. Create Organization
+    const { data: org, error: orgError } = await adminClient
       .from("organizations")
-      .select("id")
-      .eq("slug", orgSlug)
+      .insert({
+        name: `${firstName} Organization`,
+        slug: orgSlug,
+      })
+      .select()
       .single()
 
-    if (!org) {
-      const { data: newOrg } = await adminClient
-        .from("organizations")
-        .insert({
-          name: `${firstName}'s Organization`,
-          slug: orgSlug,
-        })
-        .select()
-        .single()
-      org = newOrg
+    if (orgError) {
+      return { error: orgError.message }
     }
 
-    if (org) {
-      await adminClient.from("organization_members").upsert({
-        organization_id: org.id,
-        user_id: data.user.id,
-        role: "organization_owner",
-      })
+    // 2. Add Organization Member
+    const { error: memberError } = await adminClient.from("organization_members").upsert({
+      organization_id: org.id,
+      user_id: authData.user.id,
+      role: "organization_owner",
+    })
+
+    if (memberError) {
+      return { error: memberError.message }
     }
 
-    const { data: newProfile, error: createProfileError } = await adminClient
+    // 3. Explicitly Upsert Profile
+    const { error: profileError } = await adminClient
       .from("profiles")
       .upsert({
-        id: data.user.id,
-        email: data.user.email!,
+        id: authData.user.id,
+        email: formData.email,
         first_name: firstName,
         last_name: lastName,
         role: "organization_owner",
-        organization_id: org?.id || null,
+        organization_id: org.id,
       })
-      .select("*")
-      .single()
 
-    if (createProfileError || !newProfile) {
-      return { error: createProfileError?.message || "Profile initialization error" }
+    if (profileError) {
+      return { error: profileError.message }
     }
 
-    profile = newProfile
+    revalidatePath("/", "layout")
+    return { success: true }
+  } catch (err: any) {
+    console.error("signUp error:", err)
+    return { error: String(err?.message || "Registration failed. Please try again.").replace(/[^\x00-\x7F]/g, "") }
   }
+}
 
-  revalidatePath("/", "layout")
-  return {
-    success: true,
-    role: profile.role as UserRole,
-    redirectTo: getDashboardForRole(profile.role as UserRole),
+export async function signIn(formData: { email: string; password: string }) {
+  try {
+    const supabase = await createServerClient()
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: formData.email,
+      password: formData.password,
+    })
+
+    if (error) {
+      return { error: error.message }
+    }
+
+    if (!data.user) {
+      return { error: "Invalid credentials" }
+    }
+
+    const adminClient = createAdminClient()
+    let { data: profile } = await adminClient
+      .from("profiles")
+      .select("*")
+      .eq("id", data.user.id)
+      .single()
+
+    // Auto-heal missing profile
+    if (!profile) {
+      const userMeta = data.user.user_metadata || {}
+      const firstName = String(userMeta.first_name || data.user.email?.split("@")[0] || "User").replace(/[^\x00-\x7F]/g, "").trim() || "User"
+      const lastName = String(userMeta.last_name || "").replace(/[^\x00-\x7F]/g, "").trim()
+
+      const orgSlug = `org-${data.user.id.substring(0, 8)}`
+      let { data: org } = await adminClient
+        .from("organizations")
+        .select("id")
+        .eq("slug", orgSlug)
+        .single()
+
+      if (!org) {
+        const { data: newOrg } = await adminClient
+          .from("organizations")
+          .insert({
+            name: `${firstName} Organization`,
+            slug: orgSlug,
+          })
+          .select()
+          .single()
+        org = newOrg
+      }
+
+      if (org) {
+        await adminClient.from("organization_members").upsert({
+          organization_id: org.id,
+          user_id: data.user.id,
+          role: "organization_owner",
+        })
+      }
+
+      const { data: newProfile, error: createProfileError } = await adminClient
+        .from("profiles")
+        .upsert({
+          id: data.user.id,
+          email: data.user.email!,
+          first_name: firstName,
+          last_name: lastName,
+          role: "organization_owner",
+          organization_id: org?.id || null,
+        })
+        .select("*")
+        .single()
+
+      if (createProfileError || !newProfile) {
+        return { error: createProfileError?.message || "Profile initialization error" }
+      }
+
+      profile = newProfile
+    }
+
+    revalidatePath("/", "layout")
+    return {
+      success: true,
+      role: profile.role as UserRole,
+      redirectTo: getDashboardForRole(profile.role as UserRole),
+    }
+  } catch (err: any) {
+    console.error("signIn error:", err)
+    return { error: String(err?.message || "Authentication failed. Please try again.").replace(/[^\x00-\x7F]/g, "") }
   }
 }
 
