@@ -28,6 +28,22 @@ const authRoutes = ["/login", "/signup", "/forgot-password", "/reset-password", 
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const code = request.nextUrl.searchParams.get("code")
+  const error = request.nextUrl.searchParams.get("error")
+  const errorCode = request.nextUrl.searchParams.get("error_code")
+
+  if ((error || errorCode === "otp_expired") && !pathname.startsWith("/forgot-password")) {
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = "/forgot-password"
+    redirectUrl.searchParams.set("error", "expired")
+    return NextResponse.redirect(redirectUrl)
+  }
+
+  if (code && !pathname.startsWith("/auth/callback")) {
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = "/auth/callback"
+    return NextResponse.redirect(redirectUrl)
+  }
 
   const isPublicRoute = publicRoutes.some((route) =>
     route === "/" ? pathname === "/" : pathname.startsWith(route)
