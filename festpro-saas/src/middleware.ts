@@ -4,6 +4,11 @@ import { createServerClient } from "@supabase/ssr"
 import { canAccessRoute } from "@/config/roles"
 import type { UserRole } from "@/types"
 
+function cleanEnv(val: string | undefined): string {
+  if (!val) return ""
+  return val.replace(/[^\x00-\x7F]/g, "").trim().replace(/^['"]|['"]$/g, "")
+}
+
 const publicRoutes = [
   "/",
   "/login",
@@ -23,20 +28,16 @@ const authRoutes = ["/login", "/signup", "/forgot-password", "/verify"]
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Redirect password reset / magic link with code to callback handler
-  if (pathname === "/" && request.nextUrl.searchParams.has("code")) {
-    const callbackUrl = new URL("/auth/callback", request.url)
-    callbackUrl.search = request.nextUrl.search
-    return NextResponse.redirect(callbackUrl)
-  }
-
   const isPublicRoute = publicRoutes.some((route) =>
     route === "/" ? pathname === "/" : pathname.startsWith(route)
   )
 
+  const url = cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL)
+  const key = cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+
   if (isPublicRoute) {
     try {
-      if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      if (url && key) {
         return await updateSession(request)
       }
     } catch (e) {
@@ -46,29 +47,25 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    if (!url || !key) {
       return NextResponse.next({ request })
     }
 
     let response = NextResponse.next({ request })
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-            response = NextResponse.next({ request })
-            cookiesToSet.forEach(({ name, value, options }) =>
-              response.cookies.set(name, value, options)
-            )
-          },
+    const supabase = createServerClient(url, key, {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
         },
-      }
-    )
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          response = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
+        },
+      },
+    })
 
     const {
       data: { user },
