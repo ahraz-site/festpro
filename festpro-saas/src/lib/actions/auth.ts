@@ -37,17 +37,7 @@ export async function signUp(formData: {
 
   const adminClient = createAdminClient()
 
-  const { error: profileError } = await adminClient.from("profiles").insert({
-    id: authData.user.id,
-    email: formData.email,
-    first_name: formData.first_name,
-    last_name: formData.last_name,
-    role: "organization_owner",
-  })
-
-  if (profileError) {
-    return { error: profileError.message }
-  }
+  // Profile auto-created by on_auth_user_created trigger
 
   const orgSlug = `${formData.first_name.toLowerCase()}-${Math.random().toString(36).substring(2, 6)}`
 
