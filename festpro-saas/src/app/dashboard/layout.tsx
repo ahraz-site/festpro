@@ -59,20 +59,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push("/login"); return }
 
-      let { data: prof } = await supabase.from("profiles").select("*").eq("id", user.id).single()
+      const [profRes, memRes] = await Promise.all([
+        supabase.from("profiles").select("*").eq("id", user.id).single(),
+        supabase.from("organization_members").select("organization_id").eq("user_id", user.id)
+      ])
+
+      let prof = profRes.data
       if (!prof) {
         prof = await ensureUserProfile()
       }
       setProfile(prof)
 
-      // Load organizations the user belongs to
-      const { data: memberships } = await supabase
-        .from("organization_members")
-        .select("organization_id")
-        .eq("user_id", user.id)
-
-      if (memberships?.length) {
-        const ids = memberships.map((m: { organization_id: string }) => m.organization_id)
+      if (memRes.data?.length) {
+        const ids = memRes.data.map((m: { organization_id: string }) => m.organization_id)
         const { data: orgs } = await supabase
           .from("organizations")
           .select("*")
