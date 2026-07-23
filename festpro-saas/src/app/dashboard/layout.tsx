@@ -21,7 +21,7 @@ import {
   Warehouse, ShoppingCart, Truck, Wrench, TrendingUp,   ClipboardCheck, Route,
   Utensils, ChefHat, Trash2,
   Smartphone, CloudSync, TrendingUp as TrendingUpIcon, Upload as UploadIcon,
-  Stethoscope, Pill, ArrowRight, Palette, Bot, Brain, Cpu, Eye, Mic, Languages, FileKey,
+  Stethoscope, Pill, ArrowRight, ArrowLeft, Palette, Bot, Brain, Cpu, Eye, Mic, Languages, FileKey,
   FileSignature, Share2, HardDrive, Archive as ArchiveIcon, Folder, GitBranch, Rocket, Container, Gauge, Book, LifeBuoy, Download,
 } from "lucide-react"
 import type { Profile } from "@/types"
@@ -36,6 +36,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [organizations, setOrganizations] = useState<ExtendedOrganization[]>([])
   const [orgDropdownOpen, setOrgDropdownOpen] = useState(false)
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
+  const [searchModalOpen, setSearchModalOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault()
+        setSearchModalOpen((prev) => !prev)
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [])
 
   const isOrgRoute = pathname.startsWith("/dashboard/organization")
   const currentOrgId = isOrgRoute ? pathname.split("/")[3] : profile?.organization_id
@@ -132,23 +145,122 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { label: "Profile", href: "/profile", icon: User },
   ]
 
+  const ALL_SEARCHABLE_SECTIONS = [
+    { title: "Main Dashboard", href: "/dashboard", section: "General", icon: LayoutDashboard },
+    { title: "User Profile Settings", href: "/profile", section: "General", icon: User },
+    { title: "Create Organization", href: "/dashboard/organization/create", section: "Organizations", icon: Plus },
+    
+    // Platform Administration
+    { title: "Platform Dashboard", href: "/dashboard/platform", section: "Platform Administration", icon: LayoutDashboard },
+    { title: "Tenants / Clients", href: "/dashboard/platform/tenants", section: "Platform Administration", icon: Building2 },
+    { title: "Subscription Plans", href: "/dashboard/platform/plans", section: "Platform Administration", icon: CreditCard },
+    { title: "Billing & Invoices", href: "/dashboard/platform/billing", section: "Platform Administration", icon: DollarSign },
+    { title: "Custom Domains", href: "/dashboard/platform/domains", section: "Platform Administration", icon: Globe },
+    { title: "License Keys", href: "/dashboard/platform/licenses", section: "Platform Administration", icon: Key },
+    { title: "Platform Reports", href: "/dashboard/platform/reports", section: "Platform Administration", icon: BarChart3 },
+    { title: "Platform Analytics", href: "/dashboard/platform/analytics", section: "Platform Administration", icon: TrendingUpIcon },
+    { title: "Platform Settings", href: "/dashboard/platform/settings", section: "Platform Administration", icon: Settings },
+    
+    // Observability
+    { title: "Observability Overview", href: "/dashboard/platform/observability", section: "Observability", icon: LayoutDashboard },
+    { title: "System Health Monitor", href: "/dashboard/platform/observability/health", section: "Observability", icon: Activity },
+    { title: "System Logs", href: "/dashboard/platform/observability/logs", section: "Observability", icon: BarChart3 },
+    { title: "Alerts & Notifications", href: "/dashboard/platform/observability/alerts", section: "Observability", icon: Bell },
+    { title: "Incidents Management", href: "/dashboard/platform/observability/incidents", section: "Observability", icon: AlertTriangle },
+    { title: "Database Backups", href: "/dashboard/platform/observability/backups", section: "Observability", icon: Database },
+    { title: "Deployments", href: "/dashboard/platform/observability/deployments", section: "Observability", icon: Layers },
+    { title: "Maintenance Schedules", href: "/dashboard/platform/observability/maintenance", section: "Observability", icon: Clock },
+
+    // AI Platform
+    { title: "AI Dashboard", href: "/dashboard/platform/ai", section: "AI Platform", icon: LayoutDashboard },
+    { title: "AI Copilot Assistant", href: "/dashboard/platform/ai/copilot", section: "AI Platform", icon: Bot },
+    { title: "AI Conversations", href: "/dashboard/platform/ai/conversations", section: "AI Platform", icon: MessageSquare },
+    { title: "Knowledge Base RAG", href: "/dashboard/platform/ai/knowledge", section: "AI Platform", icon: Database },
+    { title: "Prompt Templates", href: "/dashboard/platform/ai/prompts", section: "AI Platform", icon: Layers },
+    { title: "AI Model Providers", href: "/dashboard/platform/ai/providers", section: "AI Platform", icon: Cpu },
+    { title: "Autonomous Agents", href: "/dashboard/platform/ai/agents", section: "AI Platform", icon: Brain },
+    { title: "AI Predictions & Forecasting", href: "/dashboard/platform/ai/predictions", section: "AI Platform", icon: TrendingUp },
+    { title: "AI Background Jobs", href: "/dashboard/platform/ai/jobs", section: "AI Platform", icon: Activity },
+    { title: "AI Usage & Cost Calculator", href: "/dashboard/platform/ai/cost", section: "AI Platform", icon: DollarSign },
+
+    // Localization
+    { title: "Localization Dashboard", href: "/dashboard/platform/localization", section: "Localization", icon: LayoutDashboard },
+    { title: "Supported Languages", href: "/dashboard/platform/localization/languages", section: "Localization", icon: Languages },
+    { title: "Language Packs", href: "/dashboard/platform/localization/packs", section: "Localization", icon: FileKey },
+    { title: "Translation Manager", href: "/dashboard/platform/localization/translations", section: "Localization", icon: Globe },
+    { title: "Regional Settings", href: "/dashboard/platform/localization/regional", section: "Localization", icon: Settings },
+    { title: "Translation Imports", href: "/dashboard/platform/localization/imports", section: "Localization", icon: Upload },
+    { title: "Accessibility Compliance", href: "/dashboard/platform/localization/accessibility", section: "Localization", icon: Eye },
+    { title: "Text to Speech Engine", href: "/dashboard/platform/localization/tts", section: "Localization", icon: Mic },
+
+    // EDMS Document Management
+    { title: "Document Management Dashboard", href: "/dashboard/platform/edms", section: "Document Management", icon: LayoutDashboard },
+    { title: "Document Explorer", href: "/dashboard/platform/edms/explorer", section: "Document Management", icon: FileText },
+    { title: "Document Categories", href: "/dashboard/platform/edms/categories", section: "Document Management", icon: Folder },
+    { title: "Document Approvals & Signatures", href: "/dashboard/platform/edms/approvals", section: "Document Management", icon: FileSignature },
+    { title: "Document Templates", href: "/dashboard/platform/edms/templates", section: "Document Management", icon: FileText },
+    { title: "EDMS Knowledge Base", href: "/dashboard/platform/edms/knowledge", section: "Document Management", icon: BookOpen },
+    { title: "Document Sharing & Access", href: "/dashboard/platform/edms/shares", section: "Document Management", icon: Share2 },
+    { title: "Data Retention Policies", href: "/dashboard/platform/edms/retention", section: "Document Management", icon: Shield },
+    { title: "Document Archives", href: "/dashboard/platform/edms/archive", section: "Document Management", icon: ArchiveIcon },
+
+    // DevOps Platform
+    { title: "DevOps Dashboard", href: "/dashboard/platform/devops", section: "DevOps Platform", icon: LayoutDashboard },
+    { title: "Environments & Infra", href: "/dashboard/platform/devops/environments", section: "DevOps Platform", icon: Globe },
+    { title: "CI/CD Pipelines", href: "/dashboard/platform/devops/pipelines", section: "DevOps Platform", icon: GitBranch },
+    { title: "Deployment Status", href: "/dashboard/platform/devops/deployments", section: "DevOps Platform", icon: Rocket },
+    { title: "Build Logs & Artifacts", href: "/dashboard/platform/devops/builds", section: "DevOps Platform", icon: Activity },
+    { title: "Releases & LTS Support", href: "/dashboard/platform/devops/releases", section: "DevOps Platform", icon: Package },
+    { title: "Kubernetes Clusters", href: "/dashboard/platform/devops/clusters", section: "DevOps Platform", icon: Server },
+    { title: "Docker Containers", href: "/dashboard/platform/devops/containers", section: "DevOps Platform", icon: Container },
+    { title: "Feature Rollouts", href: "/dashboard/platform/devops/feature-rollouts", section: "DevOps Platform", icon: Flag },
+    { title: "Security Scans", href: "/dashboard/platform/devops/security-scans", section: "DevOps Platform", icon: Shield },
+    { title: "Secrets & Vault", href: "/dashboard/platform/devops/secrets", section: "DevOps Platform", icon: Lock },
+
+    // Enterprise Security
+    { title: "Enterprise Security Dashboard", href: "/dashboard/platform/security", section: "Enterprise Security", icon: Shield },
+    { title: "Security Compliance Audit", href: "/dashboard/platform/security/compliance", section: "Enterprise Security", icon: FileText },
+    { title: "Vulnerability Scans", href: "/dashboard/platform/security/scans", section: "Enterprise Security", icon: Bug },
+    { title: "Operations Console", href: "/dashboard/platform/operations", section: "Enterprise Security", icon: AlertTriangle },
+    { title: "Performance Metrics", href: "/dashboard/platform/performance", section: "Enterprise Security", icon: Activity },
+  ]
+
+  const filteredSearchSections = ALL_SEARCHABLE_SECTIONS.filter((item) =>
+    !searchQuery ||
+    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.section.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.href.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top Header */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-gray-200 bg-white">
         <div className="flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-3">
-            <button className="lg:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}>
+            <button className="lg:hidden p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg" onClick={() => setSidebarOpen(!sidebarOpen)}>
               {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
+
+            {/* Back Button in Top Header */}
+            {pathname !== "/dashboard" && (
+              <button
+                onClick={() => router.back()}
+                className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-lg transition-colors"
+                title="Go Back"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" /> Back
+              </button>
+            )}
+
             <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 text-white text-sm font-bold">F</div>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 text-white text-sm font-bold shadow-xs">F</div>
               <span className="text-lg font-bold text-gray-900 hidden sm:block">FestPro</span>
             </Link>
 
             {/* Organization Switcher */}
             {organizations.length > 0 && (
-              <div className="relative ml-4">
+              <div className="relative ml-2 sm:ml-4">
                 <button
                   onClick={() => setOrgDropdownOpen(!orgDropdownOpen)}
                   className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
@@ -196,7 +308,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* Global Quick Search Input */}
+          <div className="relative flex-1 max-w-md mx-4 hidden md:block">
+            <div
+              onClick={() => setSearchModalOpen(true)}
+              className="flex items-center gap-2.5 px-3 py-1.5 text-sm text-gray-400 bg-gray-100 hover:bg-gray-200/80 rounded-xl cursor-pointer transition-all border border-transparent hover:border-gray-300"
+            >
+              <Search className="h-4 w-4 text-gray-400 shrink-0" />
+              <span className="flex-1 truncate">Search any section or page...</span>
+              <kbd className="hidden lg:inline-block px-1.5 py-0.5 text-[10px] font-mono font-semibold text-gray-500 bg-white border border-gray-200 rounded shadow-xs">Ctrl+K</kbd>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Mobile Search Button */}
+            <button
+              onClick={() => setSearchModalOpen(true)}
+              className="md:hidden p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+              title="Search Sections"
+            >
+              <Search className="h-5 w-5" />
+            </button>
             <button className="relative p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
               <Bell className="h-5 w-5" />
             </button>
@@ -1399,8 +1531,97 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main Content */}
       <main className="pt-16 lg:pl-64 min-h-screen">
-        <div className="p-6 max-w-7xl mx-auto">{children}</div>
+        <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+          {pathname !== "/dashboard" && (
+            <div className="mb-4 flex items-center justify-between border-b border-gray-200/80 pb-3">
+              <button
+                onClick={() => router.back()}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-lg shadow-2xs transition-all hover:text-indigo-600 active:scale-95 cursor-pointer"
+              >
+                <ArrowLeft className="h-4 w-4 text-indigo-600" /> Back to Previous Page
+              </button>
+
+              {/* Breadcrumb Path */}
+              <div className="hidden sm:flex items-center gap-1 text-xs text-gray-400 font-medium overflow-x-auto max-w-md">
+                {pathname.split("/").filter(Boolean).map((part, idx, arr) => (
+                  <span key={idx} className="flex items-center gap-1">
+                    {idx > 0 && <span className="text-gray-300">/</span>}
+                    <span className={idx === arr.length - 1 ? "text-indigo-700 font-semibold capitalize" : "capitalize"}>
+                      {part.replace(/-/g, " ")}
+                    </span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {children}
+        </div>
       </main>
+
+      {/* Search Modal (Ctrl+K) */}
+      {searchModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-black/50 backdrop-blur-xs">
+          <div className="fixed inset-0" onClick={() => setSearchModalOpen(false)} />
+          <div className="relative w-full max-w-xl bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden z-10 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 px-4 border-b border-gray-100 py-3">
+              <Search className="h-5 w-5 text-indigo-600 shrink-0" />
+              <input
+                type="text"
+                autoFocus
+                placeholder="Type to search any section (e.g. Templates, Domains, Competitions, Billing, Logs)..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-hidden"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery("")} className="text-xs text-gray-400 hover:text-gray-600">Clear</button>
+              )}
+              <button onClick={() => setSearchModalOpen(false)} className="p-1 text-gray-400 hover:text-gray-600 rounded-lg">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="max-h-[60vh] overflow-y-auto p-2">
+              {filteredSearchSections.length === 0 ? (
+                <div className="py-8 text-center text-sm text-gray-500">
+                  No sections found for &quot;{searchQuery}&quot;
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {filteredSearchSections.map((item) => {
+                    const Icon = item.icon
+                    return (
+                      <Link
+                        key={item.href + item.title}
+                        href={item.href}
+                        onClick={() => {
+                          setSearchModalOpen(false)
+                          setSearchQuery("")
+                        }}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm hover:bg-indigo-50/80 transition-colors group"
+                      >
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 group-hover:bg-indigo-600 group-hover:text-white text-gray-600 transition-colors">
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 group-hover:text-indigo-900 truncate">{item.title}</p>
+                          <p className="text-xs text-gray-400 truncate">{item.section}</p>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-gray-300 group-hover:text-indigo-600 transition-colors shrink-0" />
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="px-4 py-2 bg-gray-50 border-t border-gray-100 text-xs text-gray-400 flex items-center justify-between">
+              <span>Quick Section Search</span>
+              <span>Press <kbd className="font-mono bg-white px-1.5 py-0.5 border border-gray-200 rounded">ESC</kbd> to close</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
