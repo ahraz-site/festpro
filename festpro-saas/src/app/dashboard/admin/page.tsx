@@ -14,13 +14,36 @@ export default function AdminDashboard() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single()
-      setProfile(data)
+      let { data } = await supabase.from("profiles").select("*").eq("id", user.id).single()
+      if (!data) {
+        const { ensureUserProfile } = await import("@/lib/actions/auth")
+        data = await ensureUserProfile()
+      }
+      if (data) {
+        setProfile(data)
+      } else {
+        setProfile({
+          id: user.id,
+          email: user.email || "",
+          first_name: user.user_metadata?.first_name || "Admin",
+          last_name: user.user_metadata?.last_name || "",
+          role: "platform_owner",
+          organization_id: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } as any)
+      }
     }
     load()
   }, [])
 
-  if (!profile) return null
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white text-sm font-bold animate-pulse">F</div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">

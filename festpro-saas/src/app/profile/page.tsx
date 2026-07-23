@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { createClient } from "@/lib/supabase/client"
-import { updateProfile } from "@/lib/actions/auth"
+import { updateProfile, ensureUserProfile } from "@/lib/actions/auth"
 import type { Profile } from "@/types"
 
 export default function ProfilePage() {
@@ -25,10 +25,24 @@ export default function ProfilePage() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push("/login"); return }
-      const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single()
+      let { data } = await supabase.from("profiles").select("*").eq("id", user.id).single()
+      if (!data) {
+        data = await ensureUserProfile()
+      }
       if (data) {
         setProfile(data)
-        setForm({ first_name: data.first_name, last_name: data.last_name, phone: data.phone || "" })
+        setForm({ first_name: data.first_name || "", last_name: data.last_name || "", phone: data.phone || "" })
+      } else {
+        const fallbackProf: any = {
+          id: user.id,
+          email: user.email || "",
+          first_name: user.user_metadata?.first_name || user.email?.split("@")[0] || "User",
+          last_name: user.user_metadata?.last_name || "",
+          phone: "",
+          role: "organization_owner",
+        }
+        setProfile(fallbackProf)
+        setForm({ first_name: fallbackProf.first_name, last_name: fallbackProf.last_name, phone: "" })
       }
       setLoading(false)
     }
@@ -53,15 +67,14 @@ export default function ProfilePage() {
     setSaving(false)
   }
 
-  if (loading) {
+  if (loading || !profile) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white text-sm font-bold animate-pulse">F</div>
+      <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white text-lg font-bold animate-pulse">F</div>
+        <p className="text-sm text-gray-500 font-medium">Loading your profile...</p>
       </div>
     )
   }
-
-  if (!profile) return null
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
