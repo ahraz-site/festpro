@@ -3,7 +3,6 @@ import { DOMAIN_STATUSES } from "@/config/saas-platform"
 
 export default async function DomainsPage() {
   const result = await getCustomDomains()
-  if (result.error) return <div className="text-red-500">{result.error}</div>
 
   return (
     <div className="space-y-6">

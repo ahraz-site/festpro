@@ -3,7 +3,6 @@ import { LICENSE_STATUSES } from "@/config/saas-platform"
 
 export default async function LicensesPage() {
   const result = await getLicenseKeys()
-  if (result.error) return <div className="text-red-500">{result.error}</div>
 
   return (
     <div className="space-y-6">

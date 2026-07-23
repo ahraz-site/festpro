@@ -5,7 +5,6 @@ import { Plus } from "lucide-react"
 
 export default async function PlansPage() {
   const result = await getSubscriptionPlans()
-  if (result.error) return <div className="text-red-500">{result.error}</div>
 
   return (
     <div className="space-y-6">

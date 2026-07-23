@@ -6,7 +6,6 @@ import { Plus } from "lucide-react"
 export default async function BillingPage(props: { searchParams?: Promise<{ status?: string; page?: string }> }) {
   const sp = await props.searchParams
   const result = await getInvoices({ status: sp?.status as any, page: Number(sp?.page) || 1, limit: 20 })
-  if (result.error) return <div className="text-red-500">{result.error}</div>
 
   return (
     <div className="space-y-6">

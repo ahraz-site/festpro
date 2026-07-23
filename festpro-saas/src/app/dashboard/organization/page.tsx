@@ -38,7 +38,7 @@ export default function OrganizationListPage() {
 
         // If user has a current org set, redirect there
         const { data: profile } = await supabase.from("profiles").select("organization_id").eq("id", user.id).single()
-        if (profile?.organization_id && orgsData?.some((o) => o.id === profile.organization_id)) {
+        if (profile?.organization_id && orgsData?.some((o: ExtendedOrganization) => o.id === profile.organization_id)) {
           router.push(`/dashboard/organization/${profile.organization_id}`)
         }
       }
