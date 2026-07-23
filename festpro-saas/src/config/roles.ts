@@ -73,15 +73,15 @@ export const ROLE_DASHBOARDS: Record<UserRole, string> = {
 }
 
 export const ROUTE_PERMISSIONS: Record<string, UserRole[]> = {
-  "/dashboard/admin": ["platform_owner", "platform_admin"],
-  "/dashboard/organization": ["organization_owner", "organization_admin"],
-  "/dashboard/festival": ["organization_owner", "organization_admin", "festival_director", "division_coordinator", "sector_coordinator"],
-  "/dashboard/judge": ["judge"],
-  "/dashboard/volunteer": ["volunteer"],
-  "/dashboard/media": ["media"],
-  "/dashboard/reception": ["reception"],
-  "/dashboard/finance": ["finance"],
-  "/dashboard/participant": ["participant", "unit_coordinator"],
+  "/dashboard/admin": ["platform_owner", "platform_admin", "organization_owner"],
+  "/dashboard/organization": ["organization_owner", "organization_admin", "platform_owner", "platform_admin"],
+  "/dashboard/festival": ["organization_owner", "organization_admin", "festival_director", "division_coordinator", "sector_coordinator", "platform_owner", "platform_admin"],
+  "/dashboard/judge": ["judge", "organization_owner", "platform_owner", "platform_admin"],
+  "/dashboard/volunteer": ["volunteer", "organization_owner", "platform_owner", "platform_admin"],
+  "/dashboard/media": ["media", "organization_owner", "platform_owner", "platform_admin"],
+  "/dashboard/reception": ["reception", "organization_owner", "platform_owner", "platform_admin"],
+  "/dashboard/finance": ["finance", "organization_owner", "platform_owner", "platform_admin"],
+  "/dashboard/participant": ["participant", "unit_coordinator", "organization_owner", "platform_owner", "platform_admin"],
   "/profile": [...ROLES.filter((r) => r !== "public_user")],
 }
 
@@ -89,10 +89,13 @@ export const ROUTE_PERMISSIONS: Record<string, UserRole[]> = {
 // which is already covered by the /dashboard/organization route permissions.
 
 export function getDashboardForRole(role: UserRole): string {
-  return ROLE_DASHBOARDS[role] || "/dashboard/participant"
+  return ROLE_DASHBOARDS[role] || "/dashboard/organization"
 }
 
 export function canAccessRoute(role: UserRole, pathname: string): boolean {
+  if (role === "platform_owner" || role === "platform_admin" || role === "organization_owner" || role === "organization_admin") {
+    return true
+  }
   const matchedPrefix = Object.keys(ROUTE_PERMISSIONS).find((prefix) =>
     pathname === prefix || pathname.startsWith(prefix + "/")
   )

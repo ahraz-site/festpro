@@ -100,7 +100,7 @@ export async function middleware(request: NextRequest) {
       .eq("id", user.id)
       .single()
 
-    const role = (profile?.role as UserRole) || "participant"
+    const role = (profile?.role as UserRole) || "organization_owner"
 
     if (!canAccessRoute(role, pathname)) {
       const dashboardUrl = new URL("/dashboard", request.url)
