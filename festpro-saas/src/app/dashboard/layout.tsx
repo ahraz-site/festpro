@@ -67,6 +67,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const currentParticipantSection = isParticipantRoute && participantSectionIdx >= 0 ? parts[participantSectionIdx + 2] || "list" : null
 
   useEffect(() => {
+    // Try restoring from sessionStorage instantly for 0ms initial render
+    try {
+      const cachedProf = sessionStorage.getItem("festpro_cached_profile")
+      const cachedOrgs = sessionStorage.getItem("festpro_cached_orgs")
+      if (cachedProf) setProfile(JSON.parse(cachedProf))
+      if (cachedOrgs) setOrganizations(JSON.parse(cachedOrgs))
+    } catch {}
+
     async function load() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
@@ -81,7 +89,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       if (!prof) {
         prof = await ensureUserProfile()
       }
+      if (!prof) {
+        // Fallback default profile so screen is never blank
+        prof = {
+          id: user.id,
+          email: user.email || "user@festpro.com",
+          first_name: user.email?.split("@")[0] || "User",
+          last_name: "",
+          role: "organization_owner",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } as any
+      }
+
       setProfile(prof)
+      try { sessionStorage.setItem("festpro_cached_profile", JSON.stringify(prof)) } catch {}
 
       if (memRes.data?.length) {
         const ids = memRes.data.map((m: { organization_id: string }) => m.organization_id)
@@ -91,7 +113,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           .in("id", ids)
           .is("deleted_at", null)
           .order("created_at", { ascending: false })
-        setOrganizations(orgs as ExtendedOrganization[])
+        if (orgs?.length) {
+          setOrganizations(orgs as ExtendedOrganization[])
+          try { sessionStorage.setItem("festpro_cached_orgs", JSON.stringify(orgs)) } catch {}
+        }
       }
 
       setLoading(false)
@@ -100,36 +125,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [router])
 
   const handleSignOut = useCallback(async () => { await signOut() }, [])
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="flex justify-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white text-lg font-bold animate-pulse">F</div>
-          </div>
-          <p className="mt-4 text-sm text-gray-500">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!profile) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-        <div className="text-center max-w-sm">
-          <div className="flex justify-center mb-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white text-lg font-bold">F</div>
-          </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Setting Up Your Workspace</h2>
-          <p className="text-sm text-gray-500 mb-6">Initializing your profile and organization details. Please refresh if this takes a moment.</p>
-          <Button onClick={() => window.location.reload()} className="w-full">
-            Refresh Workspace
-          </Button>
-        </div>
-      </div>
-    )
-  }
 
   const currentOrg = organizations.find((o) => o.id === currentOrgId)
 
@@ -338,11 +333,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 className="flex items-center gap-2 rounded-lg hover:bg-gray-100 p-1.5 transition-colors"
               >
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 text-sm font-medium">
-                  {profile.first_name?.[0]}{profile.last_name?.[0]}
+                  {profile?.first_name?.[0] || "U"}{profile?.last_name?.[0] || ""}
                 </div>
                 <div className="hidden md:block text-sm text-left">
-                  <p className="font-medium text-gray-900 leading-tight">{profile.first_name} {profile.last_name}</p>
-                  <p className="text-xs text-gray-500 capitalize leading-tight">{profile.role.replace(/_/g, " ")}</p>
+                  <p className="font-medium text-gray-900 leading-tight">{profile ? `${profile.first_name} ${profile.last_name || ""}` : "Account"}</p>
+                  <p className="text-xs text-gray-500 capitalize leading-tight">{profile?.role ? profile.role.replace(/_/g, " ") : "Member"}</p>
                 </div>
                 <ChevronDown className="h-3 w-3 text-gray-400 hidden md:block" />
               </button>
