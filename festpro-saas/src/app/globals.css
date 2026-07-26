@@ -17,3 +17,12 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+.font-newsreader {
+  font-family: var(--font-newsreader), Georgia, serif;
+}
+
+.font-anek {
+  font-family: var(--font-anek-malayalam), sans-serif;
+}
+
