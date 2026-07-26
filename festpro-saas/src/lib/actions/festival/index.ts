@@ -743,15 +743,24 @@ export async function getFestivalDashboardData(festivalId: string): Promise<Fest
 
   if (!festival) return null
 
+  const defaultStats: FestivalStatistics = {
+    festival_id: festivalId,
+    total_competitions: 0,
+    total_participants: 0,
+    total_teams: 0,
+    total_stages: 0,
+    total_results_published: 0,
+  } as any
+
   return {
     festival,
-    settings: settings!,
-    statistics: statistics!,
-    days,
-    venues,
-    stages,
-    announcements: announcements.filter((a: FestivalAnnouncement) => a.status === "published"),
-    sponsors: sponsors.filter((s: FestivalSponsor) => s.status === "confirmed"),
+    settings: settings || ({} as any),
+    statistics: statistics || defaultStats,
+    days: days || [],
+    venues: venues || [],
+    stages: stages || [],
+    announcements: (announcements || []).filter((a: FestivalAnnouncement) => a.status === "published"),
+    sponsors: (sponsors || []).filter((s: FestivalSponsor) => s.status === "confirmed"),
     recentActivity: [],
   } as FestivalDashboardData
 }
