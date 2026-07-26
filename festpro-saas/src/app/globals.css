@@ -13,9 +13,13 @@
   --font-mono: var(--font-geist-mono);
 }
 
-body, p, span, li, button, input, textarea, a {
+body {
   background: var(--background);
   color: var(--foreground);
+  font-family: var(--font-inter), Arial, sans-serif;
+}
+
+p, span, li, button, input, textarea, a {
   font-family: var(--font-inter), Arial, sans-serif;
 }
 
