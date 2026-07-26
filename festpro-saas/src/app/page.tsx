@@ -135,7 +135,7 @@ export default function LightModeFestProLandingPage() {
             </div>
 
             {/* Headline */}
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 leading-[1.12]">
+            <h1 className="font-heading text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 leading-[1.12]">
               {isMl ? (
                 <>
                   കലോത്സവങ്ങളിലെ പരാതികളും തടസ്സങ്ങളും ഇല്ലാതെ <br />
