@@ -10,6 +10,8 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
+import { AhrazFestProLogo } from "@/components/ui/logo"
+
 export default function LightModeFestProLandingPage() {
   const [lang, setLang] = useState<"en" | "ml">("en")
   const [activeTab, setActiveTab] = useState<"coordinators" | "teams" | "judges" | "parents">("coordinators")
@@ -56,18 +58,8 @@ export default function LightModeFestProLandingPage() {
       {/* Top Header */}
       <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-200/80 shadow-2xs">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex h-20 items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-indigo-700 text-white font-black text-xl shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
-              F
-            </div>
-            <div className="flex flex-col">
-              <span className="text-2xl font-black tracking-tight text-slate-900">
-                FestPro <span className="text-indigo-600 font-extrabold text-sm">SaaS</span>
-              </span>
-              <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase -mt-1">
-                Arts & Cultural Suite
-              </span>
-            </div>
+          <Link href="/" className="flex items-center group">
+            <AhrazFestProLogo height={32} />
           </Link>
 
           {/* Navigation Links */}
@@ -585,8 +577,7 @@ export default function LightModeFestProLandingPage() {
       <footer className="py-12 bg-slate-900 text-slate-400 text-xs">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold">F</div>
-            <span className="font-bold text-white text-sm">FestPro SaaS Suite</span>
+            <AhrazFestProLogo height={28} variant="dark" />
           </div>
           <p>© {new Date().getFullYear()} FestPro Platform Inc. All rights reserved.</p>
         </div>

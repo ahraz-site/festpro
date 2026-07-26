@@ -6,6 +6,7 @@ import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { signOut, ensureUserProfile } from "@/lib/actions/auth"
+import { AhrazFestProLogo } from "@/components/ui/logo"
 import {
   Bell, LogOut, User, Menu, X, LayoutDashboard, Building2, Settings,
   Users, Activity, ChevronDown, Plus, Check,   CalendarDays, MapPin,
@@ -248,9 +249,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </button>
             )}
 
-            <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 text-white text-sm font-bold shadow-xs">F</div>
-              <span className="text-lg font-bold text-gray-900 hidden sm:block">FestPro</span>
+            <Link href="/dashboard" className="flex items-center shrink-0">
+              <AhrazFestProLogo height={28} />
             </Link>
 
             {/* Organization Switcher */}
