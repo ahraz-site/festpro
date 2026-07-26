@@ -27,7 +27,7 @@ h1, h2, h3, h4, .font-space, .font-heading {
   font-family: var(--font-space-grotesk), var(--font-inter), sans-serif;
 }
 
-.font-anek {
-  font-family: var(--font-anek-malayalam), sans-serif;
+.font-anek, .font-anek * {
+  font-family: var(--font-anek-malayalam), sans-serif !important;
 }
 

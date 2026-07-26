@@ -56,23 +56,23 @@ export default function LightModeFestProLandingPage() {
   return (
     <div className={`min-h-screen bg-[#F8FAFC] text-slate-900 selection:bg-indigo-600 selection:text-white ${isMl ? "font-anek" : "font-sans"}`}>
       {/* Top Header */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-200/80 shadow-2xs">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex h-20 items-center justify-between">
-          <Link href="/" className="flex items-center group">
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-slate-200/80 shadow-2xs">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex h-20 items-center justify-between gap-4">
+          <Link href="/" className="flex items-center shrink-0">
             <AhrazFestProLogo height={32} />
           </Link>
 
           {/* Navigation Links */}
-          <nav className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-600">
-            <a href="#how-it-works" className="hover:text-indigo-600 transition-colors">{isMl ? "പ്രവർത്തന രീതി" : "How it Works"}</a>
-            <a href="#demo" className="hover:text-indigo-600 transition-colors">{isMl ? "ലൈവ് സിമുലേറ്റർ" : "Live Demo"}</a>
-            <a href="#features" className="hover:text-indigo-600 transition-colors">{isMl ? "ഫീച്ചറുകൾ" : "Features"}</a>
-            <a href="#roles" className="hover:text-indigo-600 transition-colors">{isMl ? "ഉപഭോക്തൃ റോളുകൾ" : "Roles"}</a>
-            <a href="#faq" className="hover:text-indigo-600 transition-colors">{isMl ? "ചോദ്യങ്ങൾ" : "FAQ"}</a>
+          <nav className="hidden lg:flex items-center gap-6 xl:gap-8 text-sm font-semibold text-slate-600">
+            <a href="#how-it-works" className="hover:text-indigo-600 transition-colors whitespace-nowrap">{isMl ? "പ്രവർത്തന രീതി" : "How it Works"}</a>
+            <a href="#demo" className="hover:text-indigo-600 transition-colors whitespace-nowrap">{isMl ? "ലൈവ് സിമുലേറ്റർ" : "Live Demo"}</a>
+            <a href="#features" className="hover:text-indigo-600 transition-colors whitespace-nowrap">{isMl ? "ഫീച്ചറുകൾ" : "Features"}</a>
+            <a href="#roles" className="hover:text-indigo-600 transition-colors whitespace-nowrap">{isMl ? "ഉപഭോക്തൃ റോളുകൾ" : "Roles"}</a>
+            <a href="#faq" className="hover:text-indigo-600 transition-colors whitespace-nowrap">{isMl ? "ചോദ്യങ്ങൾ" : "FAQ"}</a>
           </nav>
 
           {/* Action & Language Toggle */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
             {/* Language Switcher */}
             <div className="flex items-center bg-slate-100 p-1 rounded-full border border-slate-200">
               <button
@@ -102,7 +102,7 @@ export default function LightModeFestProLandingPage() {
 
             <Link
               href="/signup"
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-2.5 text-sm font-bold text-white hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md shadow-indigo-500/20 active:scale-95 group"
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 px-5 sm:px-6 py-2.5 text-xs sm:text-sm font-bold text-white hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md shadow-indigo-500/20 active:scale-95 group whitespace-nowrap"
             >
               <span>{isMl ? "സൗജന്യമായി ആരംഭിക്കൂ" : "Create Fest Free"}</span>
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -127,7 +127,7 @@ export default function LightModeFestProLandingPage() {
             </div>
 
             {/* Headline */}
-            <h1 className="font-heading text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 leading-[1.12]">
+            <h1 className={`${isMl ? "font-anek font-bold" : "font-heading font-extrabold"} text-4xl sm:text-6xl lg:text-7xl tracking-tight text-slate-900 leading-[1.2]`}>
               {isMl ? (
                 <>
                   കലോത്സവങ്ങളിലെ പരാതികളും തടസ്സങ്ങളും ഇല്ലാതെ <br />
