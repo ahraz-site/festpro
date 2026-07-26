@@ -1,18 +1,19 @@
 import React from "react"
-import Image from "next/image"
+import { AhrazIconLogo } from "./ahraz-icon"
 
 interface LogoProps {
   className?: string
   variant?: "light" | "dark"
   height?: number
+  showIcon?: boolean
 }
 
-export function AhrazFestProLogo({ className = "", variant = "light", height = 36 }: LogoProps) {
+export function AhrazFestProLogo({ className = "", variant = "light", height = 32, showIcon = true }: LogoProps) {
   const isDark = variant === "dark"
 
   return (
     <div className={`inline-flex items-center gap-2.5 select-none ${className}`}>
-      {/* Option 1: Official Uploaded Logo Image */}
+      {showIcon && <AhrazIconLogo size={height + 6} />}
       <img
         src="/ahraz-festpro-logo.png"
         alt="ahraz festpro SaaS"
