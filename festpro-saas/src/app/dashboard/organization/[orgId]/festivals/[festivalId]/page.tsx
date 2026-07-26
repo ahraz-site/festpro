@@ -60,7 +60,7 @@ export default function FestivalDashboardPage() {
     { label: "Enter Marks", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/results/publish`, icon: FileText },
     { label: "Team scores", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/results/team-points`, icon: BarChart3 },
     { label: "Grade points", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/results/grades`, icon: Award },
-    { label: "ID card setup", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/participants/qr`, icon: QrCode },
+    { label: "ID card setup", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/id-cards`, icon: QrCode },
     { label: "Reports & printouts", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/documents`, icon: Printer },
     { label: "Code letters", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/results/publish`, icon: CheckSquare },
     { label: "Results", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/results/rankings`, icon: Trophy },
