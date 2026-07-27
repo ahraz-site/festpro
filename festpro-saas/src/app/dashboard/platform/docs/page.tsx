@@ -94,7 +94,7 @@ export default function FestProProductHelpCenter() {
               FP
             </div>
             <div>
-              <h1 className="font-bold text-base text-white flex items-center gap-2">
+              <h1 className={`text-base text-white flex items-center gap-2 ${isMl ? "font-anek font-bold" : "font-heading font-bold"}`}>
                 {isMl ? "FestPro ഒഫീഷ്യൽ എന്റർപ്രൈസ് ഹെൽപ്പ് സെന്റർ" : "FestPro Official Enterprise Help Center"}
                 <span className="px-2 py-0.5 rounded-full bg-indigo-500/30 text-indigo-300 text-[10px] font-mono border border-indigo-400/30">v2.4.0</span>
               </h1>
@@ -211,7 +211,7 @@ export default function FestProProductHelpCenter() {
           <div className="bg-gradient-to-r from-indigo-900 via-indigo-800 to-purple-900 rounded-2xl p-5 sm:p-6 text-white shadow-lg space-y-4">
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-indigo-300 animate-spin-slow" />
-              <h2 className="text-base font-bold text-white">
+              <h2 className={`text-base text-white ${isMl ? "font-anek font-bold" : "font-heading font-bold"}`}>
                 {isMl ? "FestPro AI Copilot അസിസ്റ്റന്റിനോട് ചോദിക്കാം" : "Ask FestPro AI Copilot Assistant"}
               </h2>
             </div>
@@ -221,19 +221,19 @@ export default function FestProProductHelpCenter() {
                 placeholder={isMl ? "ചോദ്യം ചോദിക്കൂ... e.g. 'ജഡ്ജിംഗ് കോഡ് ലെറ്റർ എങ്ങനെ പ്രവർത്തിക്കും?'" : "Ask any question e.g. 'How does double-blind evaluation work?'"}
                 value={aiQuestion}
                 onChange={(e) => setAiQuestion(e.target.value)}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-white/10 border border-white/20 text-xs text-white placeholder:text-indigo-200 focus:outline-none focus:ring-2 focus:ring-white/40 font-anek"
+                className="flex-1 px-4 py-2.5 rounded-xl bg-white/10 border border-white/20 text-xs text-white placeholder:text-indigo-200 focus:outline-none focus:ring-2 focus:ring-white/40"
               />
               <button
                 type="submit"
                 disabled={aiThinking}
-                className="px-5 py-2.5 rounded-xl bg-white text-indigo-900 font-bold text-xs hover:bg-slate-100 transition-all cursor-pointer font-anek"
+                className={`px-5 py-2.5 rounded-xl bg-white text-indigo-900 font-bold text-xs hover:bg-slate-100 transition-all cursor-pointer ${isMl ? "font-anek" : "font-sans"}`}
               >
                 {aiThinking ? (isMl ? "ചിന്തിക്കുന്നു..." : "Thinking...") : (isMl ? "ചോദിക്കൂ" : "Ask AI")}
               </button>
             </form>
 
             {aiAnswer && (
-              <div className="p-4 rounded-xl bg-white/10 border border-white/20 text-xs text-indigo-100 leading-relaxed animate-in fade-in duration-200 font-anek">
+              <div className="p-4 rounded-xl bg-white/10 border border-white/20 text-xs text-indigo-100 leading-relaxed animate-in fade-in duration-200">
                 {aiAnswer}
               </div>
             )}
@@ -247,7 +247,7 @@ export default function FestProProductHelpCenter() {
                   <span className="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 font-bold text-[10px] uppercase">
                     {isMl ? "തുടക്കക്കാർക്കുള്ള ഗൈഡ്" : "Onboarding Module"}
                   </span>
-                  <h2 className="text-2xl font-extrabold text-slate-900 mt-2 font-anek">
+                  <h2 className={`text-2xl text-slate-900 mt-2 ${isMl ? "font-anek font-bold" : "font-heading font-extrabold"}`}>
                     {isMl ? "സ്വയം പഠിച്ച് 15 മിനിറ്റിൽ കലോത്സവം തുടങ്ങാം!" : "Welcome & 15-Minute Trial Guide"}
                   </h2>
                   <p className="text-xs text-slate-500 mt-1">
@@ -258,7 +258,7 @@ export default function FestProProductHelpCenter() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
                     <span className="px-2 py-0.5 rounded-md bg-indigo-600 text-white font-bold text-[10px]">Min 0-3</span>
-                    <h4 className="font-bold text-slate-900 text-sm">{isMl ? "1. ഹൗസുകൾ ചേർക്കുക" : "1. Add Teams / Houses"}</h4>
+                    <h4 className={`text-slate-900 text-sm ${isMl ? "font-anek font-bold" : "font-heading font-bold"}`}>{isMl ? "1. ഹൗസുകൾ ചേർക്കുക" : "1. Add Teams / Houses"}</h4>
                     <p className="text-xs text-slate-600">
                       {isMl ? "/teams പേജിൽ പോയി റെഡ് ഹൗസ്, ബ്ലൂ ഹൗസ് എന്നിവ ചേർക്കുക." : "Navigate to /teams and add Red House (#EF4444) and Blue House (#3B82F6)."}
                     </p>
@@ -266,7 +266,7 @@ export default function FestProProductHelpCenter() {
 
                   <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
                     <span className="px-2 py-0.5 rounded-md bg-indigo-600 text-white font-bold text-[10px]">Min 3-6</span>
-                    <h4 className="font-bold text-slate-900 text-sm">{isMl ? "2. മത്സരം ഉണ്ടാക്കുക" : "2. Register Program"}</h4>
+                    <h4 className={`text-slate-900 text-sm ${isMl ? "font-anek font-bold" : "font-heading font-bold"}`}>{isMl ? "2. മത്സരം ഉണ്ടാക്കുക" : "2. Register Program"}</h4>
                     <p className="text-xs text-slate-600">
                       {isMl ? "/competitions പേജിൽ പോയി 'ലളിതഗാനം (സീനിയർ)' നിർമ്മിക്കുക." : "Navigate to /competitions and add Light Music (Solo) under Senior Male."}
                     </p>
@@ -274,7 +274,7 @@ export default function FestProProductHelpCenter() {
 
                   <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
                     <span className="px-2 py-0.5 rounded-md bg-indigo-600 text-white font-bold text-[10px]">Min 6-9</span>
-                    <h4 className="font-bold text-slate-900 text-sm">{isMl ? "3. മത്സരാർത്ഥികളും കാർഡും" : "3. Enroll Candidates & Print Badges"}</h4>
+                    <h4 className={`text-slate-900 text-sm ${isMl ? "font-anek font-bold" : "font-heading font-bold"}`}>{isMl ? "3. മത്സരാർത്ഥികളും കാർഡും" : "3. Enroll Candidates & Print Badges"}</h4>
                     <p className="text-xs text-slate-600">
                       {isMl ? "/participants വഴി മത്സരാർത്ഥികളെ ചേർത്ത് QR ഐഡി ബാഡ്ജ് പ്രിന്റ് ചെയ്യാം." : "Navigate to /participants and import candidate list via CSV or manual entry."}
                     </p>
@@ -282,7 +282,7 @@ export default function FestProProductHelpCenter() {
 
                   <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
                     <span className="px-2 py-0.5 rounded-md bg-indigo-600 text-white font-bold text-[10px]">Min 9-15</span>
-                    <h4 className="font-bold text-slate-900 text-sm">{isMl ? "4. ജഡ്ജിംഗും റിസൾട്ടും" : "4. Score & Publish Results"}</h4>
+                    <h4 className={`text-slate-900 text-sm ${isMl ? "font-anek font-bold" : "font-heading font-bold"}`}>{isMl ? "4. ജഡ്ജിംഗ് കോൺസോൾ" : "4. Score & Publish Results"}</h4>
                     <p className="text-xs text-slate-600">
                       {isMl ? "/results/grades പേജ് വഴി മാർക്കിട്ട് റിസൾട്ട് പ്രസിദ്ധീകരിക്കൂ." : "Enter marks on Judge Console /results/grades and click Approve & Publish."}
                     </p>
@@ -295,10 +295,10 @@ export default function FestProProductHelpCenter() {
             {activeItem === "all-modules" && (
               <div className="space-y-6 animate-in fade-in duration-150">
                 <div className="border-b border-slate-100 pb-4">
-                  <h2 className="text-2xl font-extrabold text-slate-900 font-anek">
-                    {isMl ? "40 സമ്പൂർണ്ണ സിസ്റ്റം മോഡ്യൂളുകൾ (Anek Malayalam Enabled)" : "FestPro Master Systems Documentation (40 Modules)"}
+                  <h2 className={`text-2xl text-slate-900 ${isMl ? "font-anek font-bold" : "font-heading font-extrabold"}`}>
+                    {isMl ? "40 സമ്പൂർണ്ണ സിസ്റ്റം മോഡ്യൂളുകൾ" : "FestPro Master Systems Documentation (40 Modules)"}
                   </h2>
-                  <p className="text-xs text-slate-500 mt-1 font-anek">
+                  <p className="text-xs text-slate-500 mt-1">
                     {isMl ? "എല്ലാ സിസ്റ്റം മോഡ്യൂളുകളുടെയും മലയാളത്തിലുള്ള ഗൈഡ് താഴെ കാണാം." : "Explore all system modules covering registration, stage scheduling, judge consoles, and APIs."}
                   </p>
                 </div>
@@ -309,8 +309,8 @@ export default function FestProProductHelpCenter() {
                       <div className="flex justify-between items-center">
                         <span className="px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 font-mono font-bold text-[10px]">Module {m.num}</span>
                       </div>
-                      <h4 className="font-bold text-slate-900 text-sm mt-1 font-anek">{isMl ? m.ml : (m.en || m.name)}</h4>
-                      <p className="text-xs text-slate-600 font-anek">{isMl ? m.descMl : m.descEn}</p>
+                      <h4 className={`text-slate-900 text-sm mt-1 ${isMl ? "font-anek font-bold" : "font-heading font-bold"}`}>{isMl ? m.ml : (m.en || m.name)}</h4>
+                      <p className="text-xs text-slate-600">{isMl ? m.descMl : m.descEn}</p>
                     </div>
                   ))}
                 </div>
