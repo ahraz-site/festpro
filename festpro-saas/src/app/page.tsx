@@ -60,10 +60,10 @@ export default function LightModeFestProLandingPage() {
         <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 flex h-16 sm:h-20 items-center justify-between gap-2 sm:gap-4 max-w-full">
           <Link href="/" className="flex items-center shrink-0">
             <div className="hidden sm:block">
-              <AhrazFestProLogo height={32} />
+              <AhrazFestProLogo height={32} showIcon={false} />
             </div>
             <div className="sm:hidden">
-              <AhrazFestProLogo height={24} />
+              <AhrazFestProLogo height={24} showIcon={false} />
             </div>
           </Link>
 
@@ -580,11 +580,11 @@ export default function LightModeFestProLandingPage() {
 
       {/* Footer */}
       <footer className="py-12 bg-slate-900 text-slate-400 text-xs">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <AhrazFestProLogo height={28} variant="dark" />
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="flex flex-col items-center sm:items-start gap-3">
+            <AhrazFestProLogo height={30} variant="dark" showIcon={true} stackedMobile={true} />
           </div>
-          <p>© {new Date().getFullYear()} FestPro Platform Inc. All rights reserved.</p>
+          <p className="text-center sm:text-right">© {new Date().getFullYear()} FestPro Platform Inc. All rights reserved.</p>
         </div>
       </footer>
     </div>
