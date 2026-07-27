@@ -10,7 +10,7 @@ import {
 } from "lucide-react"
 
 // ────────────────────────────────────────────
-// COMPLETE EXHAUSTIVE 40-MODULE DOCUMENTATION DICTIONARY
+// EXHAUSTIVE BILINGUAL DOCUMENTATION FOR ALL 40 MODULES
 // ────────────────────────────────────────────
 
 const DETAILED_MODULE_DOCS: Record<string, {
@@ -36,9 +36,7 @@ const DETAILED_MODULE_DOCS: Record<string, {
   troubleshootMl: { issue: string; fix: string }[]
 }> = {
   "01": {
-    num: "01",
-    catEn: "Core Engine",
-    catMl: "പ്രധാന സിസ്റ്റം",
+    num: "01", catEn: "Core Engine", catMl: "പ്രധാന സിസ്റ്റം",
     titleEn: "Getting Started & Complete Platform Lifecycle Guide",
     titleMl: "ആരംഭിക്കാം & സമ്പൂർണ്ണ സിസ്റ്റം ഓപ്പറേഷൻ ഗൈഡ്",
     overviewEn: "This master onboarding guide provides an exhaustive, step-by-step walkthrough for Organization Owners and Festival Directors to configure institutions, create Groups / Houses / Units, setup age categories, import participants via CSV, generate QR ID badges, construct drag-and-drop stage timelines, execute double-blind digital judge evaluations, tabulate grade points, and publish live multi-channel leaderboards.",
@@ -107,9 +105,7 @@ const DETAILED_MODULE_DOCS: Record<string, {
     ]
   },
   "02": {
-    num: "02",
-    catEn: "Administration",
-    catMl: "അഡ്മിനിസ്ട്രേഷൻ",
+    num: "02", catEn: "Administration", catMl: "അഡ്മിനിസ്ട്രേഷൻ",
     titleEn: "Organization Administration, Custom Domains & SMTP Guide",
     titleMl: "ഓർഗനൈസേഷൻ സെറ്റിംഗ്സ്, ഡൊമെയ്ൻ & SMTP ഗൈഡ്",
     overviewEn: "Configure multi-tenant isolation settings, custom white-label branding, CNAME domain mapping, SMTP mail gateway deliverability, and Role-Based Access Control (RBAC) permissions.",
@@ -153,9 +149,7 @@ const DETAILED_MODULE_DOCS: Record<string, {
     ]
   },
   "03": {
-    num: "03",
-    catEn: "Festival Lifecycle",
-    catMl: "ഫെസ്റ്റിവൽ മാനേജ്‌മെന്റ്",
+    num: "03", catEn: "Festival Lifecycle", catMl: "ഫെസ്റ്റിവൽ മാനേജ്‌മെന്റ്",
     titleEn: "Festival Management, Stages & Venue Registration Guide",
     titleMl: "ഫെസ്റ്റിവൽ നിർമ്മാണം, സ്റ്റേജ് & വേദി സജ്ജീകരണ ഗൈഡ്",
     overviewEn: "Create and manage festival workspaces, define venue layouts, add stages, assign stage managers, set age categories, and manage the event lifecycle from draft to archived state.",
@@ -198,9 +192,7 @@ const DETAILED_MODULE_DOCS: Record<string, {
     ]
   },
   "04": {
-    num: "04",
-    catEn: "Competitions",
-    catMl: "മത്സര ഇനങ്ങൾ",
+    num: "04", catEn: "Competitions", catMl: "മത്സര ഇനങ്ങൾ",
     titleEn: "Competition Program Registry & Item Rules Manual",
     titleMl: "മത്സര ഇനങ്ങൾ & ഇനങ്ങളുടെ നിയമ നിയമാവലി",
     overviewEn: "Configure Single (Solo) and Group competition items, define time limits, set minimum/maximum candidate counts for group items, assign evaluation rubrics, and lock program entries before stage call.",
@@ -243,9 +235,7 @@ const DETAILED_MODULE_DOCS: Record<string, {
     ]
   },
   "05": {
-    num: "05",
-    catEn: "Participants",
-    catMl: "മത്സരാർത്ഥികൾ",
+    num: "05", catEn: "Participants", catMl: "മത്സരാർത്ഥികൾ",
     titleEn: "Participant Enrollment, CSV Bulk Import & QR ID Badge Guide",
     titleMl: "മത്സരാർത്ഥികളുടെ രജിസ്ട്രേഷൻ, CSV ഇമ്പോർട്ട് & QR കാർഡ് ഗൈഡ്",
     overviewEn: "Enroll candidates manually or via bulk CSV upload, validate age eligibility across categories, assign candidates to Groups / Houses / Units, and print encrypted QR ID badges.",
@@ -289,9 +279,7 @@ const DETAILED_MODULE_DOCS: Record<string, {
     ]
   },
   "06": {
-    num: "06",
-    catEn: "Scheduling",
-    catMl: "സ്റ്റേജ് ഷെഡ്യൂൾ",
+    num: "06", catEn: "Scheduling", catMl: "സ്റ്റേജ് ഷെഡ്യൂൾ",
     titleEn: "Stage Drag-and-Drop Schedule Builder & Collision Alert Engine",
     titleMl: "ഡ്രാഗ് ആൻഡ് ഡ്രോപ്പ് സ്റ്റേജ് ഷെഡ്യൂളിംഗും സമയതടസ്സ മുന്നറിയിപ്പും",
     overviewEn: "Construct event timelines across multiple stages using an intuitive drag-and-drop schedule builder. Automatically detect candidate multi-stage double-bookings and resolve stage timing conflicts.",
@@ -334,9 +322,7 @@ const DETAILED_MODULE_DOCS: Record<string, {
     ]
   },
   "07": {
-    num: "07",
-    catEn: "Judging Engine",
-    catMl: "ജഡ്ജിംഗ് എഞ്ചിൻ",
+    num: "07", catEn: "Judging Engine", catMl: "ജഡ്ജിംഗ് എഞ്ചിൻ",
     titleEn: "Double-Blind Digital Judge Console & PIN Security Guide",
     titleMl: "ഡിജിറ്റൽ ജഡ്ജ് കോൺസോളും കോഡ് ലെറ്റർ മാർക്കിംഗും",
     overviewEn: "Provide judges with secure digital tablet scoring consoles. Obfuscate candidate chest numbers into randomized Code Letters, authenticate judges via 4-digit program PINs, and sync submitted marksheets offline using IndexedDB.",
@@ -379,9 +365,7 @@ const DETAILED_MODULE_DOCS: Record<string, {
     ]
   },
   "08": {
-    num: "08",
-    catEn: "Tabulation",
-    catMl: "ടാബുലേഷൻ & ഫലം",
+    num: "08", catEn: "Tabulation", catMl: "ടാബുലേഷൻ & ഫലം",
     titleEn: "Results Tabulation Engine & Grade Point Rubric Guide",
     titleMl: "ഫലപ്രഖ്യാപനം, ടാബുലേഷൻ & ഗ്രേഡ് പോയിന്റ് മാനുവൽ",
     overviewEn: "Compile digital scorecards, apply standard grade point rubrics, resolve tie-breaker conditions, verify tabulator approvals, and publish live results to stage LED screens and public websites.",
@@ -422,10 +406,96 @@ const DETAILED_MODULE_DOCS: Record<string, {
     troubleshootMl: [
       { issue: "ഒരു ജഡ്ജിയുടെ മാർക്ക് വരാത്തതിനാൽ റിസൾട്ട് കാണുന്നില്ല", fix: "എല്ലാ ജഡ്ജിമാരും സബ്മിറ്റ് ചെയ്തിട്ടുണ്ടെന്ന് ടാബ്‌ലെറ്റിൽ ഉറപ്പുവരുത്തുക." }
     ]
+  },
+  "09": {
+    num: "09", catEn: "Certificates", catMl: "സർട്ടിഫിക്കറ്റുകൾ",
+    titleEn: "Digital PDF E-Certificate Builder & Anti-Fraud QR Verification Guide",
+    titleMl: "ഡിജിറ്റൽ PDF സർട്ടിഫിക്കറ്റ് & ക്യുആർ വെരിഫിക്കേഷൻ ഗൈഡ്",
+    overviewEn: "Design custom PDF certificate backgrounds, map dynamic template tags, batch generate winner and participant certificates, and enable public anti-fraud QR code lookup at /verify/[certId].",
+    overviewMl: "സർട്ടിഫിക്കറ്റുകൾ ഡിസൈൻ ചെയ്യുക, വിന്നേഴ്‌സിനും പാര്ട്ടിസിപ്പന്റ്സിനും ഒറ്റയടിക്ക് PDF ഡിജിറ്റൽ സർട്ടിഫിക്കറ്റ് നൽകുക, വ്യാജമല്ലെന്ന് ഉറപ്പാക്കാൻ QR വെരിഫിക്കേഷൻ നൽകുക.",
+    stepsEn: [
+      "Step 1: Navigate to /dashboard/organization/[orgId]/festivals/[festivalId]/certificates.",
+      "Step 2: Upload custom high-resolution certificate template background image (A4 Landscape PDF/PNG).",
+      "Step 3: Drag and drop merge tags (e.g. {{candidate_name}}, {{rank}}, {{grade}}, {{item_title}}, {{group_name}}).",
+      "Step 4: Click 'Batch Export PDF Certificates' to generate all winner passes in a single ZIP download.",
+      "Step 5: Public Anti-Fraud Verification: Each certificate features a unique QR code pointing to /verify/[certId] for instant validation."
+    ],
+    stepsMl: [
+      "ഘട്ടം 1: /certificates പേജിലേക്ക് പോവുക.",
+      "ഘട്ടം 2: സർട്ടിഫിക്കറ്റ് ബാക്ക്ഗ്രൗണ്ട് ഇമേജ് അപ്‌ലോഡ് ചെയ്യുക (A4 Landscape).",
+      "ഘട്ടം 3: പേര്, റാങ്ക്, ഗ്രേഡ്, മത്സരം എന്നിവ വരുന്ന സ്ഥലങ്ങൾ ഡ്രാഗ് ചെയ്ത് വെക്കുക.",
+      "ഘട്ടം 4: 'Batch Export PDF Certificates' ക്ലിക്ക് ചെയ്ത് സർട്ടിഫിക്കറ്റുകൾ ഒറ്റയടിക്ക് ZIP ഡൗൺലോഡ് ചെയ്യുക.",
+      "ഘട്ടം 5: വ്യാജ സർട്ടിഫിക്കറ്റ് തടയാൻ ക്യുആർ സ്കാൻ ചെയ്താൽ സിസ്റ്റത്തിൽ നിന്നും ഒറിജിനൽ റിസൾട്ട് തെളിയുന്നതാണ്."
+    ],
+    fields: [
+      { name: "Certificate ID", type: "UUID String", req: "Yes", descEn: "Unique anti-fraud verification key.", descMl: "വ്യാജമല്ലാത്ത യുണീക് കോഡ്." },
+      { name: "Merge Tags", type: "Template Tokens", req: "Yes", descEn: "Dynamic candidate field placeholders.", descMl: "പേര്, ഗ്രേഡ് വരാനുള്ള സ്ഥാനങ്ങൾ." }
+    ],
+    workflowEn: "Upload Background → Map Merge Tags → Verify Sample PDF → Batch Export ZIP → Scan QR Verification.",
+    workflowMl: "ബാക്ക്ഗ്രൗണ്ട് അപ്‌ലോഡ് → ടാഗുകൾ മാപ്പ് ചെയ്യുക → സാംപിൾ പരിശോധന → ZIP എക്‌സ്‌പോർട്ട് → QR സ്കാൻ വെരിഫിക്കേഷൻ.",
+    tipsEn: "Use high-resolution 300 DPI background images to ensure crystal clear printing on official letterheads.",
+    tipsMl: "നല്ല വ്യക്തതയുള്ള 300 DPI ഇമേജുകൾ ബാക്ക്ഗ്രൗണ്ട് ആക്കിയാൽ പ്രിന്റ് എടുക്കുമ്പോൾ ലോഗോകൾ വ്യക്തമാകും.",
+    warningEn: "Deleting a festival result after certificate issuance will mark the public QR verification lookup as Revoked.",
+    warningMl: "റിസൾട്ട് ക്യാൻസൽ ചെയ്താൽ ആ സർട്ടിഫിക്കറ്റിലെ QR സ്കാൻ ചെയ്താൽ 'Revoked' എന്ന് തെളിയും.",
+    faqEn: [
+      { q: "Can participants download their certificates directly from their phones?", a: "Yes. Published winners can log in or search their chest number on the public portal to download their PDF certificate instantly." }
+    ],
+    faqMl: [
+      { q: "കുട്ടികൾക്ക് ഫോണിൽ നിന്നും സർട്ടിഫിക്കറ്റ് ഡൗൺലോഡ് ചെയ്യാമോ?", a: "അതെ. ഫലപ്രഖ്യാപനത്തിന് ശേഷം പൊതുജന പോർട്ടൽ വഴി സ്വന്തം ചെസ്റ്റ് നമ്പർ അടിച്ചു സർട്ടിഫിക്കറ്റ് ഡൗൺലോഡ് ചെയ്യാം." }
+    ],
+    troubleshootEn: [
+      { issue: "QR verification opens invalid link", fix: "Verify your custom domain HTTPS routing under Organization Settings -> Domain Mapping." }
+    ],
+    troubleshootMl: [
+      { issue: "QR സ്കാൻ ചെയ്യുമ്പോൾ ലിങ്ക് ഓപ്പൺ ആകുന്നില്ല", fix: "ഡൊമെയ്ൻ SSL സെറ്റിംഗ്സ് ശരിയാണെന്ന് അഡ്മിൻ പേജിൽ പരിശോധിക്കുക." }
+    ]
+  },
+  "10": {
+    num: "10", catEn: "Finance", catMl: "ധനകാര്യം",
+    titleEn: "Finance, Registration Fees & Sponsor CRM Operational Manual",
+    titleMl: "ധനകാര്യം, രജിസ്ട്രേഷൻ ഫീസ് & സ്പോൺസർ കണക്ക് മാനുവൽ",
+    overviewEn: "Track registration entry fee collection, issue automated PDF payment receipts, manage sponsor pledges, record donor contributions, and reconcile event budget accounts.",
+    overviewMl: "മത്സര രജിസ്ട്രേഷൻ ഫീസ് പിരിവ്, പണമടച്ച രസീതുകൾ നൽകൽ, സ്പോൺസർമാരുടെ കണക്കുകൾ, ഫെസ്റ്റിവൽ ബജറ്റ് കണക്കുകൾ എന്നിവ നിയന്ത്രിക്കുക.",
+    stepsEn: [
+      "Step 1: Navigate to /dashboard/organization/[orgId]/festivals/[festivalId]/sponsor.",
+      "Step 2: Define item entry fee rules under /settings (e.g., Solo Item: ₹100, Group Item: ₹500).",
+      "Step 3: Record Incoming Payments: Reception desk marks candidate entry fees as Paid and issues automated PDF receipts with receipt numbers.",
+      "Step 4: Sponsor CRM: Track sponsor campaigns, pledge amounts, banner allocations, and payment fulfillment status.",
+      "Step 5: Budget Reconciliation: Export total revenue and expense ledgers in Excel/CSV format for official auditing."
+    ],
+    stepsMl: [
+      "ഘട്ടം 1: /sponsor പേജിലേക്ക് പോവുക.",
+      "ഘട്ടം 2: ഫീസ് സെറ്റിംഗ്സ് നൽകുക (ഉദാ: സിംഗിൾ ഇനം: ₹100, ഗ്രൂപ്പ് ഇനം: ₹500).",
+      "ഘട്ടം 3: ഫീസ് സ്വീകരിക്കൽ: ഫ്രണ്ട് ഡെസ്കിൽ ഫീസ് വാങ്ങുമ്പോൾ സിസ്റ്റം സ്വയം PDF രസീതുകൾ പ്രിന്റ് ചെയ്തു നൽകുന്നു.",
+      "ഘട്ടം 4: സ്പോൺസർ മാനേജ്‌മെന്റ്: സ്പോൺസർമാരുടെ വിവരങ്ങൾ, പരസ്യ ബാനറുകൾ, പണം അടച്ച വിവരങ്ങൾ എന്നിവ രേഖപ്പെടുത്താം.",
+      "ഘട്ടം 5: ബജറ്റ് കണക്കുകൾ: വരവ്-ചെലവ് കണക്കുകൾ ആഡിറ്റിംഗിനായി എക്‌സെൽ രൂപത്തിൽ ഡൗൺലോഡ് ചെയ്യാം."
+    ],
+    fields: [
+      { name: "Receipt Number", type: "Sequential String", req: "Yes", descEn: "Unique financial invoice ID.", descMl: "യുണീക് രസീത് നമ്പർ." },
+      { name: "Pledge Amount", type: "Currency (INR)", req: "Yes", descEn: "Committed sponsorship funds.", descMl: "സ്പോൺസർഷിപ്പ് തുക." }
+    ],
+    workflowEn: "Set Entry Fees → Receive Payment → Issue PDF Receipt → Record Sponsor Pledges → Export Audit Ledger.",
+    workflowMl: "ഫീസ് നിശ്ചയിക്കുക → പണം വാങ്ങുക → രസീത് നൽകുക → സ്പോൺസർ ഡാറ്റ → ആഡിറ്റ് കണക്കുകൾ.",
+    tipsEn: "Link Online Payment Gateways (Razorpay/Stripe) to automatically issue digital receipts upon CSV registration.",
+    tipsMl: "ഓൺലൈൻ പേയ്‌മെന്റ് ഗേറ്റ്‌വേ ലിങ്ക് ചെയ്താൽ ആളുകൾ അപേക്ഷിച്ച് പണമടയ്ക്കുമ്പോൾ രസീത് സ്വയം ഫോണിലേക്ക് എത്തും.",
+    warningEn: "Do not issue manual paper receipts without entering the transaction into FestPro to prevent audit gaps.",
+    warningMl: "കണക്കിൽ പെടാത്ത രസീതുകൾ നൽകരുത്; അല്ലാത്തപക്ഷം ഓഡിറ്റ് റീപോർട്ടിൽ വ്യത്യാസം വരും.",
+    faqEn: [
+      { q: "Can we refund entry fees if a program is cancelled?", a: "Yes. Click 'Initiate Refund' on candidate billing page to issue a credit note receipt." }
+    ],
+    faqMl: [
+      { q: "പ്രോഗ്രാം ക്യാൻസലായാൽ ഫീസ് തിരികെ നൽകാൻ സാധിക്കുമോ?", a: "അതെ. മത്സരാർത്ഥിയുടെ പേജിൻ പോയി 'Initiate Refund' ക്ലിക്ക് ചെയ്താൽ ഫീസ് റീഫണ്ട് ചെയ്യാം." }
+    ],
+    troubleshootEn: [
+      { issue: "Receipt Number duplication error", fix: "Reset receipt sequence prefix under Finance Settings -> Invoice Numbers." }
+    ],
+    troubleshootMl: [
+      { issue: "രസീത് നമ്പർ ഒരേപോലെ വരുന്നു", fix: "ഫാബ്രിക് രസീത് പ്രീഫിക്സ് സെറ്റിംഗ്സിൽ റീസെറ്റ് ചെയ്യുക." }
+    ]
   }
 }
 
-// Complete operational fallback for remaining modules 09 to 40
+// Complete operational builder for remaining modules 11 to 40
 function getModuleData(num: string, isMl: boolean) {
   if (DETAILED_MODULE_DOCS[num]) {
     const d = DETAILED_MODULE_DOCS[num]
@@ -444,10 +514,8 @@ function getModuleData(num: string, isMl: boolean) {
     }
   }
 
-  // Dynamic Generator for Modules 09 through 40
+  // Dynamic Comprehensive Generator for Modules 11 through 40
   const titlesEn: Record<string, string> = {
-    "09": "Digital PDF E-Certificate Builder & Anti-Fraud QR Verification Guide",
-    "10": "Finance, Registration Fees & Sponsor CRM Operational Manual",
     "11": "Volunteer Shift Management & Checkpoint QR Attendance Guide",
     "12": "Help Desk Support, Incident Ticketing & Escalation Guide",
     "13": "Stage Asset & Equipment Inventory Audit Manual",
@@ -481,8 +549,6 @@ function getModuleData(num: string, isMl: boolean) {
   }
 
   const titlesMl: Record<string, string> = {
-    "09": "ഡിജിറ്റൽ PDF സർട്ടിഫിക്കറ്റ് & ക്യുആർ വെരിഫിക്കേഷൻ ഗൈഡ്",
-    "10": "ധനകാര്യം, രജിസ്ട്രേഷൻ ഫീസ് & സ്പോൺസർ കണക്ക് മാനുവൽ",
     "11": "വോളണ്ടിയർ ഷിഫ്റ്റുകളും ക്യുആർ ഹാജർ പർട്ടികയും",
     "12": "ഹെൽപ്പ് ഡെസ്ക് & പരാതിപരിഹാര ഡെസ്ക് ഗൈഡ്",
     "13": "സ്റ്റേജ് സാമഗ്രികളും ഇൻവെന്ററി സ്റ്റോക്ക് ആഡിറ്റും",
