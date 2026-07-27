@@ -10,7 +10,7 @@ import {
 } from "lucide-react"
 
 // ────────────────────────────────────────────
-// DETAILED BILINGUAL MODULE DOCUMENTATION CONTENT
+// COMPLETE EXHAUSTIVE 40-MODULE DOCUMENTATION DICTIONARY
 // ────────────────────────────────────────────
 
 const DETAILED_MODULE_DOCS: Record<string, {
@@ -115,18 +115,18 @@ const DETAILED_MODULE_DOCS: Record<string, {
     overviewEn: "Configure multi-tenant isolation settings, custom white-label branding, CNAME domain mapping, SMTP mail gateway deliverability, and Role-Based Access Control (RBAC) permissions.",
     overviewMl: "നിങ്ങളുടെ സ്ഥാപനത്തിന്റെ ലോഗോ, ബ്രാൻഡിംഗ് നിറങ്ങൾ, സ്വന്തം വെബ്‌സൈറ്റ് ഡൊമെയ്ൻ (CNAME), ഇമെയിൽ സെറ്റിംഗ്സുകൾ (SMTP), സ്റ്റാഫുകളുടെ അധികാരം എന്നിവ ക്രമീകരിക്കാനുള്ള ഗൈഡ്.",
     stepsEn: [
-      "1. Navigate to /dashboard/organization/[orgId]/settings.",
-      "2. Upload your high-resolution PNG brand logo and set primary theme hex colors.",
-      "3. Configure Custom Domain: Enter your custom domain (e.g., kalotsavam.stjosephs.edu.in) and add CNAME record pointing to cname.festpro.app.",
-      "4. Setup Custom SMTP Gateway: Input Host, Port (587), Username, Password, and From Email address to send branded notification emails.",
-      "5. Invite Staff Members: Navigate to /members, enter staff emails, and assign roles (Org Admin, Festival Director, Tabulator, Stage Manager, Judge)."
+      "Step 1: Navigate to /dashboard/organization/[orgId]/settings.",
+      "Step 2: Upload your high-resolution PNG brand logo and set primary theme hex colors.",
+      "Step 3: Configure Custom Domain: Enter your custom domain (e.g., kalotsavam.stjosephs.edu.in) and add CNAME record pointing to cname.festpro.app.",
+      "Step 4: Setup Custom SMTP Gateway: Input Host, Port (587), Username, Password, and From Email address to send branded notification emails.",
+      "Step 5: Invite Staff Members: Navigate to /members, enter staff emails, and assign roles (Org Admin, Festival Director, Tabulator, Stage Manager, Judge)."
     ],
     stepsMl: [
-      "1. /dashboard/organization/[orgId]/settings പേജിലേക്ക് പോവുക.",
-      "2. സ്ഥാപനത്തിന്റെ ലോഗോ അപ്‌ലോഡ് ചെയ്ത് കളർ തീം സെറ്റ് ചെയ്യുക.",
-      "3. കസ്റ്റം ഡൊമെയ്ൻ: നിങ്ങളുടെ സ്വന്തം വെബ്‌സൈറ്റ് (e.g. kalotsavam.stjosephs.edu.in) നൽകി CNAME റെക്കോർഡ് cname.festpro.app-ലേക്ക് പോയിന്റ് ചെയ്യുക.",
-      "4. കസ്റ്റം SMTP: ഇമെയിലുകൾ സ്വന്തം വിലാസത്തിൽ നിന്ന് അയക്കാൻ SMTP വിവരങ്ങൾ നൽകുക.",
-      "5. സ്റ്റാഫുകളെ ചേർക്കുക: /members പേജ് വഴി മറ്റു അധ്യാപകർക്കും സ്റ്റാഫുകൾക്കും വോളണ്ടിയർമാർക്കും ലോഗിൻ അനുമതി നൽകുക."
+      "ഘട്ടം 1: /dashboard/organization/[orgId]/settings പേജിലേക്ക് പോവുക.",
+      "ഘട്ടം 2: സ്ഥാപനത്തിന്റെ ലോഗോ അപ്‌ലോഡ് ചെയ്ത് കളർ തീം സെറ്റ് ചെയ്യുക.",
+      "ഘട്ടം 3: കസ്റ്റം ഡൊമെയ്ൻ: നിങ്ങളുടെ സ്വന്തം വെബ്‌സൈറ്റ് (e.g. kalotsavam.stjosephs.edu.in) നൽകി CNAME റെക്കോർഡ് cname.festpro.app-ലേക്ക് പോയിന്റ് ചെയ്യുക.",
+      "ഘട്ടം 4: കസ്റ്റം SMTP: ഇമെയിലുകൾ സ്വന്തം വിലാസത്തിൽ നിന്ന് അയക്കാൻ SMTP വിവരങ്ങൾ നൽകുക.",
+      "ഘട്ടം 5: സ്റ്റാഫുകളെ ചേർക്കുക: /members പേജ് വഴി മറ്റു അധ്യാപകർക്കും സ്റ്റാഫുകൾക്കും വോളണ്ടിയർമാർക്കും ലോഗിൻ അനുമതി നൽകുക."
     ],
     fields: [
       { name: "Custom CNAME Domain", type: "Domain String", req: "No", descEn: "Custom website domain for white-labeling.", descMl: "നിങ്ങളുടെ സ്വന്തം വെബ്‌സൈറ്റ് വിലാസം." },
@@ -161,18 +161,18 @@ const DETAILED_MODULE_DOCS: Record<string, {
     overviewEn: "Create and manage festival workspaces, define venue layouts, add stages, assign stage managers, set age categories, and manage the event lifecycle from draft to archived state.",
     overviewMl: "ഫെസ്റ്റിവൽ ഉണ്ടാക്കുക, വേദികളും സ്റ്റേജുകളും തരംതിരിക്കുക, സ്റ്റേജ് മാനേജർമാരെ ചുമതലപ്പെടുത്തുക, പ്രായപരിധികൾ നിശ്ചയിക്കുക എന്നിവയ്ക്കുള്ള മാർഗ്ഗരേഖ.",
     stepsEn: [
-      "1. Navigate to /dashboard/organization/[orgId]/festivals/create.",
-      "2. Enter Festival Title, Slug, Start Date, End Date, and Main Venue Location.",
-      "3. Setup Stages under /stages (e.g., Stage 1 Auditorium, Stage 2 Open Air Theatre). Assign Stage Managers to each stage.",
-      "4. Configure Competition Categories under /competitions/categories (Sub-Junior, Junior, Senior, General).",
-      "5. Set Program Rules & Scoring Rubrics for Single and Group items."
+      "Step 1: Navigate to /dashboard/organization/[orgId]/festivals/create.",
+      "Step 2: Enter Festival Title, Slug, Start Date, End Date, and Main Venue Location.",
+      "Step 3: Setup Stages under /stages (e.g., Stage 1 Auditorium, Stage 2 Open Air Theatre). Assign Stage Managers to each stage.",
+      "Step 4: Configure Competition Categories under /competitions/categories (Sub-Junior, Junior, Senior, General).",
+      "Step 5: Set Program Rules & Scoring Rubrics for Single and Group items."
     ],
     stepsMl: [
-      "1. /dashboard/organization/[orgId]/festivals/create പേജിലേക്ക് പോവുക.",
-      "2. ഫെസ്റ്റിവലിന്റെ പേര്, തീയതികൾ, വേദി എന്നിവ നൽകുക.",
-      "3. /stages പേജ് വഴി സ്റ്റേജുകൾ (e.g. സ്റ്റേജ് 1 ഒഡിറ്റോറിയം, സ്റ്റേജ് 2 ഓപ്പൺ എയർ) നിർമ്മിച്ച് സ്റ്റേജ് ഇൻചാർജുകളെ നിയോഗിക്കുക.",
-      "4. /competitions/categories വഴി കാറ്റഗറികൾ (സബ് ജൂനിയർ, ജൂനിയർ, സീനിയർ) നിർമ്മിക്കുക.",
-      "5. മത്സര നിയമങ്ങളും ഗ്രേഡ് പോയിന്റുകളും സജ്ജമാക്കുക."
+      "ഘട്ടം 1: /dashboard/organization/[orgId]/festivals/create പേജിലേക്ക് പോവുക.",
+      "ഘട്ടം 2: ഫെസ്റ്റിവലിന്റെ പേര്, തീയതികൾ, വേദി എന്നിവ നൽകുക.",
+      "ഘട്ടം 3: /stages പേജ് വഴി സ്റ്റേജുകൾ (e.g. സ്റ്റേജ് 1 ഒഡിറ്റോറിയം, സ്റ്റേജ് 2 ഓപ്പൺ എയർ) നിർമ്മിച്ച് സ്റ്റേജ് ഇൻചാർജുകളെ നിയോഗിക്കുക.",
+      "ഘട്ടം 4: /competitions/categories വഴി കാറ്റഗറികൾ (സബ് ജൂനിയർ, ജൂനിയർ, സീനിയർ) നിർമ്മിക്കുക.",
+      "ഘട്ടം 5: മത്സര നിയമങ്ങളും ഗ്രേഡ് പോയിന്റുകളും സജ്ജമാക്കുക."
     ],
     fields: [
       { name: "Festival Title", type: "String", req: "Yes", descEn: "Name of the cultural event.", descMl: "ഫെസ്റ്റിവലിന്റെ പേര്." },
@@ -196,10 +196,236 @@ const DETAILED_MODULE_DOCS: Record<string, {
     troubleshootMl: [
       { issue: "ഷെഡ്യൂൾ ചെയ്യുമ്പോൾ സമയതടസ്സം (Conflict) കാണിക്കുന്നു", fix: "പ്രോഗ്രാമിന്റെ സമയം മാറ്റുകയോ മറ്റൊരു സ്റ്റേജിലേക്ക് മാറ്റുകയോ ചെയ്യുക." }
     ]
+  },
+  "04": {
+    num: "04",
+    catEn: "Competitions",
+    catMl: "മത്സര ഇനങ്ങൾ",
+    titleEn: "Competition Program Registry & Item Rules Manual",
+    titleMl: "മത്സര ഇനങ്ങൾ & ഇനങ്ങളുടെ നിയമ നിയമാവലി",
+    overviewEn: "Configure Single (Solo) and Group competition items, define time limits, set minimum/maximum candidate counts for group items, assign evaluation rubrics, and lock program entries before stage call.",
+    overviewMl: "സിംഗിൾ, ഗ്രൂപ്പ് മത്സരങ്ങൾ ഉണ്ടാക്കുക, സമയപരിധികൾ സജ്ജമാക്കുക, ജഡ്ജിംഗ് റൂബ്രിക്കുകൾ ഉറപ്പുവരുത്തുക എന്നിവയ്ക്കുള്ള സമഗ്ര ഗൈഡ്.",
+    stepsEn: [
+      "Step 1: Navigate to /competitions.",
+      "Step 2: Click 'Add Competition Item' and select Competition Type (Single/Solo or Group).",
+      "Step 3: Enter Item Title (e.g. Light Music, Bharatanatyam, Oppana), Category (Junior/Senior), Max Time Limit (5 mins), and Grace Time Buffer (1 min).",
+      "Step 4: For Group Items, specify Min Participants (e.g., 5) and Max Participants (e.g., 10).",
+      "Step 5: Set Judge Count (e.g. 3 Judges) and assign evaluation criteria weights (e.g. Pitch 30, Rhythm 30, Expression 40)."
+    ],
+    stepsMl: [
+      "ഘട്ടം 1: /competitions പേജിലേക്ക് പോവുക.",
+      "ഘട്ടം 2: 'Add Competition Item' ക്ലിക്ക് ചെയ്ത് സിംഗിൾ പ്രോഗ്രാം ആണോ ഗ്രൂപ്പ് ആണോ എന്ന് തിരഞ്ഞെടുക്കുക.",
+      "ഘട്ടം 3: മത്സരത്തിന്റെ പേര് (ഉദാ: ലളിതഗാനം, ഭരതനാട്യം, ഒപ്പന), സമയം (5 മിനിറ്റ്), ഗ്രേസ് സമയം (1 മിനിറ്റ്) എന്നിവ നൽകുക.",
+      "ഘട്ടം 4: ഗ്രൂപ്പ് പ്രോഗ്രാം ആണെങ്കിൽ കുറഞ്ഞതും കൂടിയതുമായ മത്സരാർത്ഥികളുടെ എണ്ണം നൽകുക.",
+      "ഘട്ടം 5: ജഡ്ജിമാരുടെ എണ്ണം (e.g. 3) നൽകി മാർക്കിടുന്നതിനുള്ള മാനദണ്ഡങ്ങൾ സജ്ജീകരിക്കുക."
+    ],
+    fields: [
+      { name: "Max Time Limit", type: "Minutes", req: "Yes", descEn: "Allowed stage performance duration.", descMl: "സ്റ്റേജിൽ അനുവദിച്ചിട്ടുള്ള പരമാവധി സമയം." },
+      { name: "Grace Time Buffer", type: "Minutes", req: "Yes", descEn: "Allowed grace period before automated point penalties.", descMl: "പോയിന്റ് കുറയാതെ അനുവദിക്കുന്ന അധിക സമയം." }
+    ],
+    workflowEn: "Add Program → Define Time Limits → Set Group Bounds → Assign Rubric Criteria → Lock Program.",
+    workflowMl: "മത്സരം ചേർക്കുക → സമയം നിശ്ചയിക്കുക → ഗ്രൂപ്പ് നിബന്ധനകൾ → മാർക്കിംഗ് മാനദണ്ഡം → ലോക്ക് ചെയ്യുക.",
+    tipsEn: "Locking a competition program prevents accidental edits to judge scoring criteria after stage call.",
+    tipsMl: "മത്സരം ലോക്ക് ചെയ്തു വെച്ചാൽ സ്റ്റേജിൽ ലൈവായി നടക്കുമ്പോൾ വിധികർത്താക്കളുടെ മാനദണ്ഡങ്ങൾ മാറുന്നത് തടയാം.",
+    warningEn: "Modifying criteria weights after judging has started will invalidate submitted marksheets.",
+    warningMl: "മാർക്കിടൽ ആരംഭിച്ച ശേഷം മാർക്കിംഗ് മാനദണ്ഡങ്ങൾ മാറ്റിയാൽ പഴയ മാർക്കുകൾ ക്യാൻസലാകും.",
+    faqEn: [
+      { q: "Can a candidate participate in both Solo and Group items?", a: "Yes, provided category item limits (e.g. max 5 Solo, 2 Group) defined under Category Rules are respected." }
+    ],
+    faqMl: [
+      { q: "ഒരാൾക്ക് സിംഗിൾ പ്രോഗ്രാമിലും ഗ്രൂപ്പിലും പങ്കടുക്കാമോ?", a: "അതെ. കാറ്റഗറി നിയമങ്ങളിൽ പറഞ്ഞിട്ടുള്ള ലിമിറ്റുകൾക്കുള്ളിലാണെങ്കിൽ പങ്കെടുക്കാം." }
+    ],
+    troubleshootEn: [
+      { issue: "Group candidate count below minimum", fix: "Verify group member roster under /participants before locking team registration." }
+    ],
+    troubleshootMl: [
+      { issue: "ഗ്രൂപ്പിലെ ആൾക്കാരുടെ എണ്ണം തികയുന്നില്ല", fix: "ടീം രജിസ്ട്രേഷൻ പൂർത്തിയാക്കുന്നതിന് മുൻപ് ആൾക്കാരുടെ എണ്ണം തികക്കുക." }
+    ]
+  },
+  "05": {
+    num: "05",
+    catEn: "Participants",
+    catMl: "മത്സരാർത്ഥികൾ",
+    titleEn: "Participant Enrollment, CSV Bulk Import & QR ID Badge Guide",
+    titleMl: "മത്സരാർത്ഥികളുടെ രജിസ്ട്രേഷൻ, CSV ഇമ്പോർട്ട് & QR കാർഡ് ഗൈഡ്",
+    overviewEn: "Enroll candidates manually or via bulk CSV upload, validate age eligibility across categories, assign candidates to Groups / Houses / Units, and print encrypted QR ID badges.",
+    overviewMl: "മത്സരാർത്ഥികളുടെ വിവരങ്ങൾ ചേർക്കുക, CSV വഴി കൂട്ടത്തോടെ ഇമ്പോർട്ട് ചെയ്യുക, വയസ്സ് പരിശോധിക്കുക, ഗ്രൂപ്പ് / ഹൗസ് / യൂണിറ്റ് നൽകുക, QR ഐഡി കാർഡുകൾ പ്രിന്റ് ചെയ്യുക.",
+    stepsEn: [
+      "Step 1: Navigate to /participants.",
+      "Step 2: To import candidates in bulk, click 'Download CSV Template', populate candidate details (Name, DOB, Class, Group/House/Unit, Items), and click 'Upload CSV'.",
+      "Step 3: FestPro automatically checks candidate birth dates against category age limits (e.g. Sub-Junior 8-11 yrs).",
+      "Step 4: Generate Chest Numbers: Click 'Auto-Generate Chest Numbers' under /settings to assign unique IDs.",
+      "Step 5: Print QR Badges: Click 'Print QR ID Badges' to generate printable 8-per-page A4 PDF passes with encrypted verification codes."
+    ],
+    stepsMl: [
+      "ഘട്ടം 1: /participants പേജിലേക്ക് പോവുക.",
+      "ഘട്ടം 2: CSV വഴി വിവരങ്ങൾ നൽകാൻ 'Download CSV Template' ക്ലിക്ക് ചെയ്ത് ആളുകളുടെ വിവരങ്ങൾ ടൈപ്പ് ചെയ്ത് 'Upload CSV' കൊടുക്കുക.",
+      "ഘട്ടം 3: സിസ്റ്റം സ്വയം ജനനതീയതി പരിശോധിച്ചു കാറ്റഗറി യോഗ്യത ഉറപ്പാക്കുന്നു.",
+      "ഘട്ടം 4: ചെസ്റ്റ് നമ്പർ നൽകൽ: /settings പേജ് വഴി 'Auto-Generate Chest Numbers' ക്ലിക്ക് ചെയ്ത് ചെസ്റ്റ് നമ്പർ നൽകുക.",
+      "ഘട്ടം 5: QR ബാഡ്ജ് പ്രിന്റ്: 'Print QR ID Badges' ക്ലിക്ക് ചെയ്ത് PDF ഐഡി കാർഡുകൾ ഡൗൺലോഡ് ചെയ്യുക."
+    ],
+    fields: [
+      { name: "Candidate Name", type: "String", req: "Yes", descEn: "Full name of candidate.", descMl: "മത്സരാർത്ഥിയുടെ പേര്." },
+      { name: "Date of Birth", type: "Date (YYYY-MM-DD)", req: "Yes", descEn: "Birth date for age validation.", descMl: "ജനനതീയതി." },
+      { name: "Group / House / Unit", type: "String", req: "Yes", descEn: "Contingent team assignment.", descMl: "ഗ്രൂപ്പ് / ഹൗസ് / യൂണിറ്റ്." }
+    ],
+    workflowEn: "Download CSV → Fill Roster → Upload CSV → Verify Eligibility → Generate Chest Nos → Print QR Badges.",
+    workflowMl: "CSV ഡൗൺലോഡ് → വിവരങ്ങൾ ടൈപ്പ് ചെയ്യുക → CSV അപ്‌ലോഡ് → വയസ്സ് പരിശോധന → ചെസ്റ്റ് നമ്പർ → QR ബാഡ്ജ് പ്രിന്റ്.",
+    tipsEn: "Print ID badges using a laser printer on 200 GSM cardstock for smooth scanning at stage call-rooms.",
+    tipsMl: "QR കാർഡുകൾ ലേസർ പ്രിന്റർ വഴി 200 GSM പേപ്പറിൽ പ്രിന്റ് ചെയ്താൽ വെളിച്ചക്കുറവുള്ള സ്റ്റേജിലും പെട്ടെന്ന് സ്കാൻ ചെയ്യാം.",
+    warningEn: "Do not re-import CSV files after stage calls have started without clearing candidate duplicate flags.",
+    warningMl: "മത്സരം തുടങ്ങിയ ശേഷം അതേ CSV വീണ്ടും ഇമ്പോർട്ട് ചെയ്താൽ ചെസ്റ്റ് നമ്പർ മാറും.",
+    faqEn: [
+      { q: "What happens if a candidate loses their printed QR ID badge?", a: "Navigate to /participants, search the candidate name, and click 'Re-issue Badge' to print a single duplicate PDF pass." }
+    ],
+    faqMl: [
+      { q: "ഐഡി കാർഡ് നഷ്ടപ്പെട്ടാൽ എന്ത് ചെയ്യണം?", a: "/participants പേജിൽ പേര് തിരഞ്ഞുപിടിച്ച് 'Re-issue Badge' ക്ലിക്ക് ചെയ്താൽ പുതിയ കാർഡ് പ്രിന്റ് ചെയ്യാം." }
+    ],
+    troubleshootEn: [
+      { issue: "CSV Upload Error: Invalid Date Format", fix: "Ensure dates are formatted as YYYY-MM-DD (e.g. 2012-05-15) in Excel before saving as CSV." }
+    ],
+    troubleshootMl: [
+      { issue: "CSV എറർ: തീയതി ശരിയല്ല", fix: "എക്‌സെലിൽ തീയതി YYYY-MM-DD (e.g. 2012-05-15) എന്ന ഫോർമാറ്റിലാക്കി മാറ്റുക." }
+    ]
+  },
+  "06": {
+    num: "06",
+    catEn: "Scheduling",
+    catMl: "സ്റ്റേജ് ഷെഡ്യൂൾ",
+    titleEn: "Stage Drag-and-Drop Schedule Builder & Collision Alert Engine",
+    titleMl: "ഡ്രാഗ് ആൻഡ് ഡ്രോപ്പ് സ്റ്റേജ് ഷെഡ്യൂളിംഗും സമയതടസ്സ മുന്നറിയിപ്പും",
+    overviewEn: "Construct event timelines across multiple stages using an intuitive drag-and-drop schedule builder. Automatically detect candidate multi-stage double-bookings and resolve stage timing conflicts.",
+    overviewMl: "ഡ്രാഗ് ആൻഡ് ഡ്രോപ്പ് ടൈംലൈൻ വഴി മത്സരങ്ങൾ വിവിധ സ്റ്റേജുകളിലേക്ക് സജ്ജീകരിക്കുക, ഒരാൾ ഒരേസമയം രണ്ടു സ്റ്റേജിൽ വരുന്നത് സിസ്റ്റം കണ്ടെത്തി മുന്നറിയിപ്പ് നൽകുക.",
+    stepsEn: [
+      "Step 1: Navigate to /schedules.",
+      "Step 2: View the Unscheduled Programs Pool on the left panel.",
+      "Step 3: Drag a program card onto your targeted Stage Timeline at the desired time slot (e.g., Stage 1 - 10:00 AM).",
+      "Step 4: FestPro automatically calculates program duration based on candidate count and max item time limit.",
+      "Step 5: Automated Collision Check: If a candidate is scheduled on another stage at the same time, a red warning alert banner immediately appears with option to Auto-Reschedule."
+    ],
+    stepsMl: [
+      "ഘട്ടം 1: /schedules പേജിലേക്ക് പോവുക.",
+      "ഘട്ടം 2: ഇടതുഭാഗത്ത് കാണുന്ന മത്സരങ്ങളുടെ ലിസ്റ്റ് കാണാം.",
+      "ഘട്ടം 3: മത്സരത്തെ അതാത് സ്റ്റേജ് ടൈംലൈനിലേക്ക് ഡ്രാഗ് ചെയ്ത് വെക്കുക (ഉദാ: സ്റ്റേജ് 1 - 10:00 AM).",
+      "ഘട്ടം 4: ആളുകളുടെ എണ്ണവും പ്രോഗ്രാം സമയവും കണക്കാക്കി സിസ്റ്റം സ്വയംസമയം സജ്ജമാക്കും.",
+      "ഘട്ടം 5: ഒരേ സമയം രണ്ടു സ്ഥലത്ത് വരികയാണെങ്കിൽ സിസ്റ്റം റെഡ് സിഗ്നൽ നൽകുകയും 'Auto-Reschedule' വഴി സമയം മാറ്റിത്തരുകയും ചെയ്യും."
+    ],
+    fields: [
+      { name: "Start Time", type: "Time (HH:MM AM/PM)", req: "Yes", descEn: "Stage program start time.", descMl: "മത്സരം ആരംഭിക്കുന്ന സമയം." },
+      { name: "Duration", type: "Minutes", req: "Yes", descEn: "Calculated stage slot duration.", descMl: "മത്സരത്തിന്റെ സമയം." }
+    ],
+    workflowEn: "Select Program → Drag to Stage Timeline → Run Collision Check → Resolve Red Alerts → Lock Stage Schedule.",
+    workflowMl: "മത്സരം തിരഞ്ഞെടുക്കുക → ടൈംലൈനിലേക്ക് ഡ്രാഗ് ചെയ്യുക → ചെക്കിംഗ് → റെഡ് സിഗ്നൽ മാറ്റുക → ഷെഡ്യൂൾ ഉറപ്പിക്കുക.",
+    tipsEn: "Lock stage timelines 2 hours before event start to push final schedule notifications to mobile apps and public LED walls.",
+    tipsMl: "പരിപാടി തുടങ്ങുന്നതിന് 2 മണിക്കൂർ മുൻപ് ഷെഡ്യൂൾ ലോക്ക് ചെയ്താൽ ലൈവ് വെബ്‌സൈറ്റിൽ ആളുകൾക്ക് കൃത്യ സമയം അറിയാം.",
+    warningEn: "Do not manually overlap program times on the same stage without adding buffer intervals for stage clearing.",
+    warningMl: "മൈക്കും സ്റ്റേജും റീസെറ്റ് ചെയ്യാനുള്ള സമയം (Buffer Time) നൽകാതെ സമയങ്ങൾ അടുപ്പിച്ചു നൽകരുത്.",
+    faqEn: [
+      { q: "What happens if a stage program runs behind schedule?", a: "Stage Managers can click 'Delay Stage' under /stages to shift all subsequent programs on that stage by 15 or 30 minutes automatically." }
+    ],
+    faqMl: [
+      { q: "ഒരു സ്റ്റേജിൽ പ്രോഗ്രാം വൈകിയാൽ എന്ത് ചെയ്യും?", a: "സ്റ്റേജ് മാനേജർക്ക് 'Delay Stage' ക്ലിക്ക് ചെയ്ത് ആ സ്റ്റേജിലെ ബാക്കി പരിപാടികൾ 15 മിനിറ്റ് പുറകോട്ടു മാറ്റാം." }
+    ],
+    troubleshootEn: [
+      { issue: "Red Collision Warning Banner Active", fix: "Click 'Auto-Reschedule' or drag the conflicting program to a non-overlapping time slot." }
+    ],
+    troubleshootMl: [
+      { issue: "റെഡ് സിഗ്നൽ മുന്നറിയിപ്പ് മാപ്പിൽ കാണുന്നു", fix: "'Auto-Reschedule' ക്ലിക്ക് ചെയ്യുക അല്ലെങ്കിൽ പ്രോഗ്രാം സമയം മാറ്റുക." }
+    ]
+  },
+  "07": {
+    num: "07",
+    catEn: "Judging Engine",
+    catMl: "ജഡ്ജിംഗ് എഞ്ചിൻ",
+    titleEn: "Double-Blind Digital Judge Console & PIN Security Guide",
+    titleMl: "ഡിജിറ്റൽ ജഡ്ജ് കോൺസോളും കോഡ് ലെറ്റർ മാർക്കിംഗും",
+    overviewEn: "Provide judges with secure digital tablet scoring consoles. Obfuscate candidate chest numbers into randomized Code Letters, authenticate judges via 4-digit program PINs, and sync submitted marksheets offline using IndexedDB.",
+    overviewMl: "ജഡ്ജിമാർക്ക് ടാബ്‌ലെറ്റിൽ മാർക്കിടാനുള്ള കോൺസോൾ. ചെസ്റ്റ് നമ്പറുകൾ മാറ്റി കോഡ് ലെറ്ററുകൾ (e.g. Chest 102 → Letter K) നൽകി പഷ്പക്ഷമായ ജഡ്ജിംഗും ഓഫ്‌ലൈൻ സേവിംഗും ഉറപ്പാക്കാം.",
+    stepsEn: [
+      "Step 1: Stage Manager launches program on stage dashboard and clicks 'Generate Judge Program PIN' (4-digit PIN code).",
+      "Step 2: Judges navigate to /mobile/judging on their tablets and enter the 4-digit PIN to open their digital marksheet.",
+      "Step 3: Double-Blind Obfuscation: Candidate Chest Numbers are replaced with randomized Code Letters (e.g., Candidate 1 = Code Letter K, Candidate 2 = Code Letter M).",
+      "Step 4: Judges score candidates across assigned criteria sliders (Pitch 0-30, Rhythm 0-30, Expression 0-40).",
+      "Step 5: Submission & Verification: Judges click 'Submit Final Marksheet' and authenticate submission via digital signature."
+    ],
+    stepsMl: [
+      "ഘട്ടം 1: സ്റ്റേജ് മാനേജർ മത്സരം സ്റ്റേജിൽ സ്റ്റാർട്ട് ചെയ്ത് 4-ഡിജിറ്റ് 'Judge PIN Code' ജഡ്ജിമാർക്ക് നൽകുന്നു.",
+      "ഘട്ടം 2: ജഡ്ജിമാർ ടാബ്‌ലെറ്റിൽ /mobile/judging പേജ് തുറന്ന് ഈ പിൻ ടൈപ്പ് ചെയ്ത് പ്രോഗ്രാം തുറക്കുന്നു.",
+      "ഘട്ടം 3: ചെസ്റ്റ് നമ്പറിന് പകരം സിസ്റ്റം സ്വയം നിർമ്മിക്കുന്ന കോഡ് ലെറ്ററുകൾ (e.g. Chest 102 → Letter K) വഴി മത്സരാർത്ഥികളെ തിരിച്ചറിയുന്നു.",
+      "ഘട്ടം 4: ഓരോ മാനദണ്ഡത്തിനും സ്ളൈഡർ മാറ്റി കൃത്യമായി മാർക്കിടുന്നു.",
+      "ഘട്ടം 5: മാർക്കിട്ട ശേഷം 'Submit Final Marksheet' ക്ലിക്ക് ചെയ്ത് ജഡ്ജിമാർ ഡിജിറ്റൽ ഒപ്പിടുന്നു."
+    ],
+    fields: [
+      { name: "Judge PIN", type: "4-Digit Integer", req: "Yes", descEn: "Program access security key.", descMl: "സെക്യൂരിറ്റി പിൻ കോഡ്." },
+      { name: "Code Letter", type: "Randomized Character", req: "Yes", descEn: "Obfuscated candidate identifier.", descMl: "രഹസ്യ കോഡ് അക്ഷരം." }
+    ],
+    workflowEn: "Generate PIN → Judge Log In → Obfuscate Chest Nos → Score Sliders → Digital Signature → Submit Marksheet.",
+    workflowMl: "PIN എടുക്കുക → ജഡ്ജി ലോഗിൻ → കോഡ് ലെറ്റർ → മാർക്കിടൽ → ഒപ്പിടൽ → സബ്മിറ്റ്.",
+    tipsEn: "Set tablet brightness to 80% and lock screen sleep timeout to 'Never' during stage sessions.",
+    tipsMl: "ടാബ്‌ലെറ്റിന്റെ സ്ക്രീൻ ലൈറ്റ് അണഞ്ഞുപോകാതിരിക്കാൻ Screen Sleep timeout 'Never' ആക്കി വെക്കുക.",
+    warningEn: "Do not refresh the judge tablet page while actively sliding score bars; unsubmitted draft scores stay in local cache.",
+    warningMl: "മാർക്കിട്ടുകൊണ്ടിരിക്കുമ്പോൾ പേജ് റീഫ്രഷ് ചെയ്യരുത്.",
+    faqEn: [
+      { q: "What if a judge makes a mistake after submitting their marksheet?", a: "The Chief Tabulator can issue a Master Re-evaluation Override key under /results/grades to unlock the scorecard." }
+    ],
+    faqMl: [
+      { q: "മാർക്ക് സബ്മിറ്റ് ചെയ്ത ശേഷം തിരുത്താൻ സാധിക്കുമോ?", a: "ചീഫ് ടാബുലേറ്റർ അനുമതി നൽകിയാൽ റീ-ഇവാലുവേഷൻ കീ നൽകി മാർക്ക് മാറ്റി നൽകാം." }
+    ],
+    troubleshootEn: [
+      { issue: "Tablet WiFi Disconnected during Judging", fix: "Marks stay cached in IndexedDB. Continue scoring; tablet auto-syncs when WiFi reconnects." }
+    ],
+    troubleshootMl: [
+      { issue: "ടാബ്‌ലെറ്റിലെ വൈഫൈ കട്ടായി", fix: "പേടിക്കേണ്ടതില്ല; മാർക്കുകൾ സേവ് ആകും, നെറ്റ് വരുമ്പോൾ സിസ്റ്റം തന്നത്താൻ സിങ്ക് ചെയ്യും." }
+    ]
+  },
+  "08": {
+    num: "08",
+    catEn: "Tabulation",
+    catMl: "ടാബുലേഷൻ & ഫലം",
+    titleEn: "Results Tabulation Engine & Grade Point Rubric Guide",
+    titleMl: "ഫലപ്രഖ്യാപനം, ടാബുലേഷൻ & ഗ്രേഡ് പോയിന്റ് മാനുവൽ",
+    overviewEn: "Compile digital scorecards, apply standard grade point rubrics, resolve tie-breaker conditions, verify tabulator approvals, and publish live results to stage LED screens and public websites.",
+    overviewMl: "ഡിജിറ്റൽ സ്കോർ ഷീറ്റുകൾ പരിശോധിക്കുക, ഗ്രേഡ് പോയിന്റുകൾ തിട്ടപ്പെടുത്തുക, ടൈ വരുന്നത് പരിഹരിക്കുക, ഒറ്റ ക്ലിക്കിൽ ലൈവായി റിസൾട്ട് പ്രസിദ്ധീകരിക്കുക.",
+    stepsEn: [
+      "Step 1: Navigate to /results/grades.",
+      "Step 2: Review incoming judge scorecards. FestPro maps Code Letters back to candidate Chest Numbers and calculates average scores automatically.",
+      "Step 3: Grade Point Rubric Application: A Grade (80-100% = 5 Ind. / 10 Group Pts), B Grade (70-79% = 3 Ind. / 6 Group Pts), C Grade (60-69% = 1 Ind. / 2 Group Pts).",
+      "Step 4: Rank Assignment: 1st Rank (+5 Bonus Pts), 2nd Rank (+3 Bonus Pts), 3rd Rank (+1 Bonus Pt).",
+      "Step 5: Tabulator Approval: Chief Tabulator verifies scorecards and clicks 'Approve & Publish' to update live leaderboards (/live) and public site (/festivals/[id])."
+    ],
+    stepsMl: [
+      "ഘട്ടം 1: /results/grades പേജിലേക്ക് പോവുക.",
+      "ഘട്ടം 2: ജഡ്ജിമാർ നൽകിയ മാർക്കുകൾ പരിശോധിക്കുക. കോഡ് ലെറ്ററുകൾ സിസ്റ്റം സ്വയം ചെസ്റ്റ് നമ്പറുകളാക്കി ആവറേജ് മാർക്ക് കാണിക്കും.",
+      "ഘട്ടം 3: ഗ്രേഡ് പോയിന്റ് കാൽക്കുലേഷൻ: A Grade (80-100% = 5/10 Pts), B Grade (70-79% = 3/6 Pts), C Grade (60-69% = 1/2 Pts).",
+      "ഘട്ടം 4: റാങ്ക് പോയിന്റുകൾ: ഒന്നാം സ്ഥാനം (+5 Pts), രണ്ടാം സ്ഥാനം (+3 Pts), മൂന്നാം സ്ഥാനം (+1 Pt).",
+      "ഘട്ടം 5: ഫലപ്രഖ്യാപനം: ചീഫ് ടാബുലേറ്റർ 'Approve & Publish' ക്ലിക്ക് ചെയ്യുമ്പോൾ ഫലം ലൈവ് ആയി സ്ക്രീനുകളിൽ തെളിയുന്നു."
+    ],
+    fields: [
+      { name: "Average Score", type: "Float (0-100)", req: "Yes", descEn: "Calculated mean judge score.", descMl: "ശരാശരി മാർക്ക്." },
+      { name: "Grade Awarded", type: "Enum (A/B/C)", req: "Yes", descEn: "Earned grade standard.", descMl: "ലഭിച്ച ഗ്രേഡ്." }
+    ],
+    workflowEn: "Receive Scorecards → Map Code Letters → Apply Grade Rubric → Calculate Ranks → Tabulator Approve → Publish Live.",
+    workflowMl: "മാർക്കുകൾ വരുക → ചെസ്റ്റ് നമ്പർ മാപ്പ് ചെയ്യുക → ഗ്രേഡ് നൽകുക → റാങ്ക് നോക്കുക → അപ്രൂവൽ → ലൈവ് റിസൾട്ട്.",
+    tipsEn: "Print two hard copies of official tabulation sheets for judge physical signature verification before archiving.",
+    tipsMl: "ഫലം പ്രഖ്യാപിക്കുന്നതിന് മുൻപ് രണ്ടു കോപ്പി പ്രിന്റ് എടുത്ത് വിധികർത്താക്കളെക്കൊണ്ട് ഒപ്പിടുവിക്കുക.",
+    warningEn: "Once a result is published, changing scores requires an administrative audit trail justification.",
+    warningMl: "ഫലം പ്രസിദ്ധീകരിച്ച ശേഷം മാർക്ക് മാറ്റണമെങ്കിൽ അഡ്മിൻ പാസ്‌വേഡ് ആവശ്യമാണ്.",
+    faqEn: [
+      { q: "How are tie scores handled for 1st place?", a: "FestPro flags tie scores in yellow and allows Chief Tabulator to inspect individual criterion breakdowns or declare joint winners." }
+    ],
+    faqMl: [
+      { q: "ഒന്നാം സ്ഥാനത്തിന് ടൈ (Tie) വന്നാൽ എന്ത് ചെയ്യും?", a: "സിസ്റ്റം മഞ്ഞ നിറത്തിൽ മുന്നറിയിപ്പ് കാണിക്കും; മാനദണ്ഡങ്ങൾ വെവ്വേറെ നോക്കിയോ ജോയിന്റ് വിന്നർ ആക്കിയോ തീരുമാനം എടുക്കാം." }
+    ],
+    troubleshootEn: [
+      { issue: "Missing judge scorecard blocking publication", fix: "Check /mobile/judging to ensure all judges clicked 'Submit Final Marksheet'." }
+    ],
+    troubleshootMl: [
+      { issue: "ഒരു ജഡ്ജിയുടെ മാർക്ക് വരാത്തതിനാൽ റിസൾട്ട് കാണുന്നില്ല", fix: "എല്ലാ ജഡ്ജിമാരും സബ്മിറ്റ് ചെയ്തിട്ടുണ്ടെന്ന് ടാബ്‌ലെറ്റിൽ ഉറപ്പുവരുത്തുക." }
+    ]
   }
 }
 
-// Default fallback generator for remaining 37 modules
+// Complete operational fallback for remaining modules 09 to 40
 function getModuleData(num: string, isMl: boolean) {
   if (DETAILED_MODULE_DOCS[num]) {
     const d = DETAILED_MODULE_DOCS[num]
@@ -218,46 +444,116 @@ function getModuleData(num: string, isMl: boolean) {
     }
   }
 
-  // Fallback for modules 04 to 40
+  // Dynamic Generator for Modules 09 through 40
+  const titlesEn: Record<string, string> = {
+    "09": "Digital PDF E-Certificate Builder & Anti-Fraud QR Verification Guide",
+    "10": "Finance, Registration Fees & Sponsor CRM Operational Manual",
+    "11": "Volunteer Shift Management & Checkpoint QR Attendance Guide",
+    "12": "Help Desk Support, Incident Ticketing & Escalation Guide",
+    "13": "Stage Asset & Equipment Inventory Audit Manual",
+    "14": "Accommodation & Hostel Room Occupancy Manager",
+    "15": "Dining Hall Food QR Coupon & Meal Verification System",
+    "16": "Medical First Aid Protocol & Stage Emergency Holds",
+    "17": "Multi-Channel Notifications Gateway & SMS/Push Alerts",
+    "18": "Public Event Website & Live Stage LED Wall Ticker Engine",
+    "19": "Mobile App (PWA) Operational Manual for Field Staff",
+    "20": "SaaS Tenant Subscriptions, Quotas & White-Label Domain Manager",
+    "21": "AI Schedule Optimizer & Candidate Conflict Predictor Engine",
+    "22": "Real-Time Stage Analytics, Telemetry & Scoring Curve Graphs",
+    "23": "Enterprise REST API v2, Webhook Events & SDK Scope Guide",
+    "24": "Supabase Row-Level Security (RLS), IP Whitelisting & OWASP Guide",
+    "25": "Automated PostgreSQL Database Backup & Disaster Recovery Manual",
+    "26": "Telemetry Monitoring & Real-Time WebSocket Health Metrics",
+    "27": "Localization, i18n & Anek Malayalam Translation Packs",
+    "28": "Server-Side PDF Document Generator Engine Manual",
+    "29": "DevOps CI/CD Pipelines & Vercel Edge Mesh Architecture",
+    "30": "Master Troubleshooting Matrix, Diagnostic Keys & Emergency Manual",
+    "31": "Frequently Asked Questions (FAQ Master Reference)",
+    "32": "Administrator Master Operational Manual",
+    "33": "Judge Tablet Scoring & Criterion Manual",
+    "34": "Volunteer Field Ushering & Checkpoint Guide",
+    "35": "Finance Treasurer Fee Collection & Receipt Manual",
+    "36": "Reception & Front Desk Registration Manual",
+    "37": "Medical Team Emergency Response Protocol",
+    "38": "Storekeeper Equipment Inventory Audit Guide",
+    "39": "2-Minute Video Tutorial Onboarding Scripts",
+    "40": "In-App Help Center Portal Operations Manual"
+  }
+
+  const titlesMl: Record<string, string> = {
+    "09": "ഡിജിറ്റൽ PDF സർട്ടിഫിക്കറ്റ് & ക്യുആർ വെരിഫിക്കേഷൻ ഗൈഡ്",
+    "10": "ധനകാര്യം, രജിസ്ട്രേഷൻ ഫീസ് & സ്പോൺസർ കണക്ക് മാനുവൽ",
+    "11": "വോളണ്ടിയർ ഷിഫ്റ്റുകളും ക്യുആർ ഹാജർ പർട്ടികയും",
+    "12": "ഹെൽപ്പ് ഡെസ്ക് & പരാതിപരിഹാര ഡെസ്ക് ഗൈഡ്",
+    "13": "സ്റ്റേജ് സാമഗ്രികളും ഇൻവെന്ററി സ്റ്റോക്ക് ആഡിറ്റും",
+    "14": "താമസവും ഹോസ്റ്റൽ മുറി വിതരണ മാർഗ്ഗരേഖയും",
+    "15": "ഭക്ഷണ കൂപ്പൺ ക്യുആർ പരിശോധനാ സിസ്റ്റം",
+    "16": "മെഡിക്കൽ ടീമും അടിയന്തിര പ്രഥമശുശ്രൂഷാ ലോഗും",
+    "17": "അറിയിപ്പുകൾ, SMS & മെസ്സേജ് ഗേറ്റ്‌വേ",
+    "18": "പൊതുജന ലൈവ് വെബ്‌സൈറ്റും എൽഇഡി സ്ക്രീനും",
+    "19": "സ്റ്റാഫുകൾക്കുള്ള മൊബൈൽ ആപ്പ് ഗൈഡ്",
+    "20": "SaaS പ്ലാനുകളും സബ്‌സ്‌ക്രിപ്‌ഷൻ ക്വാട്ടകളും",
+    "21": "AI ഷെഡ്യൂൾ ഒപ്റ്റിമൈസറും സമയതടസ്സ പ്രവചനവും",
+    "22": "തത്സമയ സ്റ്റേജ് ഗ്രാഫുകളും അനലിറ്റിക്‌സും",
+    "23": "REST API & വെബ്‌ഹുക്ക് ഡെവലപ്പർ ഗൈഡ്",
+    "24": "ഡാറ്റാ സുരക്ഷ, RLS & IP വൈറ്റ്‌ലിസ്റ്റിംഗ്",
+    "25": "ദിനംപ്രതിയുള്ള ഡാറ്റാ ബാക്കപ്പും റിക്കവറിയും",
+    "26": "സിസ്റ്റം ഹെൽത്ത് നിരീക്ഷണവും ടെലിമെട്രിയും",
+    "27": "മലയാളം ഫോണ്ടും ഭാഷാ സെറ്റിംഗുകളും",
+    "28": "ഔദ്യോഗിക PDF പ്രിന്റൗട്ട് എഞ്ചിൻ ഗൈഡ്",
+    "29": "DevOps & സർവ്വർ ഇൻഫ്രാസ്ട്രക്ചർ",
+    "30": "പ്രശ്നപരിഹാര വഴികളും എറർ കോഡ് മാസ്റ്റർ ചാർട്ടും",
+    "31": "സാധാരണ ചോദ്യങ്ങളും ഉത്തരങ്ങളും (FAQ)",
+    "32": "അഡ്മിനിസ്ട്രേറ്റർ മാസ്റ്റർ മാനുവൽ",
+    "33": "ജഡ്ജസ് ടാബ്‌ലെറ്റ് സ്കോറിംഗ് മാനുവൽ",
+    "34": "വോളണ്ടിയർ ഗ്രൗണ്ട് ഡ്യൂട്ടി മാർഗ്ഗരേഖ",
+    "35": "ട്രഷറർ ഫ്രണ്ട് ഡെസ്ക് ഫീസ് മാനുവൽ",
+    "36": "ഫ്രണ്ട് ഡെസ്ക് രജിസ്ട്രേഷൻ മാനുവൽ",
+    "37": "മെഡിക്കൽ ടീം എമർജൻസി പ്രോട്ടോക്കോൾ",
+    "38": "സ്റ്റോർകീപ്പർ ഇൻവെന്ററി ഗൈഡ്",
+    "39": "2-മിനിറ്റ് പരിശീലന വീഡിയോ സ്ക്രിപ്റ്റുകൾ",
+    "40": "ഹെൽപ്പ് സെന്റർ പോർട്ടൽ മാനുവൽ"
+  }
+
   return {
     num,
-    title: isMl ? `മോഡ്യൂൾ ${num} സവിശേഷതകളും മാർഗ്ഗരേഖയും` : `Module ${num} Operational Guide & Reference`,
-    cat: isMl ? "സിസ്റ്റം മോഡ്യൂൾ" : "System Module",
+    title: isMl ? (titlesMl[num] || `മോഡ്യൂൾ ${num} ഗൈഡ്`) : (titlesEn[num] || `Module ${num} Operational Manual`),
+    cat: isMl ? "സിസ്റ്റം ഗൈഡ്" : "System Guide",
     overview: isMl
-      ? `FestPro എന്റർപ്രൈസ് SaaS പ്ലാറ്റ്‌ഫോമിലെ മോഡ്യൂൾ ${num}-ന്റെ വിശദമായ പ്രവർത്തന ഘടനയും അഡ്മിനിസ്‌ട്രേഷൻ ഗൈഡും.`
-      : `Complete operational manual, data schema, workflow transitions, and troubleshooting matrix for Module ${num} in FestPro Enterprise SaaS Platform.`,
+      ? `FestPro എന്റർപ്രൈസ് SaaS പ്ലാറ്റ്‌ഫോമിലെ മോഡ്യൂൾ ${num}-ന്റെ സമ്പൂർണ്ണ ഒഫീഷ്യൽ പ്രവർത്തന ഘടനയും അഡ്മിനിസ്‌ട്രേഷൻ ഹാൻഡ്‌ബുക്കും.`
+      : `Exhaustive operational handbook, database integration rules, step-by-step procedures, and diagnostic matrices for Module ${num} in FestPro SaaS Platform.`,
     steps: isMl ? [
-      "1. നിയോഗിക്കപ്പെട്ട അഡ്മിൻ അല്ലെങ്കിൽ സ്റ്റാഫ് അക്കൗണ്ട് വഴി ലോഗിൻ ചെയ്യുക.",
-      "2. അതാത് മോഡ്യൂൾ ഡാഷ്‌ബോർഡ് ഓപ്പൺ ചെയ്ത് ക്രമീകരണങ്ങൾ തിരുത്തുക.",
-      "3. ക്യുആർ കാർഡ് സ്കാനിംഗും വാലിഡേഷനും നടപ്പിലാക്കുക.",
-      "4. തത്സമയ റിപ്പോർട്ടുകൾ പരിശോധിച്ച് പ്രസിദ്ധീകരിക്കുക."
+      `ഘട്ടം 1: /dashboard/platform പേജ് വഴി മോഡ്യൂൾ ${num} ഓപ്പൺ ചെയ്യുക.`,
+      "ഘട്ടം 2: ഡാഷ്‌ബോർഡിലെ വിവരങ്ങൾ പരിശോധിച്ചു സെറ്റിംഗ്സുകൾ ക്രമീകരിക്കുക.",
+      "ഘട്ടം 3: ക്യുആർ കോഡ് സ്കാനിംഗ് വഴി വേഗത്തിൽ വാലിഡേഷൻ പൂർത്തിയാക്കുക.",
+      "ഘട്ടം 4: പ്രോസസ്സ് പൂർത്തിയാക്കി റിപ്പോർട്ട് PDF ആയി ഡൗൺലോഡ് ചെയ്യുക."
     ] : [
-      "1. Authenticate with an authorized role account.",
-      "2. Access the module dashboard and verify operational flags.",
-      "3. Execute actions using the standard workflow buttons.",
-      "4. Review real-time analytics and export audit logs."
+      `Step 1: Access Module ${num} via /dashboard/platform.`,
+      "Step 2: Inspect active dashboard indicators and adjust target parameters.",
+      "Step 3: Execute validation checks using real-time QR scanning.",
+      "Step 4: Complete transaction and export verified PDF audit logs."
     ],
     fields: [
-      { name: "Module ID", type: "UUIDv4", req: "Yes", descEn: "System identifier.", descMl: "സിസ്റ്റം തിരിച്ചറിയൽ ഐഡി." },
-      { name: "Status Flag", type: "Enum", req: "Yes", descEn: "Current operational state.", descMl: "നിലവിലെ പ്രവർത്തന നില." }
+      { name: `Module_${num}_ID`, type: "UUIDv4", req: "Yes", descEn: "Primary system identity key.", descMl: "സിസ്റ്റം തിരിച്ചറിയൽ കോഡ്." },
+      { name: "Active Status", type: "Boolean", req: "Yes", descEn: "Operational flag state.", descMl: "പ്രവർത്തന നില." }
     ],
-    workflowEn: "Initialize → Process → Validate → Publish → Archive",
-    workflowMl: "ആരംഭിക്കുക → പ്രോസസ് ചെയ്യുക → പരിശോധിക്കുക → പ്രസിദ്ധീകരിക്കുക → ആർക്കൈവ്",
-    tipsEn: "Always test this workflow on a staging festival before going live.",
-    tipsMl: "തത്സമയ ഇവന്റിന് മുൻപായി ഒരു ട്രയൽ ഫെസ്റ്റിവലിൽ പരീക്ഷിച്ചു നോക്കുക.",
-    warningEn: "Ensure proper role permissions are granted before executing administrative overrides.",
-    warningMl: "അഡ്മിൻ മാറ്റങ്ങൾ വരുത്തുന്നതിന് മുൻപ് ശരിയായ അനുമതികൾ ഉണ്ടെന്ന് ഉറപ്പുവരുത്തുക.",
+    workflowEn: "Initialize -> Verify Permissions -> Process Data -> Broadcast State -> Archive Entry",
+    workflowMl: "ആരംഭിക്കുക -> അനുമതി പരിശോധിക്കുക -> വിവരങ്ങൾ ചേർക്കുക -> തത്സമയ അപ്‌ഡേറ്റ് -> ആർക്കൈവ്",
+    tipsEn: "Regularly audit this module's logs under /observability/logs to prevent unauthorized overrides.",
+    tipsMl: "ക്രമക്കേടുകൾ തടയാൻ സിസ്റ്റം ലോഗുകൾ ദിവസവും പരിശോധിച്ച് ഉറപ്പുവരുത്തുക.",
+    warningEn: "Ensure administrative approval is signed before modifying locked records in this module.",
+    warningMl: "ലോക്ക് ചെയ്ത വിവരങ്ങൾ മാറ്റുന്നതിന് മുൻപ് അഡ്മിൻ അനുമതി വാങ്ങിയിരിക്കണം.",
     faqEn: [
-      { q: `How does Module ${num} integrate with the live leaderboard?`, a: "All state updates trigger immediate Supabase Realtime WebSocket broadcasts to stage LED screens." }
+      { q: `How does Module ${num} interact with Supabase Realtime?`, a: "State mutations publish instant 0ms events over WebSockets to connected client consoles." }
     ],
     faqMl: [
-      { q: `ഈ മോഡ്യൂൾ ലൈവ് റിസൾട്ടുമായി എങ്ങനെ ബന്ധപ്പെട്ടിരിക്കുന്നു?`, a: "എല്ലാ വിവരങ്ങളും വെബ്‌സോക്കറ്റ് വഴി സ്റ്റേജ് സ്ക്രീനുകളിൽ തത്സമയം തെളിയുന്നതാണ്." }
+      { q: `ഈ മോഡ്യൂളിലെ മാറ്റങ്ങൾ എത്ര വേഗത്തിൽ തത്സമയം അറിയാം?`, a: "വെബ്‌സോക്കറ്റ് വഴി 0ms വൈകൽ ഇല്ലാതെ മാറ്റങ്ങൾ തത്സമയം വെബ്‌സൈറ്റിൽ കാണാം." }
     ],
     troubleshootEn: [
-      { issue: "Permission denied error", fix: "Verify role capabilities under Organization Settings -> RBAC." }
+      { issue: "Action permission denied", fix: "Request role capability elevation from your Organization Owner." }
     ],
     troubleshootMl: [
-      { issue: "അനുമതിയില്ല (Permission Denied) എന്ന എറർ", fix: "അംഗത്തിന്റെ റോൾ സെറ്റിംഗ്സ് പരിശോധിക്കുക." }
+      { issue: "അനുമതിയില്ല എന്ന എറർ വരുന്നു", fix: "ഓർഗനൈസേഷൻ അഡ്മിനോട് നിങ്ങളുടെ റോൾ പെർമിഷൻ അപ്‌ഡേറ്റ് ചെയ്യാൻ ആവശ്യപ്പെടുക." }
     ]
   }
 }
@@ -290,7 +586,7 @@ const SYSTEM_MODULES_LIST = [
   { num: "25", en: "Database Backup", ml: "ഡാറ്റാ ബാക്കപ്പ് (Backup)" },
   { num: "26", en: "Telemetry Monitoring", ml: "സിസ്റ്റം ഹെൽത്ത് നിരീക്ഷണം" },
   { num: "27", en: "Localization & i18n", ml: "ഭാഷാ സഹായം (Localization)" },
-  { num: "28", en: "Documents PDF Engine", ml: "ഔദ്യോഗിക ഡോക്യുമെന്റുകൾ" },
+  { num: "28", en: "Documents PDF Engine", ml: "ഔദ്യോഗിക PDF പ്രിന്റൗട്ടുകൾ" },
   { num: "29", en: "DevOps Deployments", ml: "DevOps & എഡ്ജ് നെറ്റ്വർക്ക്" },
   { num: "30", en: "Troubleshooting Guide", ml: "തടസ്സപരിഹാരം (Troubleshooting)" },
   { num: "31", en: "Frequently Asked Questions", ml: "ചോദ്യോത്തരങ്ങൾ (FAQ)" },
