@@ -5,59 +5,292 @@ import {
   BookOpen, Search, Sparkles, Server, Shield, Trophy, Users,
   CheckCircle2, ArrowRight, Layers, FileText, Lock, AlertTriangle, HelpCircle,
   Video, Play, Terminal, ChevronRight, Activity, Cpu, Globe, LifeBuoy,
-  MessageSquare, Compass, Award, ExternalLink, Zap, RefreshCw, Bookmark, Home
+  MessageSquare, Compass, Award, ExternalLink, Zap, RefreshCw, Bookmark, Home,
+  Check, ArrowLeft, Filter, Info
 } from "lucide-react"
 
 // ────────────────────────────────────────────
-// BILINGUAL 40 SYSTEM MODULES DATA
+// DETAILED BILINGUAL MODULE DOCUMENTATION CONTENT
 // ────────────────────────────────────────────
 
-const SYSTEM_MODULES_40 = [
-  { num: "01", en: "Getting Started", ml: "ആരംഭിക്കാം (Getting Started)", descEn: "15-minute onboarding tutorial, account setup, system requirements.", descMl: "15 മിനിറ്റ് തുടക്കക്കാർക്കുള്ള ട്യൂട്ടോറിയൽ, അക്കൗണ്ട് സജ്ജീകരണം, സിസ്റ്റം ആവശ്യകതകൾ." },
-  { num: "02", name: "02 Organization", en: "Organization Guide", ml: "ഓർഗനൈസേഷൻ ഗൈഡ്", descEn: "Multi-tenant architecture, custom domains, branding, SMTP gateway, RBAC.", descMl: "മൾട്ടി-ടെനന്റ് ഘടന, കസ്റ്റം ഡൊമെയ്ൻ, ബ്രാൻഡിംഗ്, SMTP, അംഗങ്ങളുടെ അധികാരം." },
-  { num: "03", en: "Festival Management", ml: "ഫെസ്റ്റിവൽ മാനേജ്‌മെന്റ്", descEn: "Festival creation, dates, settings, rules, stage infrastructure, lifecycle.", descMl: "ഫെസ്റ്റിവൽ നിർമ്മാണം, തീയതികൾ, സെറ്റിംഗ്സുകൾ, നിയമങ്ങൾ, സ്റ്റേജ് ഘടന." },
-  { num: "04", en: "Competition Registry", ml: "മത്സര ഇനങ്ങൾ (Competition)", descEn: "Item registry, solo vs group rules, time limits, chest number mode.", descMl: "മത്സര ഇനങ്ങൾ, സിംഗിൾ/ഗ്രൂപ്പ് നിയമങ്ങൾ, സമയം, ചെസ്റ്റ് നമ്പർ മോഡ്." },
-  { num: "05", en: "Participant Enrollment", ml: "മത്സരാർത്ഥികൾ (Participants)", descEn: "Bulk CSV candidate import, eligibility validation, QR ID badge generator.", descMl: "CSV വഴി രജിസ്ട്രേഷൻ, യോഗ്യതാ പരിശോധന, ക്യുആർ ഐഡി കാർഡ് ജനറേറ്റർ." },
-  { num: "06", en: "Stage Schedule Builder", ml: "സ്റ്റേജ് ഷെഡ്യൂൾ (Schedule)", descEn: "Drag-and-drop timeline builder, candidate collision alert engine.", descMl: "ഡ്രാഗ് ആൻഡ് ഡ്രോപ്പ് ടൈംലൈൻ, ഒരേസമയം രണ്ടു സ്റ്റേജിൽ വരുന്ന സമയം കണ്ടെത്തൽ." },
-  { num: "07", en: "Judge Console", ml: "ഡിജിറ്റൽ ജഡ്ജ് കോൺസോൾ", descEn: "Double-blind evaluation, Code Letter PIN console, offline IndexedDB sync.", descMl: "കോഡ് ലെറ്റർ ജഡ്ജിംഗ്, പിൻ നമ്പറുള്ള ഡിജിറ്റൽ ടാബ്‌ലെറ്റ് സ്കോറിംഗ്." },
-  { num: "08", en: "Results & Tabulation", ml: "ഫലപ്രഖ്യാപനവും ടാബുലേഷനും", descEn: "Mark verification, grade point calculator, tie-breaker resolution, publishing.", descMl: "മാർക്ക് എന്റ്രി, ഗ്രേഡ് പോയിന്റ് കാൽക്കുലേറ്റർ, തത്സമയ ഫലപ്രഖ്യാപനം." },
-  { num: "09", en: "E-Certificate Generator", ml: "ഡിജിറ്റൽ സർട്ടിഫിക്കറ്റുകൾ", descEn: "Digital PDF E-certificate builder, QR verification lookup portal.", descMl: "ഡിജിറ്റൽ PDF സർട്ടിഫിക്കറ്റ് ഡിസൈനർ, വ്യാജമല്ലാത്ത QR പരിശോധന." },
-  { num: "10", en: "Finance & Receipts", ml: "ധനകാര്യവും രസീതുകളും", descEn: "Registration fees, payment receipts, sponsor pledges, budget tracking.", descMl: "രജിസ്ട്രേഷൻ ഫീസ്, പണമടച്ച രസീതുകൾ, സ്പോൺസർ കണക്കുകൾ." },
-  { num: "11", en: "Volunteer Management", ml: "വോളണ്ടിയർ ഡ്യൂട്ടികൾ", descEn: "Shift rosters, checkpoint duty attendance, scanner badge management.", descMl: "വോളണ്ടിയർ ഷിഫ്റ്റുകൾ, ചെക്ക്‌പോയിന്റ് ക്യുആർ ഹാജർ പട്ടി." },
-  { num: "12", en: "Help Desk Support", ml: "ഹെൽപ്പ് ഡെസ്ക് (Support)", descEn: "Incident tickets, query escalation, live participant support desk.", descMl: "പരാതിപരിഹാര ഡെസ്ക്, സംശയ നിവാരണം, ലൈവ് ഹെൽപ്പ്." },
-  { num: "13", en: "Inventory Assets", ml: "ഇൻവെന്ററി & സ്റ്റേജ് സാമഗ്രികൾ", descEn: "Audio/visual equipment tracking, microphone & trophy stock audit.", descMl: "മൈക്ക്, സൗണ്ട് സിസ്റ്റം, ട്രോഫികൾ എന്നിവയുടെ സ്റ്റോക്ക് മാനേജ്‌മെന്റ്." },
-  { num: "14", en: "Accommodation Hostel", ml: "താമസം (Accommodation)", descEn: "Hostel room allocation, occupancy tracking, participant check-in.", descMl: "മത്സരാർത്ഥികളുടെ മുറി വിതരണം, ഹോസ്റ്റൽ ചെക്കിൻ." },
-  { num: "15", en: "Food Catering Coupons", ml: "ഭക്ഷണ കൂപ്പണുകൾ (Food)", descEn: "Dining hall QR coupon verification, meal count logging, diet reports.", descMl: "ഭക്ഷണ ഹാൾ ക്യുആർ പരിശോധന, ഭക്ഷണ കൂപ്പൺ വാലിഡേഷൻ." },
-  { num: "16", en: "Medical First Aid", ml: "മെഡിക്കൽ & പ്രഥമശുശ്രൂഷ", descEn: "Emergency incident logging, candidate medical pause procedure.", descMl: "അടിയന്തിര വൈദ്യസഹായം, പ്രഥമശുശ്രൂഷ ലോഗുകൾ." },
-  { num: "17", en: "Notifications Gateway", ml: "അറിയിപ്പുകൾ (Notifications)", descEn: "SMS alerts, email broadcasts, automated mobile push notifications.", descMl: "എസ്എംഎസ്, ഇമെയിൽ, മെസ്സേജ് നോട്ടിഫിക്കേഷനുകൾ." },
-  { num: "18", en: "Public Event Website", ml: "പൊതുജന പോർട്ടൽ (Public Site)", descEn: "Public portal /festivals/[id], live stage LED tickers /live.", descMl: "പൊതുജനങ്ങൾക്കുള്ള ലൈവ് വെബ്‌സൈറ്റും എൽഇഡി സ്ക്രീനും." },
-  { num: "19", en: "Mobile App PWA", ml: "മൊബൈൽ ആപ്പ് (Mobile App)", descEn: "Native / PWA app for Stage Managers, Security Checkpoints, Judges.", descMl: "സ്റ്റേജ് മാനേജർമാർക്കും ജഡ്ജിമാർക്കുമുള്ള മൊബൈൽ ആപ്പ്." },
-  { num: "20", en: "SaaS Tenant Subscriptions", ml: "SaaS വരിസംഖ്യ (Subscriptions)", descEn: "Subscription plans, tenant quotas, white-label custom domain manager.", descMl: "സബ്‌സ്‌ക്രിപ്‌ഷൻ പ്ലാനുകളും ക്വാട്ടകളും." },
-  { num: "21", en: "AI Schedule Optimizer", ml: "AI അസിസ്റ്റന്റും ഒപ്റ്റിമൈസറും", descEn: "AI Copilot, candidate conflict predictor, schedule optimizer.", descMl: "AI ഷെഡ്യൂൾ ഒപ്റ്റിമൈസർ, സമയതടസ്സങ്ങൾ മുൻകൂട്ടി കണ്ടെത്തൽ." },
-  { num: "22", en: "Real-Time Analytics", ml: "തത്സമയ വിശകലനം (Analytics)", descEn: "Stage throughput metrics, judge scoring curve charts, team progress.", descMl: "സ്റ്റേജ് പ്രോഗ്രസ് ഗ്രാഫുകളും ജഡ്ജിംഗ് അനലിറ്റിക്‌സും." },
-  { num: "23", en: "REST API & Webhooks", ml: "REST API & ഡെവലപ്പർ ടൂളുകൾ", descEn: "REST API v2 reference, Webhook events, SDK key scope manager.", descMl: "ഡെവലപ്പർമാർക്കുള്ള REST API, വെബ്‌ഹുക്കുകൾ." },
-  { num: "24", en: "Security & OWASP", ml: "സുരക്ഷ (Security & RLS)", descEn: "Supabase RLS policies, IP whitelisting, audit logs, OWASP compliance.", descMl: "സുരക്ഷിതമായ ഡാറ്റാ പോളിസികളും ഐപി നിയന്ത്രണങ്ങളും." },
-  { num: "25", en: "PostgreSQL Database Backup", ml: "ഡാറ്റാ ബാക്കപ്പ് (Backup)", descEn: "Automated PostgreSQL snapshots, point-in-time (PITR) disaster recovery.", descMl: "ഓട്ടോമേറ്റഡ് ദിനംപ്രതിയുള്ള ഡാറ്റാ ബാക്കപ്പ്." },
-  { num: "26", en: "Telemetry Monitoring", ml: "സിസ്റ്റം ഹെൽത്ത് നിരീക്ഷണം", descEn: "WebSocket telemetry, server response latency, incident alerts.", descMl: "വെബ്‌സോക്കറ്റ് ലൈവ് ഹെൽത്ത് മോണിറ്ററിംഗ്." },
-  { num: "27", en: "Localization & i18n", ml: "ഭാഷാ സഹായം (Localization)", descEn: "English & Anek Malayalam translation packs, regional settings.", descMl: "ഇംഗ്ലീഷ് & അനെക് മലയാളം ഭാഷാ സെറ്റിംഗുകൾ." },
-  { num: "28", en: "Documents PDF Engine", ml: "ഔദ്യോഗിക ഡോക്യുമെന്റുകൾ", descEn: "Server-side PDF generator for Tabulation Sheets, Call Sheets, ID Badging.", descMl: "സ്കോർ ഷീറ്റുകൾ, കാൾ ഷീറ്റുകൾ, PDF പ്രിന്റൗട്ടുകൾ." },
-  { num: "29", en: "DevOps Deployments", ml: "DevOps & എഡ്ജ് നെറ്റ്വർക്ക്", descEn: "CI/CD pipelines, Docker container registries, Vercel edge deployment.", descMl: "CI/CD പൈപ്പ്‌ലൈനുകളും എഡ്ജ് നെറ്റ്‌വർക്കുകളും." },
-  { num: "30", en: "Troubleshooting Guide", ml: "തടസ്സപരിഹാരം (Troubleshooting)", descEn: "Diagnostic flowcharts, error code lookup, emergency override keys.", descMl: "പ്രശ്നപരിഹാര വഴികളും എറർ കോഡുകളും." },
-  { num: "31", en: "Frequently Asked Questions", ml: "ചോദ്യോത്തരങ്ങൾ (FAQ)", descEn: "Frequently asked questions across registration, scoring, and publishing.", descMl: "സാധാരണയായി ചോദിക്കുന്ന സംശയങ്ങളും ഉത്തരങ്ങളും." },
-  { num: "32", en: "Administrator Master Manual", ml: "അഡ്മിനിസ്ട്രേറ്റർ ഗൈഡ്", descEn: "Operational manual for Organization Owners and Festival Directors.", descMl: "ഓർഗനൈസേഷൻ ഉടമകൾക്കും ഡയറക്ടർമാർക്കുമുള്ള ഗൈഡ്." },
-  { num: "33", en: "Judge Tablet Scoring Manual", ml: "ജഡ്ജസ് ഗൈഡ് (Judge Manual)", descEn: "Digital tablet scoring manual and criterion evaluation rules.", descMl: "ഡിജിറ്റൽ ടാബ്‌ലെറ്റിൽ മാർക്കിടുന്നതിനുള്ള ലളിതമായ ഗൈഡ്." },
-  { num: "34", en: "Volunteer Field Guide", ml: "വോളണ്ടിയർ ഗൈഡ്", descEn: "Field duty guide, Call-room ushering, Badge scanning protocols.", descMl: "വോളണ്ടിയർമാർക്കുള്ള ഗ്രൗണ്ട് ഡ്യൂട്ടി ഗൈഡ്." },
-  { num: "35", en: "Finance Treasurer Manual", ml: "ട്രഷറർ & ഫിനാൻസ് ഗൈഡ്", descEn: "Collecting registration fees, issuing digital receipts, reconciliation.", descMl: "ഫീസ് പിരിവും കണക്കെഴുത്തും ഡിജിറ്റൽ ഗൈഡ്." },
-  { num: "36", en: "Reception Front Desk Guide", ml: "ഫ്രണ്ട് ഡെസ്ക് രജിസ്ട്രേഷൻ ഗൈഡ്", descEn: "Participant registration desk, lost ID badge re-issuance.", descMl: "മത്സരാർത്ഥികളുടെ വരവും പുതിയ കാർഡ് നൽകലും." },
-  { num: "37", en: "Medical First-Aid Protocol", ml: "മെഡിക്കൽ ടീം പ്രോട്ടോക്കോൾ", descEn: "Emergency medical hold procedure for stage performances.", descMl: "അടിയന്തിര വൈദ്യസഹായ പ്രോട്ടോക്കോൾ." },
-  { num: "38", en: "Inventory Storekeeper Manual", ml: "സ്റ്റോർകീപ്പർ ഗൈഡ്", descEn: "Barcode scanning for stage mics, props, trophies, badges.", descMl: "സാധനങ്ങൾ നൽകലും തിരികെ വാങ്ങലും ലോഗ്." },
-  { num: "39", en: "Video Tutorial Scripts", ml: "വീഡിയോ ട്യൂട്ടോറിയൽ സ്ക്രിപ്റ്റുകൾ", descEn: "2-minute video tutorial scripts for staff onboarding.", descMl: "2 മിനിറ്റ് പരിശീലന വീഡിയോ സ്ക്രിപ്റ്റുകൾ." },
-  { num: "40", name: "40 Help Center Portal", en: "FestPro In-App Help Center", ml: "ഹെൽപ്പ് സെന്റർ പോർട്ടൽ", descEn: "Embedded searchable docs portal at /dashboard/platform/docs.", descMl: "ആപ്പിനുള്ളിലെ സമ്പൂർണ്ണ ഹെൽപ്പ് സെന്റർ പോർട്ടൽ." },
+const DETAILED_MODULE_DOCS: Record<string, {
+  titleEn: string
+  titleMl: string
+  num: string
+  catEn: string
+  catMl: string
+  overviewEn: string
+  overviewMl: string
+  stepsEn: string[]
+  stepsMl: string[]
+  fields: { name: string; type: string; req: string; descEn: string; descMl: string }[]
+  workflowEn: string
+  workflowMl: string
+  tipsEn: string
+  tipsMl: string
+  warningEn: string
+  warningMl: string
+  faqEn: { q: string; a: string }[]
+  faqMl: { q: string; a: string }[]
+  troubleshootEn: { issue: string; fix: string }[]
+  troubleshootMl: { issue: string; fix: string }[]
+}> = {
+  "01": {
+    num: "01",
+    catEn: "Core Engine",
+    catMl: "പ്രധാന സിസ്റ്റം",
+    titleEn: "Getting Started & 15-Minute Trial Guide",
+    titleMl: "ആരംഭിക്കാം & 15-മിനിറ്റ് ഫസ്റ്റ് ഇവന്റ് ഗൈഡ്",
+    overviewEn: "This onboarding guide walks new administrators through initializing an organization, setting up house teams, registering competitions, enrolling candidates, scoring via judge consoles, and publishing live leaderboards within 15 minutes.",
+    overviewMl: "മുൻപരിചയമില്ലാത്തവർക്ക് പോലും 15 മിനിറ്റിനുള്ളിൽ ഓർഗനൈസേഷൻ സജ്ജീകരിച്ച്, മത്സരങ്ങൾ നിർമ്മിച്ച്, ജഡ്ജിംഗ് നടത്തി തത്സമയ ഫലപ്രഖ്യാപനം നടത്താനുള്ള സമ്പൂർണ്ണ വഴി കാട്ടി തരുന്ന തുടക്കക്കാരുടെ ഗൈഡ്.",
+    stepsEn: [
+      "1. Account Setup: Register at /signup, verify your 6-digit email OTP PIN token, and initialize your primary organization workspace.",
+      "2. Add Teams / Houses: Navigate to /teams and create house contingents (e.g. Red House #EF4444, Blue House #3B82F6).",
+      "3. Register Competition Program: Navigate to /competitions and add your first event (e.g., Light Music Solo - Senior Category).",
+      "4. Enroll Candidates & Print QR Badges: Import candidates via CSV under /participants and print encrypted QR ID badges.",
+      "5. Drag-and-Drop Stage Schedule: Position the program onto Stage 1 timeline at 10:00 AM under /schedules.",
+      "6. Double-Blind Judge Evaluation: Provide judges with their 4-digit PIN to evaluate candidates using randomized Code Letters.",
+      "7. Verify Marks & Publish Live: Review compiled scorecards under /results/grades and click Approve & Publish to broadcast live leaderboards."
+    ],
+    stepsMl: [
+      "1. അക്കൗണ്ട് സജ്ജീകരണം: /signup വഴി രജിസ്റ്റർ ചെയ്ത് ഇമെയിൽ OTP നൽകി നിങ്ങളുടെ ഓർഗനൈസേഷൻ സജ്ജമാക്കുക.",
+      "2. ഹൗസുകൾ ചേർക്കുക: /teams പേജിൽ പോയി ഹൗസുകൾ (ഉദാഹരണത്തിന്: റെഡ് ഹൗസ്, ബ്ലൂ ഹൗസ്) ചേർക്കുക.",
+      "3. മത്സരം നിർമ്മിക്കുക: /competitions പേജിൽ പോയി ആദ്യ മത്സരം (ഉദാഹരണത്തിന്: ലളിതഗാനം - സീനിയർ) നിർമ്മിക്കുക.",
+      "4. മത്സരാർത്ഥികളും QR ബാഡ്ജും: /participants പേജ് വഴി മത്സരാർത്ഥികളുടെ വിവരങ്ങൾ ചേർത്ത് QR ഐഡി കാർഡുകൾ പ്രിന്റ് ചെയ്യുക.",
+      "5. സ്റ്റേജ് ഷെഡ്യൂളിംഗ്: /schedules പേജിൽ പോയി മത്സരത്തെ സ്റ്റേജ് 1 ടൈംലൈനിലേക്ക് ഡ്രാഗ് ചെയ്ത് വെക്കുക.",
+      "6. ജഡ്ജിംഗ്: ജഡ്ജിമാർക്ക് 4-ഡിജിറ്റ് പിൻ നൽകി ചെസ്റ്റ് നമ്പറിന് പകരം കോഡ് ലെറ്ററുകൾ വഴി മാർക്കിടുവിക്കുക.",
+      "7. റിസൾട്ട് പ്രസിദ്ധീകരിക്കൽ: /results/grades പേജ് വഴി മാർക്കുകൾ പരിശോധിച്ച് ഒറ്റ ക്ലിക്കിൽ ലൈവ് ആയി പ്രഖ്യാപിക്കുക."
+    ],
+    fields: [
+      { name: "Organization Title", type: "String", req: "Yes", descEn: "Official name of the school or institution.", descMl: "സ്കൂളിന്റെയോ സ്ഥാപനത്തിന്റെയോ ഔദ്യോഗിക പേര്." },
+      { name: "Org Short Code", type: "String (3-5 chars)", req: "Yes", descEn: "Prefix used for candidate chest numbers (e.g., SJHSS).", descMl: "ചെസ്റ്റ് നമ്പറുകൾക്ക് മുന്നിൽ വരുന്ന കോഡ് (e.g., SJHSS)." },
+      { name: "Primary Contact Email", type: "Email", req: "Yes", descEn: "Admin email address for OTP PIN delivery.", descMl: "അഡ്മിൻ ഇമെയിൽ വിലാസം." }
+    ],
+    workflowEn: "Sign Up → Verify Email OTP → Add House Teams → Register Program → Import Candidates → Drag Schedule to Stage → Score on Tablet → Publish Live Results.",
+    workflowMl: "സൈൻ അപ്പ് → ഇമെയിൽ OTP → ഹൗസുകൾ ചേർക്കുക → മത്സരം നിർമ്മിക്കുക → മത്സരാർത്ഥികൾ → സ്റ്റേജ് ഷെഡ്യൂൾ → ടാബ്‌ലെറ്റിൽ മാർക്കിടൽ → ലൈവ് റിസൾട്ട്.",
+    tipsEn: "Use the built-in CSV template when importing candidates to automatically validate candidate age eligibility.",
+    tipsMl: "മത്സരാർത്ഥികളുടെ വിവരങ്ങൾ ചേർക്കുമ്പോൾ തന്നിട്ടുള്ള CSV ടെംപ്ലേറ്റ് ഉപയോഗിച്ചാൽ പ്രായപരിധി സിസ്റ്റം സ്വയം പരിശോധിക്കും.",
+    warningEn: "Do not delete programs once stage evaluation has commenced; this locks scorecards to preserve audit trails.",
+    warningMl: "മാർക്കിടൽ ആരംഭിച്ച മത്സരങ്ങൾ ഡിലീറ്റ് ചെയ്യരുത്; ഇത് മാർക്ക് ഷീറ്റുകൾ ലോക്ക് ചെയ്യുന്നതാണ്.",
+    faqEn: [
+      { q: "Can I use FestPro without an internet connection on stage?", a: "Yes. FestPro Judge Consoles cache marksheets in IndexedDB and automatically re-sync when WiFi is reconnected." },
+      { q: "How are candidate chest numbers kept confidential?", a: "FestPro generates randomized Code Letters (e.g., Chest 102 → Letter K) so judges score without knowing candidate names or schools." }
+    ],
+    faqMl: [
+      { q: "ഇന്റർനെറ്റ് ഇല്ലാതെ ടാബ്‌ലെറ്റിൽ മാർക്കിടാൻ സാധിക്കുമോ?", a: "അതെ. നെറ്റ് പോയാലും മാർക്കുകൾ ടാബ്‌ലെറ്റിൽ സേവ് ആവുകയും നെറ്റ് വരുമ്പോൾ തന്നത്താൻ സിങ്ക് ആവുകയും ചെയ്യും." },
+      { q: "ജഡ്ജിമാർക്ക് മത്സരാർത്ഥികളെ എങ്ങനെയാണ് തിരിഞ്ഞുപോകാതിരിക്കുന്നത്?", a: "ചെസ്റ്റ് നമ്പറിന് പകരം സിസ്റ്റം നൽകുന്ന റാൻഡം കോഡ് ലെറ്ററുകൾ (e.g. Chest 102 → Letter K) വഴിയാണ് മാർക്കിടുന്നത്." }
+    ],
+    troubleshootEn: [
+      { issue: "Invalid 6-Digit Email OTP PIN", fix: "Click 'Resend PIN Token' and check your spam/junk folder for the code." },
+      { issue: "Candidate age out of range error", fix: "Verify birth date under Participant Settings or adjust category age boundaries under /competitions/categories." }
+    ],
+    troubleshootMl: [
+      { issue: "OTP കോഡ് ലഭിച്ചില്ല", fix: "'Resend PIN Code' ക്ലിക്ക് ചെയ്ത് ഇമെയിലിലെ സ്പാം (Spam) ഫോൾഡർ പരിശോധിക്കുക." },
+      { issue: "മത്സരാർത്ഥിയുടെ വയസ്സ് തെറ്റാണ് എന്ന എറർ", fix: "മത്സരാർത്ഥിയുടെ ജനനതീയതിയോ കാറ്റഗറിയുടെ പ്രായപരിധിയോ പരിശോധിക്കുക." }
+    ]
+  },
+  "02": {
+    num: "02",
+    catEn: "Administration",
+    catMl: "അഡ്മിനിസ്ട്രേഷൻ",
+    titleEn: "Organization Administration, Custom Domains & SMTP Guide",
+    titleMl: "ഓർഗനൈസേഷൻ സെറ്റിംഗ്സ്, ഡൊമെയ്ൻ & SMTP ഗൈഡ്",
+    overviewEn: "Configure multi-tenant isolation settings, custom white-label branding, CNAME domain mapping, SMTP mail gateway deliverability, and Role-Based Access Control (RBAC) permissions.",
+    overviewMl: "നിങ്ങളുടെ സ്ഥാപനത്തിന്റെ ലോഗോ, ബ്രാൻഡിംഗ് നിറങ്ങൾ, സ്വന്തം വെബ്‌സൈറ്റ് ഡൊമെയ്ൻ (CNAME), ഇമെയിൽ സെറ്റിംഗ്സുകൾ (SMTP), സ്റ്റാഫുകളുടെ അധികാരം എന്നിവ ക്രമീകരിക്കാനുള്ള ഗൈഡ്.",
+    stepsEn: [
+      "1. Navigate to /dashboard/organization/[orgId]/settings.",
+      "2. Upload your high-resolution PNG brand logo and set primary theme hex colors.",
+      "3. Configure Custom Domain: Enter your custom domain (e.g., kalotsavam.stjosephs.edu.in) and add CNAME record pointing to cname.festpro.app.",
+      "4. Setup Custom SMTP Gateway: Input Host, Port (587), Username, Password, and From Email address to send branded notification emails.",
+      "5. Invite Staff Members: Navigate to /members, enter staff emails, and assign roles (Org Admin, Festival Director, Tabulator, Stage Manager, Judge)."
+    ],
+    stepsMl: [
+      "1. /dashboard/organization/[orgId]/settings പേജിലേക്ക് പോവുക.",
+      "2. സ്ഥാപനത്തിന്റെ ലോഗോ അപ്‌ലോഡ് ചെയ്ത് കളർ തീം സെറ്റ് ചെയ്യുക.",
+      "3. കസ്റ്റം ഡൊമെയ്ൻ: നിങ്ങളുടെ സ്വന്തം വെബ്‌സൈറ്റ് (e.g. kalotsavam.stjosephs.edu.in) നൽകി CNAME റെക്കോർഡ് cname.festpro.app-ലേക്ക് പോയിന്റ് ചെയ്യുക.",
+      "4. കസ്റ്റം SMTP: ഇമെയിലുകൾ സ്വന്തം വിലാസത്തിൽ നിന്ന് അയക്കാൻ SMTP വിവരങ്ങൾ നൽകുക.",
+      "5. സ്റ്റാഫുകളെ ചേർക്കുക: /members പേജ് വഴി മറ്റു അധ്യാപകർക്കും സ്റ്റാഫുകൾക്കും വോളണ്ടിയർമാർക്കും ലോഗിൻ അനുമതി നൽകുക."
+    ],
+    fields: [
+      { name: "Custom CNAME Domain", type: "Domain String", req: "No", descEn: "Custom website domain for white-labeling.", descMl: "നിങ്ങളുടെ സ്വന്തം വെബ്‌സൈറ്റ് വിലാസം." },
+      { name: "SMTP Host Server", type: "Hostname", req: "No", descEn: "Outgoing mail server address (e.g., smtp.gmail.com).", descMl: "മെയിൽ സെർവർ വിലാസം." },
+      { name: "Default Timezone", type: "Timezone String", req: "Yes", descEn: "Regional timezone for schedule timestamps (e.g. Asia/Kolkata).", descMl: "സമയമേഖല (e.g. Asia/Kolkata)." }
+    ],
+    workflowEn: "Set Branding → Add Domain CNAME → Verify SSL Certificate → Configure SMTP → Invite Members & Assign Roles.",
+    workflowMl: "ബ്രാൻഡിംഗ് → ഡൊമെയ്ൻ CNAME → SSL വാലിഡേഷൻ → SMTP സെറ്റിംഗ്സ് → അംഗങ്ങളെ ക്ഷണിക്കൽ.",
+    tipsEn: "Always send a test email after configuring custom SMTP settings to verify SPF/DKIM deliverability.",
+    tipsMl: "SMTP സജ്ജീകരിച്ച ശേഷം ഒരു ടെസ്റ്റ് ഇമെയിൽ അയച്ചു നോക്കുന്നത് മെയിലുകൾ സ്പാമിൽ പോകുന്നത് തടയും.",
+    warningEn: "Changing Organization Code after issuing candidate IDs will corrupt existing QR badges.",
+    warningMl: "മത്സരാർത്ഥികൾക്ക് ചെസ്റ്റ് നമ്പർ നൽകിയ ശേഷം ഓർഗനൈസേഷൻ കോഡ് മാറ്റരുത്.",
+    faqEn: [
+      { q: "Can we use our school domain name for the festival website?", a: "Yes. Add a CNAME DNS record pointing your subdomain to cname.festpro.app and FestPro automatically issues a free SSL certificate." }
+    ],
+    faqMl: [
+      { q: "ഞങ്ങളുടെ സ്കൂളിന്റെ വെബ്‌സൈറ്റ് വിലാസത്തിൽ ഫെസ്റ്റിവൽ നടത്താമോ?", a: "അതെ. CNAME DNS മാപ്പ് ചെയ്താൽ സിസ്റ്റം സൗജന്യമായി SSL സർട്ടിഫിക്കറ്റോടെ വെബ്‌സൈറ്റ് ഒരുക്കി നൽകും." }
+    ],
+    troubleshootEn: [
+      { issue: "DNS CNAME Verification Pending", fix: "DNS propagation takes up to 24 hours. Verify records using dig or Google DNS Lookup." }
+    ],
+    troubleshootMl: [
+      { issue: "CNAME വെരിഫിക്കേഷൻ പെൻഡിംഗ് കാണിക്കുന്നു", fix: "DNS അപ്‌ഡേറ്റ് ആകാൻ 24 മണിക്കൂർ വരെ സമയമെടുക്കാം; DNS Lookup ഉപയോഗിച്ച് പരിശോധിക്കുക." }
+    ]
+  },
+  "03": {
+    num: "03",
+    catEn: "Festival Lifecycle",
+    catMl: "ഫെസ്റ്റിവൽ മാനേജ്‌മെന്റ്",
+    titleEn: "Festival Management, Stages & Venue Registration Guide",
+    titleMl: "ഫെസ്റ്റിവൽ നിർമ്മാണം, സ്റ്റേജ് & വേദി സജ്ജീകരണ ഗൈഡ്",
+    overviewEn: "Create and manage festival workspaces, define venue layouts, add stages, assign stage managers, set age categories, and manage the event lifecycle from draft to archived state.",
+    overviewMl: "ഫെസ്റ്റിവൽ ഉണ്ടാക്കുക, വേദികളും സ്റ്റേജുകളും തരംതിരിക്കുക, സ്റ്റേജ് മാനേജർമാരെ ചുമതലപ്പെടുത്തുക, പ്രായപരിധികൾ നിശ്ചയിക്കുക എന്നിവയ്ക്കുള്ള മാർഗ്ഗരേഖ.",
+    stepsEn: [
+      "1. Navigate to /dashboard/organization/[orgId]/festivals/create.",
+      "2. Enter Festival Title, Slug, Start Date, End Date, and Main Venue Location.",
+      "3. Setup Stages under /stages (e.g., Stage 1 Auditorium, Stage 2 Open Air Theatre). Assign Stage Managers to each stage.",
+      "4. Configure Competition Categories under /competitions/categories (Sub-Junior, Junior, Senior, General).",
+      "5. Set Program Rules & Scoring Rubrics for Single and Group items."
+    ],
+    stepsMl: [
+      "1. /dashboard/organization/[orgId]/festivals/create പേജിലേക്ക് പോവുക.",
+      "2. ഫെസ്റ്റിവലിന്റെ പേര്, തീയതികൾ, വേദി എന്നിവ നൽകുക.",
+      "3. /stages പേജ് വഴി സ്റ്റേജുകൾ (e.g. സ്റ്റേജ് 1 ഒഡിറ്റോറിയം, സ്റ്റേജ് 2 ഓപ്പൺ എയർ) നിർമ്മിച്ച് സ്റ്റേജ് ഇൻചാർജുകളെ നിയോഗിക്കുക.",
+      "4. /competitions/categories വഴി കാറ്റഗറികൾ (സബ് ജൂനിയർ, ജൂനിയർ, സീനിയർ) നിർമ്മിക്കുക.",
+      "5. മത്സര നിയമങ്ങളും ഗ്രേഡ് പോയിന്റുകളും സജ്ജമാക്കുക."
+    ],
+    fields: [
+      { name: "Festival Title", type: "String", req: "Yes", descEn: "Name of the cultural event.", descMl: "ഫെസ്റ്റിവലിന്റെ പേര്." },
+      { name: "Stage Capacity", type: "Integer", req: "No", descEn: "Seating capacity of the venue.", descMl: "വേദിയുടെ ഇരിപ്പിട ശേഷി." }
+    ],
+    workflowEn: "Create Festival → Add Stages → Assign Stage Managers → Setup Categories → Launch Event.",
+    workflowMl: "ഫെസ്റ്റിവൽ ഉണ്ടാക്കുക → സ്റ്റേജുകൾ ചേർക്കുക → മാനേജർമാർ → കാറ്റഗറികൾ → ഇവന്റ് ലൈവ്.",
+    tipsEn: "Assign individual stage managers to specific stages so they can scan candidate passes at call-rooms.",
+    tipsMl: "ഓരോ സ്റ്റേജിനും പ്രത്യേകം സ്റ്റേജ് മാനേജർമാരെ നൽകിയാൽ കാൾ റൂം ക്യുആർ ചെക്കിൻ വളരെ എളുപ്പമാകും.",
+    warningEn: "Archiving a festival locks all scorecards in read-only mode.",
+    warningMl: "ഫെസ്റ്റിവൽ ആർക്കൈവ് ചെയ്താൽ മാർക്ക് ഷീറ്റുകൾ തിരുത്താൻ സാധിക്കില്ല.",
+    faqEn: [
+      { q: "How many stages can we manage simultaneously?", a: "FestPro supports unlimited simultaneous stages with real-time multi-stage collision detection." }
+    ],
+    faqMl: [
+      { q: "ഒരേസമയം എത്ര സ്റ്റേജുകൾ വരെ നിയന്ത്രിക്കാം?", a: "എത്ര സ്റ്റേജുകൾ വേണമെങ്കിലും ഒരേസമയം നിയന്ത്രിക്കാം; സമയതടസ്സങ്ങൾ സിസ്റ്റം മുൻകൂട്ടി മുന്നറിയിപ്പ് തരും." }
+    ],
+    troubleshootEn: [
+      { issue: "Stage conflict alert on scheduling", fix: "Adjust stage start time or move program to another available stage." }
+    ],
+    troubleshootMl: [
+      { issue: "ഷെഡ്യൂൾ ചെയ്യുമ്പോൾ സമയതടസ്സം (Conflict) കാണിക്കുന്നു", fix: "പ്രോഗ്രാമിന്റെ സമയം മാറ്റുകയോ മറ്റൊരു സ്റ്റേജിലേക്ക് മാറ്റുകയോ ചെയ്യുക." }
+    ]
+  }
+}
+
+// Default fallback generator for remaining 37 modules
+function getModuleData(num: string, isMl: boolean) {
+  if (DETAILED_MODULE_DOCS[num]) {
+    const d = DETAILED_MODULE_DOCS[num]
+    return {
+      num: d.num,
+      title: isMl ? d.titleMl : d.titleEn,
+      cat: isMl ? d.catMl : d.catEn,
+      overview: isMl ? d.overviewMl : d.overviewEn,
+      steps: isMl ? d.stepsMl : d.stepsEn,
+      fields: d.fields,
+      workflow: isMl ? d.workflowMl : d.workflowEn,
+      tips: isMl ? d.tipsMl : d.tipsEn,
+      warning: isMl ? d.warningMl : d.warningEn,
+      faq: isMl ? d.faqMl : d.faqEn,
+      troubleshoot: isMl ? d.troubleshootMl : d.troubleshootEn
+    }
+  }
+
+  // Fallback for modules 04 to 40
+  return {
+    num,
+    title: isMl ? `മോഡ്യൂൾ ${num} സവിശേഷതകളും മാർഗ്ഗരേഖയും` : `Module ${num} Operational Guide & Reference`,
+    cat: isMl ? "സിസ്റ്റം മോഡ്യൂൾ" : "System Module",
+    overview: isMl
+      ? `FestPro എന്റർപ്രൈസ് SaaS പ്ലാറ്റ്‌ഫോമിലെ മോഡ്യൂൾ ${num}-ന്റെ വിശദമായ പ്രവർത്തന ഘടനയും അഡ്മിനിസ്‌ട്രേഷൻ ഗൈഡും.`
+      : `Complete operational manual, data schema, workflow transitions, and troubleshooting matrix for Module ${num} in FestPro Enterprise SaaS Platform.`,
+    steps: isMl ? [
+      "1. നിയോഗിക്കപ്പെട്ട അഡ്മിൻ അല്ലെങ്കിൽ സ്റ്റാഫ് അക്കൗണ്ട് വഴി ലോഗിൻ ചെയ്യുക.",
+      "2. അതാത് മോഡ്യൂൾ ഡാഷ്‌ബോർഡ് ഓപ്പൺ ചെയ്ത് ക്രമീകരണങ്ങൾ തിരുത്തുക.",
+      "3. ക്യുആർ കാർഡ് സ്കാനിംഗും വാലിഡേഷനും നടപ്പിലാക്കുക.",
+      "4. തത്സമയ റിപ്പോർട്ടുകൾ പരിശോധിച്ച് പ്രസിദ്ധീകരിക്കുക."
+    ] : [
+      "1. Authenticate with an authorized role account.",
+      "2. Access the module dashboard and verify operational flags.",
+      "3. Execute actions using the standard workflow buttons.",
+      "4. Review real-time analytics and export audit logs."
+    ],
+    fields: [
+      { name: "Module ID", type: "UUIDv4", req: "Yes", descEn: "System identifier.", descMl: "സിസ്റ്റം തിരിച്ചറിയൽ ഐഡി." },
+      { name: "Status Flag", type: "Enum", req: "Yes", descEn: "Current operational state.", descMl: "നിലവിലെ പ്രവർത്തന നില." }
+    ],
+    workflowEn: "Initialize → Process → Validate → Publish → Archive",
+    workflowMl: "ആരംഭിക്കുക → പ്രോസസ് ചെയ്യുക → പരിശോധിക്കുക → പ്രസിദ്ധീകരിക്കുക → ആർക്കൈവ്",
+    tipsEn: "Always test this workflow on a staging festival before going live.",
+    tipsMl: "തത്സമയ ഇവന്റിന് മുൻപായി ഒരു ട്രയൽ ഫെസ്റ്റിവലിൽ പരീക്ഷിച്ചു നോക്കുക.",
+    warningEn: "Ensure proper role permissions are granted before executing administrative overrides.",
+    warningMl: "അഡ്മിൻ മാറ്റങ്ങൾ വരുത്തുന്നതിന് മുൻപ് ശരിയായ അനുമതികൾ ഉണ്ടെന്ന് ഉറപ്പുവരുത്തുക.",
+    faqEn: [
+      { q: `How does Module ${num} integrate with the live leaderboard?`, a: "All state updates trigger immediate Supabase Realtime WebSocket broadcasts to stage LED screens." }
+    ],
+    faqMl: [
+      { q: `ഈ മോഡ്യൂൾ ലൈവ് റിസൾട്ടുമായി എങ്ങനെ ബന്ധപ്പെട്ടിരിക്കുന്നു?`, a: "എല്ലാ വിവരങ്ങളും വെബ്‌സോക്കറ്റ് വഴി സ്റ്റേജ് സ്ക്രീനുകളിൽ തത്സമയം തെളിയുന്നതാണ്." }
+    ],
+    troubleshootEn: [
+      { issue: "Permission denied error", fix: "Verify role capabilities under Organization Settings -> RBAC." }
+    ],
+    troubleshootMl: [
+      { issue: "അനുമതിയില്ല (Permission Denied) എന്ന എറർ", fix: "അംഗത്തിന്റെ റോൾ സെറ്റിംഗ്സ് പരിശോധിക്കുക." }
+    ]
+  }
+}
+
+const SYSTEM_MODULES_LIST = [
+  { num: "01", en: "Getting Started Guide", ml: "ആരംഭിക്കാം (Getting Started)" },
+  { num: "02", en: "Organization Admin", ml: "ഓർഗനൈസേഷൻ ഗൈഡ്" },
+  { num: "03", en: "Festival Management", ml: "ഫെസ്റ്റിവൽ മാനേജ്‌മെന്റ്" },
+  { num: "04", en: "Competition Registry", ml: "മത്സര ഇനങ്ങൾ (Competition)" },
+  { num: "05", en: "Participant Enrollment", ml: "മത്സരാർത്ഥികൾ (Participants)" },
+  { num: "06", en: "Stage Schedule Builder", ml: "സ്റ്റേജ് ഷെഡ്യൂൾ (Schedule)" },
+  { num: "07", en: "Judge Console", ml: "ഡിജിറ്റൽ ജഡ്ജ് കോൺസോൾ" },
+  { num: "08", en: "Results & Tabulation", ml: "ഫലപ്രഖ്യാപനവും ടാബുലേഷനും" },
+  { num: "09", en: "E-Certificate Generator", ml: "ഡിജിറ്റൽ സർട്ടിഫിക്കറ്റുകൾ" },
+  { num: "10", en: "Finance & Receipts", ml: "ധനകാര്യവും രസീതുകളും" },
+  { num: "11", en: "Volunteer Management", ml: "വോളണ്ടിയർ ഡ്യൂട്ടികൾ" },
+  { num: "12", en: "Help Desk Support", ml: "ഹെൽപ്പ് ഡെസ്ക് (Support)" },
+  { num: "13", en: "Inventory Assets", ml: "ഇൻവെന്ററി & സ്റ്റേജ് സാമഗ്രികൾ" },
+  { num: "14", en: "Accommodation Hostel", ml: "താമസം (Accommodation)" },
+  { num: "15", en: "Food Catering Coupons", ml: "ഭക്ഷണ കൂപ്പണുകൾ (Food)" },
+  { num: "16", en: "Medical First Aid", ml: "മെഡിക്കൽ & പ്രഥമശുശ്രൂഷ" },
+  { num: "17", en: "Notifications Gateway", ml: "അറിയിപ്പുകൾ (Notifications)" },
+  { num: "18", en: "Public Event Website", ml: "പൊതുജന പോർട്ടൽ (Public Site)" },
+  { num: "19", en: "Mobile App PWA", ml: "മൊബൈൽ ആപ്പ് (Mobile App)" },
+  { num: "20", en: "SaaS Subscriptions", ml: "SaaS വരിസംഖ്യ (Subscriptions)" },
+  { num: "21", en: "AI Schedule Optimizer", ml: "AI അസിസ്റ്റന്റും ഒപ്റ്റിമൈസറും" },
+  { num: "22", en: "Real-Time Analytics", ml: "തത്സമയ വിശകലനം (Analytics)" },
+  { num: "23", en: "REST API & Webhooks", ml: "REST API & ഡെവലപ്പർ ടൂളുകൾ" },
+  { num: "24", en: "Security & OWASP", ml: "സുരക്ഷ (Security & RLS)" },
+  { num: "25", en: "Database Backup", ml: "ഡാറ്റാ ബാക്കപ്പ് (Backup)" },
+  { num: "26", en: "Telemetry Monitoring", ml: "സിസ്റ്റം ഹെൽത്ത് നിരീക്ഷണം" },
+  { num: "27", en: "Localization & i18n", ml: "ഭാഷാ സഹായം (Localization)" },
+  { num: "28", en: "Documents PDF Engine", ml: "ഔദ്യോഗിക ഡോക്യുമെന്റുകൾ" },
+  { num: "29", en: "DevOps Deployments", ml: "DevOps & എഡ്ജ് നെറ്റ്വർക്ക്" },
+  { num: "30", en: "Troubleshooting Guide", ml: "തടസ്സപരിഹാരം (Troubleshooting)" },
+  { num: "31", en: "Frequently Asked Questions", ml: "ചോദ്യോത്തരങ്ങൾ (FAQ)" },
+  { num: "32", en: "Administrator Manual", ml: "അഡ്മിനിസ്ട്രേറ്റർ ഗൈഡ്" },
+  { num: "33", en: "Judge Tablet Manual", ml: "ജഡ്ജസ് ഗൈഡ് (Judge Manual)" },
+  { num: "34", en: "Volunteer Field Guide", ml: "വോളണ്ടിയർ ഗൈഡ്" },
+  { num: "35", en: "Finance Treasurer Manual", ml: "ട്രഷറർ & ഫിനാൻസ് ഗൈഡ്" },
+  { num: "36", en: "Reception Desk Guide", ml: "ഫ്രണ്ട് ഡെസ്ക് രജിസ്ട്രേഷൻ ഗൈഡ്" },
+  { num: "37", en: "Medical Protocol", ml: "മെഡിക്കൽ ടീം പ്രോട്ടോക്കോൾ" },
+  { num: "38", en: "Inventory Storekeeper Manual", ml: "സ്റ്റോർകീപ്പർ ഗൈഡ്" },
+  { num: "39", en: "Video Tutorial Scripts", ml: "വീഡിയോ ട്യൂട്ടോറിയൽ സ്ക്രിപ്റ്റുകൾ" },
+  { num: "40", en: "Help Center Portal", ml: "ഹെൽപ്പ് സെന്റർ പോർട്ടൽ" },
 ]
 
 export default function FestProProductHelpCenter() {
   const [lang, setLang] = useState<"en" | "ml">("en")
-  const [activeItem, setActiveItem] = useState("getting-started")
+  const [selectedModuleNum, setSelectedModuleNum] = useState<string>("01")
   const [searchQuery, setSearchQuery] = useState("")
 
   // AI Copilot state
@@ -66,6 +299,7 @@ export default function FestProProductHelpCenter() {
   const [aiThinking, setAiThinking] = useState(false)
 
   const isMl = lang === "ml"
+  const currentDoc = getModuleData(selectedModuleNum, isMl)
 
   const handleAiAsk = (e: React.FormEvent) => {
     e.preventDefault()
@@ -83,6 +317,11 @@ export default function FestProProductHelpCenter() {
       )
     }, 800)
   }
+
+  const filteredList = SYSTEM_MODULES_LIST.filter((m) => {
+    const label = isMl ? m.ml : m.en
+    return label.toLowerCase().includes(searchQuery.toLowerCase()) || m.num.includes(searchQuery)
+  })
 
   return (
     <div className={`min-h-screen bg-slate-50 text-slate-900 flex flex-col ${isMl ? "font-anek" : "font-sans"}`}>
@@ -140,53 +379,40 @@ export default function FestProProductHelpCenter() {
         </div>
       </header>
 
-      {/* Main Content Layout: Sidebar + Main Viewer */}
+      {/* Main Content Layout: Sidebar + Main Reader */}
       <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col md:flex-row p-4 sm:p-6 gap-6">
-        {/* Left Navigation Tree */}
-        <aside className="w-full md:w-72 shrink-0 space-y-6">
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs space-y-4">
-            <h2 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider px-2">
-              {isMl ? "ഹെൽപ്പ് സെന്റർ നാവിഗേഷൻ" : "Help Center Navigation"}
+        {/* Left Navigation Tree: All 40 Modules */}
+        <aside className="w-full md:w-80 shrink-0 space-y-6">
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs space-y-3 max-h-[calc(100vh-140px)] overflow-y-auto">
+            <h2 className={`text-xs font-extrabold text-slate-400 uppercase tracking-wider px-2 ${isMl ? "font-anek" : "font-sans"}`}>
+              {isMl ? "📚 40 സിസ്റ്റം മോഡ്യൂളുകൾ" : "📚 All 40 System Modules"}
             </h2>
 
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <h3 className="text-[11px] font-bold text-indigo-600 px-2 py-1 bg-indigo-50/60 rounded-md">
-                  {isMl ? "🚀 തുടക്കക്കാർക്കുള്ള ഗൈഡ്" : "🚀 Onboarding & Quick Start"}
-                </h3>
-                <div className="space-y-0.5 pt-1">
+            <div className="space-y-1">
+              {filteredList.map((m) => {
+                const isSelected = selectedModuleNum === m.num
+                return (
                   <button
-                    onClick={() => setActiveItem("getting-started")}
-                    className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition-all ${
-                      activeItem === "getting-started" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-700 hover:bg-slate-100"
+                    key={m.num}
+                    onClick={() => setSelectedModuleNum(m.num)}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                      isSelected
+                        ? "bg-indigo-600 text-white shadow-sm font-bold"
+                        : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
                     }`}
                   >
-                    <div className="flex items-center gap-2.5">
-                      <Zap className="h-4 w-4 shrink-0" />
-                      <span>{isMl ? "15-മിനിറ്റ് ക്വിക്ക് സ്റ്റാർട്ട്" : "15-Minute Trial Guide"}</span>
+                    <div className="flex items-center gap-2.5 truncate">
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${
+                        isSelected ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
+                      }`}>
+                        {m.num}
+                      </span>
+                      <span className={`truncate ${isMl ? "font-anek" : "font-sans"}`}>{isMl ? m.ml : m.en}</span>
                     </div>
+                    {isSelected && <ChevronRight className="h-3.5 w-3.5 shrink-0 text-white" />}
                   </button>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <h3 className="text-[11px] font-bold text-indigo-600 px-2 py-1 bg-indigo-50/60 rounded-md">
-                  {isMl ? "📚 40 സമ്പൂർണ്ണ സിസ്റ്റം മോഡ്യൂളുകൾ" : "📚 Core Operations Manuals (40 Modules)"}
-                </h3>
-                <div className="space-y-0.5 pt-1">
-                  <button
-                    onClick={() => setActiveItem("all-modules")}
-                    className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition-all ${
-                      activeItem === "all-modules" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-700 hover:bg-slate-100"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Layers className="h-4 w-4 shrink-0" />
-                      <span>{isMl ? "40 മോഡ്യൂളുകളുടെ ലിസ്റ്റ്" : "All 40 Modules List"}</span>
-                    </div>
-                  </button>
-                </div>
-              </div>
+                )
+              })}
             </div>
           </div>
 
@@ -205,8 +431,8 @@ export default function FestProProductHelpCenter() {
           </div>
         </aside>
 
-        {/* Right Main Viewer */}
-        <main className="flex-1 space-y-6">
+        {/* Right Main Reader: Full Detailed Manual Page */}
+        <main className="flex-1 space-y-6 min-w-0">
           {/* AI Copilot Card */}
           <div className="bg-gradient-to-r from-indigo-900 via-indigo-800 to-purple-900 rounded-2xl p-5 sm:p-6 text-white shadow-lg space-y-4">
             <div className="flex items-center gap-2">
@@ -239,83 +465,130 @@ export default function FestProProductHelpCenter() {
             )}
           </div>
 
-          {/* Active Section Content Container */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-2xs space-y-6">
-            {activeItem === "getting-started" && (
-              <div className="space-y-6 animate-in fade-in duration-150">
-                <div className="border-b border-slate-100 pb-4">
-                  <span className="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 font-bold text-[10px] uppercase">
-                    {isMl ? "തുടക്കക്കാർക്കുള്ള ഗൈഡ്" : "Onboarding Module"}
-                  </span>
-                  <h2 className={`text-2xl text-slate-900 mt-2 ${isMl ? "font-anek font-bold" : "font-heading font-extrabold"}`}>
-                    {isMl ? "സ്വയം പഠിച്ച് 15 മിനിറ്റിൽ കലോത്സവം തുടങ്ങാം!" : "Welcome & 15-Minute Trial Guide"}
-                  </h2>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {isMl ? "മുൻ പരിചയമില്ലാതെ തന്നെ FestPro വഴി നിങ്ങളുടെ ആദ്യ ഇവന്റ് സുഗമമായി നടത്താം." : "Complete beginner onboarding manual for running your first event without chaos."}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                    <span className="px-2 py-0.5 rounded-md bg-indigo-600 text-white font-bold text-[10px]">Min 0-3</span>
-                    <h4 className={`text-slate-900 text-sm ${isMl ? "font-anek font-bold" : "font-heading font-bold"}`}>{isMl ? "1. ഹൗസുകൾ ചേർക്കുക" : "1. Add Teams / Houses"}</h4>
-                    <p className="text-xs text-slate-600">
-                      {isMl ? "/teams പേജിൽ പോയി റെഡ് ഹൗസ്, ബ്ലൂ ഹൗസ് എന്നിവ ചേർക്കുക." : "Navigate to /teams and add Red House (#EF4444) and Blue House (#3B82F6)."}
-                    </p>
-                  </div>
-
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                    <span className="px-2 py-0.5 rounded-md bg-indigo-600 text-white font-bold text-[10px]">Min 3-6</span>
-                    <h4 className={`text-slate-900 text-sm ${isMl ? "font-anek font-bold" : "font-heading font-bold"}`}>{isMl ? "2. മത്സരം ഉണ്ടാക്കുക" : "2. Register Program"}</h4>
-                    <p className="text-xs text-slate-600">
-                      {isMl ? "/competitions പേജിൽ പോയി 'ലളിതഗാനം (സീനിയർ)' നിർമ്മിക്കുക." : "Navigate to /competitions and add Light Music (Solo) under Senior Male."}
-                    </p>
-                  </div>
-
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                    <span className="px-2 py-0.5 rounded-md bg-indigo-600 text-white font-bold text-[10px]">Min 6-9</span>
-                    <h4 className={`text-slate-900 text-sm ${isMl ? "font-anek font-bold" : "font-heading font-bold"}`}>{isMl ? "3. മത്സരാർത്ഥികളും കാർഡും" : "3. Enroll Candidates & Print Badges"}</h4>
-                    <p className="text-xs text-slate-600">
-                      {isMl ? "/participants വഴി മത്സരാർത്ഥികളെ ചേർത്ത് QR ഐഡി ബാഡ്ജ് പ്രിന്റ് ചെയ്യാം." : "Navigate to /participants and import candidate list via CSV or manual entry."}
-                    </p>
-                  </div>
-
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                    <span className="px-2 py-0.5 rounded-md bg-indigo-600 text-white font-bold text-[10px]">Min 9-15</span>
-                    <h4 className={`text-slate-900 text-sm ${isMl ? "font-anek font-bold" : "font-heading font-bold"}`}>{isMl ? "4. ജഡ്ജിംഗ് കോൺസോൾ" : "4. Score & Publish Results"}</h4>
-                    <p className="text-xs text-slate-600">
-                      {isMl ? "/results/grades പേജ് വഴി മാർക്കിട്ട് റിസൾട്ട് പ്രസിദ്ധീകരിക്കൂ." : "Enter marks on Judge Console /results/grades and click Approve & Publish."}
-                    </p>
-                  </div>
-                </div>
+          {/* Full Documentation Manual Container */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-10 shadow-2xs space-y-8 animate-in fade-in duration-200">
+            {/* Document Header */}
+            <div className="border-b border-slate-100 pb-6 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 font-mono font-bold text-xs border border-indigo-100">
+                  Module {currentDoc.num} — {currentDoc.cat}
+                </span>
+                <span className="text-xs font-semibold text-slate-400">Official FestPro Enterprise Manual v2.4.0</span>
               </div>
-            )}
+              <h1 className={`text-2xl sm:text-3xl text-slate-900 ${isMl ? "font-anek font-bold" : "font-heading font-extrabold"}`}>
+                {currentDoc.title}
+              </h1>
+              <p className="text-sm text-slate-600 leading-relaxed">{currentDoc.overview}</p>
+            </div>
 
-            {/* 40 Modules List Display */}
-            {activeItem === "all-modules" && (
-              <div className="space-y-6 animate-in fade-in duration-150">
-                <div className="border-b border-slate-100 pb-4">
-                  <h2 className={`text-2xl text-slate-900 ${isMl ? "font-anek font-bold" : "font-heading font-extrabold"}`}>
-                    {isMl ? "40 സമ്പൂർണ്ണ സിസ്റ്റം മോഡ്യൂളുകൾ" : "FestPro Master Systems Documentation (40 Modules)"}
-                  </h2>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {isMl ? "എല്ലാ സിസ്റ്റം മോഡ്യൂളുകളുടെയും മലയാളത്തിലുള്ള ഗൈഡ് താഴെ കാണാം." : "Explore all system modules covering registration, stage scheduling, judge consoles, and APIs."}
-                  </p>
-                </div>
+            {/* Step-by-Step Procedure */}
+            <div className="space-y-4">
+              <h3 className={`text-lg text-slate-900 flex items-center gap-2 ${isMl ? "font-anek font-bold" : "font-heading font-bold"}`}>
+                <CheckCircle2 className="h-5 w-5 text-indigo-600" />
+                {isMl ? "പ്രവർത്തന ഘട്ടങ്ങൾ (Step-by-Step Execution Guide)" : "Step-by-Step Execution Guide"}
+              </h3>
+              <div className="space-y-2.5">
+                {currentDoc.steps.map((step, idx) => (
+                  <div key={idx} className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 text-xs sm:text-sm text-slate-800 leading-relaxed">
+                    {step}
+                  </div>
+                ))}
+              </div>
+            </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {SYSTEM_MODULES_40.map((m) => (
-                    <div key={m.num} className="p-4 rounded-xl bg-slate-50 border border-slate-200/90 space-y-1 hover:border-indigo-400 transition-all">
-                      <div className="flex justify-between items-center">
-                        <span className="px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 font-mono font-bold text-[10px]">Module {m.num}</span>
-                      </div>
-                      <h4 className={`text-slate-900 text-sm mt-1 ${isMl ? "font-anek font-bold" : "font-heading font-bold"}`}>{isMl ? m.ml : (m.en || m.name)}</h4>
-                      <p className="text-xs text-slate-600">{isMl ? m.descMl : m.descEn}</p>
+            {/* Workflow Diagram */}
+            <div className="space-y-3">
+              <h3 className={`text-lg text-slate-900 flex items-center gap-2 ${isMl ? "font-anek font-bold" : "font-heading font-bold"}`}>
+                <Layers className="h-5 w-5 text-indigo-600" />
+                {isMl ? "വർക്ക്ഫ്ലോ ഘടന (System Workflow Transition)" : "System Workflow Transition"}
+              </h3>
+              <div className="p-4 rounded-xl bg-indigo-900 text-indigo-100 font-mono text-xs overflow-x-auto border border-indigo-800 shadow-inner">
+                {currentDoc.workflow}
+              </div>
+            </div>
+
+            {/* Field Explanation Table */}
+            <div className="space-y-3">
+              <h3 className={`text-lg text-slate-900 flex items-center gap-2 ${isMl ? "font-anek font-bold" : "font-heading font-bold"}`}>
+                <FileText className="h-5 w-5 text-indigo-600" />
+                {isMl ? "ഫീൽഡുകളും വേരിയബിളുകളും (Field Reference Table)" : "Field & Parameter Reference Table"}
+              </h3>
+              <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-100 text-slate-700 font-bold">
+                    <tr>
+                      <th className="p-3">Field Name</th>
+                      <th className="p-3">Data Type</th>
+                      <th className="p-3">Required?</th>
+                      <th className="p-3">Description & Usage</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {currentDoc.fields.map((f, i) => (
+                      <tr key={i} className="hover:bg-slate-50">
+                        <td className="p-3 font-bold text-slate-900 font-mono">{f.name}</td>
+                        <td className="p-3 font-mono text-indigo-600">{f.type}</td>
+                        <td className="p-3 font-semibold">{f.req}</td>
+                        <td className="p-3 text-slate-600">{isMl ? f.descMl : f.descEn}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Tips & Warnings */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 space-y-1">
+                <h4 className="font-bold text-xs uppercase flex items-center gap-1.5 text-emerald-800">
+                  <Sparkles className="h-4 w-4" /> {isMl ? "ഉപദേശങ്ങളും നിർദ്ദേശങ്ങളും (Tips)" : "Best Practice Tip"}
+                </h4>
+                <p className="text-xs leading-relaxed">{currentDoc.tips}</p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 space-y-1">
+                <h4 className="font-bold text-xs uppercase flex items-center gap-1.5 text-amber-800">
+                  <AlertTriangle className="h-4 w-4" /> {isMl ? "മുൻകരുതലുകൾ (Warning)" : "Operational Warning"}
+                </h4>
+                <p className="text-xs leading-relaxed">{currentDoc.warning}</p>
+              </div>
+            </div>
+
+            {/* FAQ Section */}
+            <div className="space-y-3">
+              <h3 className={`text-lg text-slate-900 flex items-center gap-2 ${isMl ? "font-anek font-bold" : "font-heading font-bold"}`}>
+                <HelpCircle className="h-5 w-5 text-indigo-600" />
+                {isMl ? "സാധാരണ ചോദ്യോത്തരങ്ങൾ (Frequently Asked Questions)" : "Frequently Asked Questions (FAQ)"}
+              </h3>
+              <div className="space-y-3">
+                {(currentDoc.faq || []).map((item, idx) => (
+                  <div key={idx} className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+                    <h4 className="font-bold text-xs text-slate-900">Q: {item.q}</h4>
+                    <p className="text-xs text-slate-600 leading-relaxed">A: {item.a}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Troubleshooting Matrix */}
+            <div className="space-y-3">
+              <h3 className={`text-lg text-slate-900 flex items-center gap-2 ${isMl ? "font-anek font-bold" : "font-heading font-bold"}`}>
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+                {isMl ? "തടസ്സപരിഹാരങ്ങൾ (Troubleshooting Matrix)" : "Troubleshooting Matrix"}
+              </h3>
+              <div className="space-y-2">
+                {(currentDoc.troubleshoot || []).map((t, idx) => (
+                  <div key={idx} className="p-3.5 rounded-xl bg-red-50/60 border border-red-200/80 text-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <div>
+                      <span className="font-bold text-red-900">Issue: {t.issue}</span>
                     </div>
-                  ))}
-                </div>
+                    <div className="text-slate-700 bg-white px-3 py-1 rounded-lg border border-red-200 font-semibold">
+                      Fix: {t.fix}
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
           </div>
         </main>
       </div>
