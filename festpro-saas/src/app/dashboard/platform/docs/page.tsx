@@ -28,6 +28,7 @@ export default function EnterpriseDocsPage() {
           {[
             { id: "getting-started", label: "🚀 Getting Started (15-Min Guide)" },
             { id: "org-guide", label: "🏢 Organization Admin Guide" },
+            { id: "festival-guide", label: "🎪 Festival Management Guide" },
             { id: "overview", label: "System Overview" },
             { id: "roles", label: "RBAC & Permissions" },
             { id: "setup", label: "Organization & Festival Setup" },
