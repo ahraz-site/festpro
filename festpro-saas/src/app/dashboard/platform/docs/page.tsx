@@ -27,6 +27,7 @@ export default function EnterpriseDocsPage() {
         <div className="flex flex-wrap gap-2 pt-4 border-t border-white/10">
           {[
             { id: "getting-started", label: "🚀 Getting Started (15-Min Guide)" },
+            { id: "org-guide", label: "🏢 Organization Admin Guide" },
             { id: "overview", label: "System Overview" },
             { id: "roles", label: "RBAC & Permissions" },
             { id: "setup", label: "Organization & Festival Setup" },
