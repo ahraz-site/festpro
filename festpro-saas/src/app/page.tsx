@@ -54,12 +54,17 @@ export default function LightModeFestProLandingPage() {
   const isMl = lang === "ml"
 
   return (
-    <div className={`min-h-screen bg-[#F8FAFC] text-slate-900 selection:bg-indigo-600 selection:text-white ${isMl ? "font-anek" : "font-sans"}`}>
+    <div className={`min-h-screen bg-[#F8FAFC] text-slate-900 selection:bg-indigo-600 selection:text-white overflow-x-hidden max-w-full ${isMl ? "font-anek" : "font-sans"}`}>
       {/* Top Header */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-slate-200/80 shadow-2xs">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex h-20 items-center justify-between gap-4">
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-slate-200/80 shadow-2xs max-w-full overflow-hidden">
+        <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 flex h-16 sm:h-20 items-center justify-between gap-2 sm:gap-4 max-w-full">
           <Link href="/" className="flex items-center shrink-0">
-            <AhrazFestProLogo height={32} />
+            <div className="hidden sm:block">
+              <AhrazFestProLogo height={32} />
+            </div>
+            <div className="sm:hidden">
+              <AhrazFestProLogo height={24} />
+            </div>
           </Link>
 
           {/* Navigation Links */}
@@ -72,12 +77,12 @@ export default function LightModeFestProLandingPage() {
           </nav>
 
           {/* Action & Language Toggle */}
-          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Language Switcher */}
-            <div className="flex items-center bg-slate-100 p-1 rounded-full border border-slate-200">
+            <div className="flex items-center bg-slate-100 p-0.5 sm:p-1 rounded-full border border-slate-200">
               <button
                 onClick={() => setLang("en")}
-                className={`px-3 py-1 text-xs font-bold rounded-full transition-all ${
+                className={`px-2 py-0.5 sm:px-3 sm:py-1 text-[11px] sm:text-xs font-bold rounded-full transition-all ${
                   lang === "en" ? "bg-indigo-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
                 }`}
               >
@@ -85,7 +90,7 @@ export default function LightModeFestProLandingPage() {
               </button>
               <button
                 onClick={() => setLang("ml")}
-                className={`px-3 py-1 text-xs font-bold rounded-full font-anek transition-all ${
+                className={`px-2 py-0.5 sm:px-3 sm:py-1 text-[11px] sm:text-xs font-bold rounded-full font-anek transition-all ${
                   lang === "ml" ? "bg-indigo-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
                 }`}
               >
@@ -95,26 +100,26 @@ export default function LightModeFestProLandingPage() {
 
             <Link
               href="/login"
-              className="hidden sm:inline-flex items-center text-sm font-semibold text-slate-700 hover:text-indigo-600 px-3 py-2 transition-colors"
+              className="hidden md:inline-flex items-center text-sm font-semibold text-slate-700 hover:text-indigo-600 px-2 py-1.5 transition-colors"
             >
               Sign In
             </Link>
 
             <Link
               href="/signup"
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 px-5 sm:px-6 py-2.5 text-xs sm:text-sm font-bold text-white hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md shadow-indigo-500/20 active:scale-95 group whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 px-3.5 sm:px-6 py-1.5 sm:py-2.5 text-xs sm:text-sm font-bold text-white hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md shadow-indigo-500/20 active:scale-95 group whitespace-nowrap"
             >
-              <span>{isMl ? "സൗജന്യമായി ആരംഭിക്കൂ" : "Create Fest Free"}</span>
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              <span>{isMl ? "ആരംഭിക്കൂ" : "Create Fest"}</span>
+              <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </div>
         </div>
       </header>
 
       {/* Hero Section - Clean Light Mode */}
-      <section className="relative pt-12 pb-20 lg:pt-16 lg:pb-28 overflow-hidden bg-gradient-to-b from-white via-[#F8FAFC] to-[#F1F5F9]">
+      <section className="relative pt-8 pb-16 lg:pt-16 lg:pb-28 overflow-hidden bg-gradient-to-b from-white via-[#F8FAFC] to-[#F1F5F9] max-w-full">
         {/* Soft Background Glows */}
-        <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-gradient-to-tr from-indigo-100 via-purple-100 to-pink-100 rounded-full blur-[140px] pointer-events-none opacity-70" />
+        <div className="absolute top-10 left-1/2 -translate-x-1/2 w-full max-w-[700px] h-[300px] sm:h-[500px] bg-gradient-to-tr from-indigo-100 via-purple-100 to-pink-100 rounded-full blur-[100px] sm:blur-[140px] pointer-events-none opacity-70" />
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-6 max-w-4xl mx-auto">
