@@ -132,10 +132,10 @@ export default function FestivalTeamsPage() {
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 flex items-center gap-3">
             <Users className="h-8 w-8 text-indigo-600" />
-            <span>Teams & House Management</span>
+            <span>Group / House / Unit Management</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            Create, manage house divisions, assign managers, and track live team scores.
+            Create, manage contingent units (Groups, Houses, Units), assign managers, and track live championship point tallies.
           </p>
         </div>
 
