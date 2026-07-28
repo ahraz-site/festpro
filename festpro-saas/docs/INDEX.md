@@ -1,7 +1,7 @@
 # FestPro Enterprise Platform — Official Documentation
 
 **Product:** FestPro Enterprise SaaS 2025  
-**Document Version:** 1.0  
+**Document Version:** 2.0  
 **Classification:** Internal / Customer-Facing  
 **Audience:** System Administrators, Organization Owners, Festival Directors, End Users
 
@@ -20,7 +20,7 @@
 | 7 | `07_JUDGING_SCORING.md` | Judging, scoring methodologies, rubrics |
 | 8 | `08_SCHEDULING.md` | Venue management, scheduling, conflicts |
 | 9-10 | `09_10_RESULTS_CERTIFICATES.md` | Results engine + Certificate templates |
-| 11 | `11_FINANCE.md` | Fees, payments, refunds, reports |
+| 11 | `11_FINANCE.md` | Fees, payments, refunds, reports, budget |
 | 12 | `12_VOLUNTEERS.md` | Volunteer management, shifts, attendance |
 | 13 | `13_ACCOMMODATION.md` | Room allocation, check-in/out |
 | 14 | `14_MEDICAL.md` | Medical incidents, first-aid tracking |
@@ -32,6 +32,23 @@
 | 20 | `20_API.md` | Server Actions, route handlers, integrations |
 | 21 | `21_DATABASE.md` | Schema, tables, relationships, indexes |
 | 22-23 | `22_23_SECURITY_ADMIN.md` | Security, RLS, encryption, audit, administration |
+| 24 | `24_CMS.md` | Content management, pages, menus, blocks |
+| 25 | `25_INTEGRATION_HUB.md` | Third-party integrations, webhooks, API keys |
+| 26 | `26_SPORTS_MANAGEMENT.md` | Sports events, brackets, match scoring |
+| 27 | `27_SCIENCE_FAIR.md` | Science fair, project submissions, rubric evaluation |
+| 28 | `28_ONLINE_COMPETITION.md` | Online competition, digital submissions, remote judging |
+| 29 | `29_LIVE_STREAMING.md` | Live streaming, RTMP, platform integration |
+| 30 | `30_VOTING_POLLING.md` | Audience voting, live polls, surveys |
+| 31 | `31_FACE_RECOGNITION.md` | Face recognition, biometric verification |
+| 32 | `32_INVENTORY_MANAGEMENT.md` | Inventory, stock tracking, reorder alerts |
+| 33 | `33_TRANSPORTATION.md` | Transport, routes, vehicle/driver management |
+| 34 | `34_FOOD_CATERING.md` | Food, catering, meal plans, dietary tracking |
+| 35 | `35_HELP_DESK.md` | Help desk, ticketing, SLA management |
+| 36 | `36_SPONSORSHIP.md` | Sponsorship, exhibitor booths, contracts |
+| 37 | `37_DIGITAL_SIGNAGE.md` | Digital signage, display management |
+| 38 | `38_VISITOR_PASS.md` | Visitor pass, badge system, QR entry |
+| 39 | `39_ASSET_MANAGEMENT.md` | Asset registry, maintenance, depreciation |
+| 40 | `40_STAFF_PAYROLL.md` | Staff payroll, timesheets, payslips |
 
 ---
 
@@ -66,15 +83,22 @@ Data flows through Server Actions that enforce authentication, authorization, an
 
 | Role | Relevant Sections |
 |------|-------------------|
-| Platform Administrator | 1, 2, 3, 22, 23 |
-| Organization Owner | 2, 3, 4, 5, 6, 11, 22 |
-| Festival Director | 4, 5, 6, 7, 8, 9, 10 |
-| Judge | 7 |
-| Finance Officer | 11 |
-| Volunteer Coordinator | 12 |
-| Reception Staff | 6 |
-| Participant | 6, 8, 9, 10 |
-| Developer | 20, 21, 22 |
+| Platform Administrator | 1, 2, 3, 22, 23, 39 |
+| Organization Owner | 2, 3, 4, 5, 6, 11, 22, 24, 25, 36 |
+| Festival Director | 4, 5, 6, 7, 8, 9, 10, 11, 15, 26, 27, 30 |
+| Sports Coordinator | 26 |
+| Science Fair Coordinator | 27 |
+| Media Team | 16, 29, 37 |
+| Judge | 7, 28 |
+| Finance Officer | 11, 40 |
+| Volunteer Coordinator | 12, 38 |
+| Catering Team | 34 |
+| Transport Coordinator | 33 |
+| Storekeeper | 32, 39 |
+| Reception Staff | 6, 38 |
+| Support Staff | 35 |
+| Participant | 6, 8, 9, 10, 18, 28, 31 |
+| Developer | 20, 21, 22, 25 |
 
 ---
 
