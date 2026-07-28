@@ -19,8 +19,7 @@
 | 6 | `06_REGISTRATION.md` | Participant registration, check-in, bulk import |
 | 7 | `07_JUDGING_SCORING.md` | Judging, scoring methodologies, rubrics |
 | 8 | `08_SCHEDULING.md` | Venue management, scheduling, conflicts |
-| 9 | `09_RESULTS.md` | Results engine, calculation, publication |
-| 10 | `10_CERTIFICATES.md` | Certificate templates, generation, verification |
+| 9-10 | `09_10_RESULTS_CERTIFICATES.md` | Results engine + Certificate templates |
 | 11 | `11_FINANCE.md` | Fees, payments, refunds, reports |
 | 12 | `12_VOLUNTEERS.md` | Volunteer management, shifts, attendance |
 | 13 | `13_ACCOMMODATION.md` | Room allocation, check-in/out |
@@ -32,8 +31,7 @@
 | 19 | `19_AI_FEATURES.md` | AI scoring, optimization, automation |
 | 20 | `20_API.md` | Server Actions, route handlers, integrations |
 | 21 | `21_DATABASE.md` | Schema, tables, relationships, indexes |
-| 22 | `22_SECURITY.md` | RLS, encryption, audit, compliance |
-| 23 | `23_ADMINISTRATION.md` | System administration, monitoring, scaling |
+| 22-23 | `22_23_SECURITY_ADMIN.md` | Security, RLS, encryption, audit, administration |
 
 ---
 
