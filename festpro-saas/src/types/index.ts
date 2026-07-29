@@ -75,3 +75,6 @@ export interface OrganizationMember {
 }
 
 export type AuthPage = "login" | "register" | "forgot-password" | "verify"
+
+export * from './crm'
+export * from './licensing'

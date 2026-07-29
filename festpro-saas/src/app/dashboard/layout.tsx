@@ -132,6 +132,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const orgNavItems = currentOrgId ? [
     { label: "Overview", href: `/dashboard/organization/${currentOrgId}`, icon: Building2 },
     { label: "Members", href: `/dashboard/organization/${currentOrgId}/members`, icon: Users },
+    { label: "Subscription", href: `/dashboard/subscription`, icon: CreditCard },
     { label: "Settings", href: `/dashboard/organization/${currentOrgId}/settings`, icon: Settings },
     { label: "Activity", href: `/dashboard/organization/${currentOrgId}/activity`, icon: Activity },
   ] : []
@@ -401,6 +402,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
           {[
             { label: "Dashboard", href: "/dashboard/platform", icon: LayoutDashboard },
+            { label: "Sales & CRM", href: "/dashboard/sales", icon: Building2 },
+            { label: "License Management", href: "/dashboard/licensing", icon: Key },
             { label: "Tenants", href: "/dashboard/platform/tenants", icon: Building2 },
             { label: "Plans", href: "/dashboard/platform/plans", icon: CreditCard },
             { label: "Billing", href: "/dashboard/platform/billing", icon: DollarSign },
