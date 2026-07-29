@@ -128,7 +128,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const handleSignOut = useCallback(async () => { await signOut() }, [])
 
   const currentOrg = organizations.find((o) => o.id === currentOrgId)
-  const isPlatformAdmin = profile?.role === "platform_owner" || profile?.role === "super_admin" || profile?.email === "ahrazfestpro@gmail.com"
+  const isPlatformAdmin = profile?.role === "platform_owner" || profile?.role === "platform_admin" || profile?.email === "ahrazfestpro@gmail.com"
 
   const orgNavItems = currentOrgId ? [
     { label: "Overview", href: `/dashboard/organization/${currentOrgId}`, icon: Building2 },
