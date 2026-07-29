@@ -291,7 +291,7 @@ export default function FestProProductHelpCenter() {
                 {isMl ? "പ്രവർത്തന ഘട്ടങ്ങൾ (Step-by-Step Execution Guide)" : "Step-by-Step Execution Guide"}
               </h3>
               <div className="space-y-2.5">
-                {currentDoc.steps.map((step, idx) => (
+                {currentDoc.steps.map((step: string, idx: number) => (
                   <div key={idx} className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 text-xs sm:text-sm text-slate-800 leading-relaxed">
                     {step}
                   </div>
@@ -327,8 +327,8 @@ export default function FestProProductHelpCenter() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {currentDoc.fields.map((f, i) => (
-                      <tr key={i} className="hover:bg-slate-50">
+                    {currentDoc.fields.map((f: any, idx: number) => (
+                      <tr key={idx} className="hover:bg-slate-50">
                         <td className="p-3 font-bold text-slate-900 font-mono">{f.name}</td>
                         <td className="p-3 font-mono text-indigo-600">{f.type}</td>
                         <td className="p-3 font-semibold">{f.req}</td>
@@ -364,7 +364,7 @@ export default function FestProProductHelpCenter() {
                 {isMl ? "സാധാരണ ചോദ്യോത്തരങ്ങൾ (Frequently Asked Questions)" : "Frequently Asked Questions (FAQ)"}
               </h3>
               <div className="space-y-3">
-                {(currentDoc.faq || []).map((item, idx) => (
+                {(currentDoc.faq || []).map((item: any, idx: number) => (
                   <div key={idx} className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
                     <h4 className="font-bold text-xs text-slate-900">Q: {item.q}</h4>
                     <p className="text-xs text-slate-600 leading-relaxed">A: {item.a}</p>
@@ -380,7 +380,7 @@ export default function FestProProductHelpCenter() {
                 {isMl ? "തടസ്സപരിഹാരങ്ങൾ (Troubleshooting Matrix)" : "Troubleshooting Matrix"}
               </h3>
               <div className="space-y-2">
-                {(currentDoc.troubleshoot || []).map((t, idx) => (
+                {(currentDoc.troubleshoot || []).map((t: any, idx: number) => (
                   <div key={idx} className="p-3.5 rounded-xl bg-red-50/60 border border-red-200/80 text-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                     <div>
                       <span className="font-bold text-red-900">Issue: {t.issue}</span>
