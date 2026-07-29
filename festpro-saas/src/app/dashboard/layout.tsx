@@ -128,6 +128,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const handleSignOut = useCallback(async () => { await signOut() }, [])
 
   const currentOrg = organizations.find((o) => o.id === currentOrgId)
+  const isPlatformAdmin = profile?.role === "platform_owner" || profile?.role === "super_admin" || profile?.email === "ahrazfestpro@gmail.com"
 
   const orgNavItems = currentOrgId ? [
     { label: "Overview", href: `/dashboard/organization/${currentOrgId}`, icon: Building2 },
@@ -392,7 +393,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
 
           {/* Platform Administration Section */}
-          <div className="pt-4 pb-2">
+          {isPlatformAdmin && (
+            <>
+              <div className="pt-4 pb-2">
             <Link
               href="/dashboard/platform"
               className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600"
@@ -688,6 +691,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </Link>
             )
           })}
+            </>
+          )}
 
           {/* Organization Section */}
           {currentOrgId && (

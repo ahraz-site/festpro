@@ -116,3 +116,60 @@ export async function checkFeatureAccess(orgId: string, featureKey: string): Pro
 
   return feature?.is_enabled || false
 }
+
+export async function renewLicense(licenseId: string, additionalYears: number = 1) {
+  const supabase = await createClient()
+
+  // 1. Get current license
+  const { data: license, error: fetchError } = await supabase
+    .from('licenses')
+    .select('valid_until')
+    .eq('id', licenseId)
+    .single()
+
+  if (fetchError || !license) throw new Error('License not found')
+
+  // 2. Calculate new expiry
+  const currentExpiry = new Date(license.valid_until)
+  const newExpiry = new Date(currentExpiry.setFullYear(currentExpiry.getFullYear() + additionalYears))
+
+  // 3. Update license
+  const { data: updatedLicense, error: updateError } = await supabase
+    .from('licenses')
+    .update({ valid_until: newExpiry.toISOString(), status: 'Active' })
+    .eq('id', licenseId)
+    .select()
+    .single()
+
+  if (updateError) throw new Error(updateError.message)
+
+  // 4. Log Action
+  await supabase.from('activation_logs').insert({
+    license_id: licenseId,
+    action: 'RENEWED',
+    ip_address: '0.0.0.0'
+  })
+
+  return updatedLicense
+}
+
+export async function suspendLicense(licenseId: string) {
+  const supabase = await createClient()
+
+  const { data: updatedLicense, error } = await supabase
+    .from('licenses')
+    .update({ status: 'Suspended' })
+    .eq('id', licenseId)
+    .select()
+    .single()
+
+  if (error) throw new Error(error.message)
+
+  await supabase.from('activation_logs').insert({
+    license_id: licenseId,
+    action: 'SUSPENDED',
+    ip_address: '0.0.0.0'
+  })
+
+  return updatedLicense
+}
