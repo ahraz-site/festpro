@@ -134,6 +134,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { label: "Overview", href: `/dashboard/organization/${currentOrgId}`, icon: Building2 },
     { label: "Members", href: `/dashboard/organization/${currentOrgId}/members`, icon: Users },
     { label: "Subscription", href: `/dashboard/subscription`, icon: CreditCard },
+    { label: "Contact Sales", href: "/contact", icon: Phone },
     { label: "Settings", href: `/dashboard/organization/${currentOrgId}/settings`, icon: Settings },
     { label: "Activity", href: `/dashboard/organization/${currentOrgId}/activity`, icon: Activity },
   ] : []

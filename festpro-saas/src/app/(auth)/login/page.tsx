@@ -97,11 +97,17 @@ export default function LoginPage() {
           </Button>
         </form>
       </CardContent>
-      <CardFooter className="justify-center">
+      <CardFooter className="justify-center flex-col gap-2">
         <p className="text-sm text-gray-500">
-          Don&apos;t have an account?{" "}
-          <Link href="/signup" className="font-medium text-indigo-600 hover:text-indigo-700">
-            Sign up
+          Need an Enterprise License?{" "}
+          <Link href="/contact" className="font-medium text-indigo-600 hover:text-indigo-700">
+            Contact Sales
+          </Link>
+        </p>
+        <p className="text-xs text-gray-400">
+          Already have a license key?{" "}
+          <Link href="/activate" className="font-medium text-indigo-500 hover:text-indigo-600">
+            Activate License
           </Link>
         </p>
       </CardFooter>

@@ -10,8 +10,9 @@ const spaceGrotesk = Space_Grotesk({ variable: "--font-space-grotesk", subsets: 
 const anekMalayalam = Anek_Malayalam({ variable: "--font-anek-malayalam", subsets: ["malayalam", "latin"] })
 
 export const metadata: Metadata = {
-  title: "FestPro SaaS - One Platform. Unlimited Festivals.",
-  description: "Enterprise festival management platform for schools, colleges, universities, and organizations.",
+  title: "FestPro - Enterprise Festival Management Software",
+  description: "The complete enterprise solution for managing festivals, competitions, and youth events. Streamline operations with real-time scoring, live displays, and advanced CRM.",
+  keywords: "enterprise festival software, school festival management, live scoring software, youth festival platform, B2B festival SaaS",
   other: { "mobile-web-app-capable": "yes" },
 }
 

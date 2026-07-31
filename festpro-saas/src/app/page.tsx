@@ -106,10 +106,10 @@ export default function LightModeFestProLandingPage() {
             </Link>
 
             <Link
-              href="/signup"
+              href="/demo"
               className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 px-3.5 sm:px-6 py-1.5 sm:py-2.5 text-xs sm:text-sm font-bold text-white hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md shadow-indigo-500/20 active:scale-95 group whitespace-nowrap"
             >
-              <span>{isMl ? "ആരംഭിക്കൂ" : "Create Fest"}</span>
+              <span>{isMl ? "ഡെമോ ബുക്ക് ചെയ്യുക" : "Book Live Demo"}</span>
               <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </div>
@@ -158,21 +158,35 @@ export default function LightModeFestProLandingPage() {
             </p>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2 flex-wrap">
               <Link
-                href="/signup"
+                href="/demo"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 px-9 py-4 text-lg font-bold text-white transition-all shadow-xl shadow-indigo-600/25 group"
               >
-                <span>{isMl ? "നിങ്ങളുടെ ഫെസ്റ്റ് തുടങ്ങൂ (സൗജന്യം)" : "Create Your Fest Free"}</span>
+                <span>{isMl ? "ഡെമോ ബുക്ക് ചെയ്യുക" : "Book Live Demo"}</span>
                 <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+              </Link>
+              
+              <Link
+                href="/contact"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-white hover:bg-slate-50 border border-slate-300 px-8 py-4 text-lg font-bold text-slate-800 transition-all shadow-2xs"
+              >
+                <span>{isMl ? "സെയിൽസ് ടീമുമായി സംസാരിക്കാം" : "Talk to Sales"}</span>
+              </Link>
+
+              <Link
+                href="/pricing"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-800 hover:bg-slate-900 px-8 py-4 text-lg font-bold text-white transition-all shadow-2xs"
+              >
+                <span>{isMl ? "വിലവിവരങ്ങൾ അറിയുക" : "Request Pricing"}</span>
               </Link>
 
               <a
                 href="#demo"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-white hover:bg-slate-50 border border-slate-300 px-8 py-4 text-lg font-bold text-slate-800 transition-all shadow-2xs"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-transparent hover:bg-slate-100 border border-slate-300 px-8 py-4 text-lg font-bold text-slate-800 transition-all"
               >
                 <Play className="h-5 w-5 text-indigo-600 fill-indigo-600" />
-                <span>{isMl ? "ലൈവ് പ്രിവ്യൂ സിമുലേറ്റർ" : "Try Interactive Demo"}</span>
+                <span>{isMl ? "പ്രൊഡക്റ്റ് ഡെമോ കാണുക" : "Watch Product Demo"}</span>
               </a>
             </div>
 
@@ -190,6 +204,21 @@ export default function LightModeFestProLandingPage() {
                 <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                 <span>{isMl ? "മൊബൈൽ അപ്ലിക്കേഷൻ റെഡി" : "Instant Mobile Access"}</span>
               </div>
+            </div>
+          </div>
+
+          {/* Trusted Enterprise Section */}
+          <div className="mt-16 mb-8 text-center max-w-4xl mx-auto border-t border-slate-200/80 pt-10">
+            <h3 className="text-sm sm:text-base font-bold text-slate-400 uppercase tracking-widest mb-6">
+              {isMl ? "പ്രമുഖ സ്ഥാപനങ്ങൾ വിശ്വസിക്കുന്ന പ്ലാറ്റ്ഫോം" : "Trusted Enterprise Festival Management Platform For"}
+            </h3>
+            <div className="flex flex-wrap justify-center gap-4">
+              {["Schools", "Colleges", "Universities", "Organizations", "NGOs", "Islamic Institutions", "Corporate Events", "Government Events", "Sports Events"].map((entity, i) => (
+                <div key={i} className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl shadow-xs border border-slate-200 text-slate-600 font-semibold text-sm">
+                  <Building2 className="h-4 w-4 text-indigo-500" />
+                  <span>{entity}</span>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -555,21 +584,28 @@ export default function LightModeFestProLandingPage() {
               <h2 className="text-3xl sm:text-5xl font-extrabold text-white leading-tight">
                 {isMl
                   ? "നിങ്ങളുടെ അടുത്ത കലോത്സവം FestPro വഴി സ്മാർട്ടാക്കൂ!"
-                  : "Start Running Your Fest Without Chaos Today."}
+                  : "Discover the FestPro Enterprise Difference."}
               </h2>
 
               <p className="text-indigo-100 text-base sm:text-lg">
                 {isMl
-                  ? "നിമിഷങ്ങൾക്കുള്ളിൽ അക്കൗണ്ട് തുടങ്ങി 20 മത്സരാർത്ഥികൾ വരെ സൗജന്യമായി പരീക്ഷിച്ചു നോക്കൂ."
-                  : "Join hundreds of schools and colleges who run stress-free fests with FestPro SaaS."}
+                  ? "ഒരു ഡെമോ ബുക്ക് ചെയ്ത് FestPro-യുടെ പ്രവർത്തനങ്ങൾ നേരിട്ട് മനസ്സിലാക്കൂ."
+                  : "Talk to our sales team to see how we can completely digitize and automate your next event."}
               </p>
 
               <div className="pt-2 flex flex-wrap gap-4">
                 <Link
-                  href="/signup"
+                  href="/contact"
                   className="inline-flex items-center gap-2 rounded-2xl bg-white px-8 py-4 text-base font-bold text-indigo-900 hover:bg-slate-100 transition-all shadow-xl"
                 >
-                  <span>{isMl ? "സൗജന്യ അക്കൗണ്ട് ഉണ്ടാക്കൂ 🚀" : "Create Free Fest Account 🚀"}</span>
+                  <span>{isMl ? "സെയിൽസ് ടീമുമായി സംസാരിക്കാം" : "Contact Sales"}</span>
+                  <ArrowRight className="h-5 w-5" />
+                </Link>
+                <Link
+                  href="/demo"
+                  className="inline-flex items-center gap-2 rounded-2xl bg-indigo-900 border border-indigo-700 px-8 py-4 text-base font-bold text-white hover:bg-indigo-800 transition-all shadow-xl"
+                >
+                  <span>{isMl ? "ലൈവ് ഡെമോ ബുക്ക് ചെയ്യുക" : "Book Live Demo"}</span>
                   <ArrowRight className="h-5 w-5" />
                 </Link>
               </div>
