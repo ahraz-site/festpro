@@ -94,6 +94,15 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl)
     }
 
+    const isPrefetch = request.headers.get("next-router-prefetch") === "1" || request.headers.get("purpose") === "prefetch"
+    
+    if (isPrefetch) {
+      if (authRoutes.some((route) => pathname === route || pathname.startsWith(route + "/"))) {
+        return NextResponse.redirect(new URL("/dashboard", request.url))
+      }
+      return response
+    }
+
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
