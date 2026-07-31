@@ -251,7 +251,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </button>
             )}
 
-            <Link href="/dashboard" className="flex items-center shrink-0">
+            <Link prefetch={true} href="/dashboard" className="flex items-center shrink-0">
               <AhrazFestProLogo height={28} />
             </Link>
 
@@ -275,7 +275,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <div className="absolute left-0 top-full mt-1 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1">
                       <div className="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Organizations</div>
                       {organizations.map((org) => (
-                        <Link
+                        <Link prefetch={true}
                           key={org.id}
                           href={`/dashboard/organization/${org.id}`}
                           onClick={() => setOrgDropdownOpen(false)}
@@ -289,7 +289,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </Link>
                       ))}
                       <div className="border-t border-gray-100 mt-1 pt-1">
-                        <Link
+                        <Link prefetch={true}
                           href="/dashboard/organization/create"
                           onClick={() => setOrgDropdownOpen(false)}
                           className="flex items-center gap-3 px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50"
@@ -348,7 +348,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setProfileDropdownOpen(false)} />
                   <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1">
-                    <Link
+                    <Link prefetch={true}
                       href="/profile"
                       onClick={() => setProfileDropdownOpen(false)}
                       className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
@@ -378,7 +378,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const Icon = item.icon
             const isActive = pathname === item.href
             return (
-              <Link
+              <Link prefetch={true}
                 key={item.href}
                 href={item.href}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -396,7 +396,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {isPlatformAdmin && (
             <>
               <div className="pt-4 pb-2">
-            <Link
+            <Link prefetch={true}
               href="/dashboard/platform"
               className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600"
             >
@@ -420,7 +420,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const isIndex = fullHref === "/dashboard/platform"
             const isActive = isIndex ? pathname === fullHref : (pathname === fullHref || pathname.startsWith(fullHref + "/"))
             return (
-              <Link
+              <Link prefetch={true}
                 key={item.label}
                 href={fullHref}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -436,7 +436,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Observability Section */}
           <div className="pt-4 pb-2">
-            <Link
+            <Link prefetch={true}
               href="/dashboard/platform/observability"
               className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600"
             >
@@ -457,7 +457,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const isIndex = fullHref === "/dashboard/platform/observability"
             const isActive = isIndex ? pathname === fullHref : (pathname === fullHref || pathname.startsWith(fullHref + "/"))
             return (
-              <Link
+              <Link prefetch={true}
                 key={item.label}
                 href={fullHref}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -473,7 +473,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* AI Platform Section */}
           <div className="pt-4 pb-2">
-            <Link
+            <Link prefetch={true}
               href="/dashboard/platform/ai"
               className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600"
             >
@@ -496,7 +496,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const isIndex = fullHref === "/dashboard/platform/ai"
             const isActive = isIndex ? pathname === fullHref : (pathname === fullHref || pathname.startsWith(fullHref + "/"))
             return (
-              <Link
+              <Link prefetch={true}
                 key={item.label}
                 href={fullHref}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -512,7 +512,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Localization Section */}
           <div className="pt-4 pb-2">
-            <Link
+            <Link prefetch={true}
               href="/dashboard/platform/localization"
               className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600"
             >
@@ -533,7 +533,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const isIndex = fullHref === "/dashboard/platform/localization"
             const isActive = isIndex ? pathname === fullHref : (pathname === fullHref || pathname.startsWith(fullHref + "/"))
             return (
-              <Link
+              <Link prefetch={true}
                 key={item.label}
                 href={fullHref}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -549,7 +549,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* EDMS Section */}
           <div className="pt-4 pb-2">
-            <Link
+            <Link prefetch={true}
               href="/dashboard/platform/edms"
               className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600"
             >
@@ -571,7 +571,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const isIndex = fullHref === "/dashboard/platform/edms"
             const isActive = isIndex ? pathname === fullHref : (pathname === fullHref || pathname.startsWith(fullHref + "/"))
             return (
-              <Link
+              <Link prefetch={true}
                 key={item.label}
                 href={fullHref}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -587,7 +587,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* DevOps Section */}
           <div className="pt-4 pb-2">
-            <Link
+            <Link prefetch={true}
               href="/dashboard/platform/devops"
               className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600"
             >
@@ -612,7 +612,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const isIndex = fullHref === "/dashboard/platform/devops"
             const isActive = isIndex ? pathname === fullHref : (pathname === fullHref || pathname.startsWith(fullHref + "/"))
             return (
-              <Link
+              <Link prefetch={true}
                 key={item.label}
                 href={fullHref}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -628,7 +628,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Enterprise Security Section */}
           <div className="pt-4 pb-2">
-            <Link
+            <Link prefetch={true}
               href="/dashboard/platform/security"
               className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600"
             >
@@ -647,7 +647,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const isIndex = fullHref === "/dashboard/platform/security"
             const isActive = isIndex ? pathname === fullHref : (pathname === fullHref || pathname.startsWith(fullHref + "/"))
             return (
-              <Link
+              <Link prefetch={true}
                 key={item.label}
                 href={fullHref}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -663,7 +663,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Enterprise Operations Section */}
           <div className="pt-4 pb-2">
-            <Link
+            <Link prefetch={true}
               href="/dashboard/platform/releases"
               className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600"
             >
@@ -678,7 +678,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const fullHref = item.href
             const isActive = pathname === fullHref || pathname.startsWith(fullHref + "/")
             return (
-              <Link
+              <Link prefetch={true}
                 key={item.label}
                 href={fullHref}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -706,7 +706,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 const Icon = item.icon
                 const isActive = pathname === item.href
                 return (
-                  <Link
+                  <Link prefetch={true}
                     key={item.href}
                     href={item.href}
                     className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -722,14 +722,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
               {/* Festivals sub-nav */}
               <div className="pt-4 pb-2">
-                <Link
+                <Link prefetch={true}
                   href={`/dashboard/organization/${currentOrgId}/festivals`}
                   className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600"
                 >
                   Festivals
                 </Link>
               </div>
-              <Link
+              <Link prefetch={true}
                 href={`/dashboard/organization/${currentOrgId}/festivals`}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   pathname === `/dashboard/organization/${currentOrgId}/festivals` ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
@@ -744,7 +744,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {currentFestivalId && (
                 <>
                   <div className="pt-4 pb-2">
-                    <Link
+                    <Link prefetch={true}
                       href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}`}
                       className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
                     >
@@ -766,7 +766,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
                     const isActive = item.href === "" ? pathname === fullHref : pathname === fullHref || (item.href !== "" && pathname.startsWith(fullHref))
                     return (
-                      <Link
+                      <Link prefetch={true}
                         key={item.label}
                         href={fullHref}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -784,7 +784,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   {currentCompetitionId ? (
                     <>
                       <div className="pt-4 pb-2">
-                        <Link
+                        <Link prefetch={true}
                           href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/competitions`}
                           className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
                         >
@@ -803,7 +803,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/competitions/${currentCompetitionId}${item.href}`
                         const isActive = item.href === "" ? pathname === fullHref : pathname.startsWith(fullHref)
                         return (
-                          <Link
+                          <Link prefetch={true}
                             key={item.label}
                             href={fullHref}
                             className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -818,7 +818,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       })}
                     </>
                   ) : (
-                    <Link
+                    <Link prefetch={true}
                       href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/competitions`}
                       className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                         pathname.startsWith(`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/competitions`)
@@ -833,7 +833,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                   {/* Scheduling & Live Stage sub-nav */}
                   <div className="pt-4 pb-2">
-                    <Link
+                    <Link prefetch={true}
                       href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/sessions`}
                       className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
                     >
@@ -853,7 +853,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
                     const isActive = pathname.startsWith(fullHref)
                     return (
-                      <Link
+                      <Link prefetch={true}
                         key={item.label}
                         href={fullHref}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -869,7 +869,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                   {/* Judging sub-nav */}
                   <div className="pt-4 pb-2">
-                    <Link
+                    <Link prefetch={true}
                       href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/judging`}
                       className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
                     >
@@ -885,7 +885,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
                     const isActive = pathname.startsWith(fullHref)
                     return (
-                      <Link
+                      <Link prefetch={true}
                         key={item.label}
                         href={fullHref}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -901,7 +901,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                   {/* Results sub-nav */}
                   <div className="pt-4 pb-2">
-                    <Link
+                    <Link prefetch={true}
                       href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/results`}
                       className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
                     >
@@ -922,7 +922,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
                     const isActive = pathname.startsWith(fullHref)
                     return (
-                      <Link
+                      <Link prefetch={true}
                         key={item.label}
                         href={fullHref}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -938,7 +938,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                   {/* Finance & Reports sub-nav */}
                   <div className="pt-4 pb-2">
-                    <Link
+                    <Link prefetch={true}
                       href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/finance`}
                       className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
                     >
@@ -962,7 +962,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
                     const isActive = pathname.startsWith(fullHref)
                     return (
-                      <Link
+                      <Link prefetch={true}
                         key={item.label}
                         href={fullHref}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -978,7 +978,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                   {/* Communication sub-nav */}
                   <div className="pt-4 pb-2">
-                    <Link
+                    <Link prefetch={true}
                       href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/communication`}
                       className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
                     >
@@ -997,7 +997,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
                     const isActive = pathname.startsWith(fullHref)
                     return (
-                      <Link
+                      <Link prefetch={true}
                         key={item.label}
                         href={fullHref}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -1013,7 +1013,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                   {/* Admin sub-nav */}
                   <div className="pt-4 pb-2">
-                    <Link
+                    <Link prefetch={true}
                       href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/admin`}
                       className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
                     >
@@ -1035,7 +1035,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
                     const isActive = pathname.startsWith(fullHref)
                     return (
-                      <Link
+                      <Link prefetch={true}
                         key={item.label}
                         href={fullHref}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -1051,7 +1051,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                   {/* Volunteer & Staff sub-nav */}
                   <div className="pt-4 pb-2">
-                    <Link
+                    <Link prefetch={true}
                       href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/volunteer`}
                       className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
                     >
@@ -1073,7 +1073,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
                     const isActive = pathname.startsWith(fullHref)
                     return (
-                      <Link
+                      <Link prefetch={true}
                         key={item.label}
                         href={fullHref}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -1089,7 +1089,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                   {/* ID Card & Pass Management sub-nav */}
                   <div className="pt-4 pb-2">
-                    <Link
+                    <Link prefetch={true}
                       href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/id-cards`}
                       className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
                     >
@@ -1114,7 +1114,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
                     const isActive = pathname.startsWith(fullHref)
                     return (
-                      <Link
+                      <Link prefetch={true}
                         key={item.label}
                         href={fullHref}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -1130,7 +1130,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                   {/* Sponsor, Donor & CRM sub-nav */}
                   <div className="pt-4 pb-2">
-                    <Link
+                    <Link prefetch={true}
                       href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/sponsor`}
                       className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
                     >
@@ -1151,7 +1151,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
                     const isActive = pathname.startsWith(fullHref)
                     return (
-                      <Link
+                      <Link prefetch={true}
                         key={item.label}
                         href={fullHref}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -1167,7 +1167,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                   {/* Help Desk & Reception sub-nav */}
                   <div className="pt-4 pb-2">
-                    <Link
+                    <Link prefetch={true}
                       href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/help-desk`}
                       className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
                     >
@@ -1197,7 +1197,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
                     const isActive = pathname.startsWith(fullHref)
                     return (
-                      <Link
+                      <Link prefetch={true}
                         key={item.label}
                         href={fullHref}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -1213,7 +1213,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                   {/* Inventory & Assets sub-nav */}
                   <div className="pt-4 pb-2">
-                    <Link
+                    <Link prefetch={true}
                       href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/inventory`}
                       className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
                     >
@@ -1234,7 +1234,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
                     const isActive = pathname.startsWith(fullHref)
                     return (
-                      <Link
+                      <Link prefetch={true}
                         key={item.label}
                         href={fullHref}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -1250,7 +1250,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                   {/* Food & Catering sub-nav */}
                   <div className="pt-4 pb-2">
-                    <Link
+                    <Link prefetch={true}
                       href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/food`}
                       className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
                     >
@@ -1272,7 +1272,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
                     const isActive = pathname.startsWith(fullHref)
                     return (
-                      <Link
+                      <Link prefetch={true}
                         key={item.label}
                         href={fullHref}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -1288,7 +1288,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                   {/* Accommodation & Transport sub-nav */}
                   <div className="pt-4 pb-2">
-                    <Link
+                    <Link prefetch={true}
                       href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/accommodation`}
                       className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
                     >
@@ -1310,7 +1310,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
                     const isActive = pathname.startsWith(fullHref)
                     return (
-                      <Link
+                      <Link prefetch={true}
                         key={item.label}
                         href={fullHref}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -1326,7 +1326,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                   {/* Medical Desk & Emergency sub-nav */}
                   <div className="pt-4 pb-2">
-                    <Link
+                    <Link prefetch={true}
                       href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/medical`}
                       className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
                     >
@@ -1349,7 +1349,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
                     const isActive = pathname.startsWith(fullHref)
                     return (
-                      <Link
+                      <Link prefetch={true}
                         key={item.label}
                         href={fullHref}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -1365,7 +1365,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                   {/* Mobile Platform sub-nav */}
                   <div className="pt-4 pb-2">
-                    <Link
+                    <Link prefetch={true}
                       href={`/dashboard/organization/${currentOrgId}/mobile`}
                       className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
                     >
@@ -1387,7 +1387,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     const fullHref = item.href
                     const isActive = pathname === fullHref || pathname.startsWith(fullHref + "/")
                     return (
-                      <Link
+                      <Link prefetch={true}
                         key={item.label}
                         href={fullHref}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -1403,7 +1403,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                   {/* SaaS & Subscription sub-nav */}
                   <div className="pt-4 pb-2">
-                    <Link
+                    <Link prefetch={true}
                       href={`/dashboard/organization/${currentOrgId}/saas`}
                       className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
                     >
@@ -1421,7 +1421,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     const fullHref = item.href
                     const isActive = pathname === fullHref || pathname.startsWith(fullHref + "/")
                     return (
-                      <Link
+                      <Link prefetch={true}
                         key={item.label}
                         href={fullHref}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -1437,7 +1437,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                   {/* Integrations Hub sub-nav */}
                   <div className="pt-4 pb-2">
-                    <Link
+                    <Link prefetch={true}
                       href={`/dashboard/organization/${currentOrgId}/integrations`}
                       className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
                     >
@@ -1459,7 +1459,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     const fullHref = item.href
                     const isActive = pathname === fullHref || pathname.startsWith(fullHref + "/")
                     return (
-                      <Link
+                      <Link prefetch={true}
                         key={item.label}
                         href={fullHref}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -1477,7 +1477,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   {currentParticipantId ? (
                     <>
                       <div className="pt-4 pb-2">
-                        <Link
+                        <Link prefetch={true}
                           href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/participants`}
                           className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
                         >
@@ -1495,7 +1495,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/participants${item.href}`
                         const isActive = item.href === "" ? pathname === fullHref : pathname.startsWith(fullHref)
                         return (
-                          <Link
+                          <Link prefetch={true}
                             key={item.label}
                             href={fullHref}
                             className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -1510,7 +1510,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       })}
                     </>
                   ) : (
-                    <Link
+                    <Link prefetch={true}
                       href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/participants`}
                       className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                         pathname.startsWith(`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/participants`)
@@ -1594,7 +1594,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   {filteredSearchSections.map((item) => {
                     const Icon = item.icon
                     return (
-                      <Link
+                      <Link prefetch={true}
                         key={item.href + item.title}
                         href={item.href}
                         onClick={() => {

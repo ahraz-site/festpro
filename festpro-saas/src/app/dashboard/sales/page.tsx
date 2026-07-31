@@ -8,11 +8,10 @@ import {
 import Link from 'next/link'
 
 export default function SalesDashboard() {
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     // In a real implementation, we would fetch aggregate analytics here.
-    setTimeout(() => setLoading(false), 500)
   }, [])
 
   return (
