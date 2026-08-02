@@ -9,7 +9,7 @@ import {
   Users, Trophy, Settings, LayoutGrid,
   Shield, Layers, ChevronDown, ChevronUp, ArrowRight,
   Radio, Tv, Award, FileText, QrCode, Printer, Star, Globe, Clock,
-  CheckCircle2, CheckSquare, Bookmark, BarChart3, Image as ImageIcon
+  CheckCircle2, CheckSquare, Bookmark, BarChart3, Image as ImageIcon, Dices, LayoutTemplate
 } from "lucide-react"
 
 export default function FestivalDashboardPage() {
@@ -45,7 +45,7 @@ export default function FestivalDashboardPage() {
   const completedStepsCount = [step1Done, step2Done, step3Done].filter(Boolean).length
   const progressPercent = Math.round((completedStepsCount / 3) * 100)
 
-  // 22 Tools Grid styled in FestPro brand palette
+  // Tools Grid styled in FestPro brand palette
   const tools = [
     { label: "People & access", href: `/dashboard/organization/${orgId}/members`, icon: Shield },
     { label: "Teams", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/teams`, icon: Users },
@@ -63,8 +63,10 @@ export default function FestivalDashboardPage() {
     { label: "ID card setup", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/id-cards`, icon: QrCode },
     { label: "Reports & printouts", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/documents`, icon: Printer },
     { label: "Code letters", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/results/publish`, icon: CheckSquare },
+    { label: "Subject picker", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/random-picker`, icon: Dices },
     { label: "Results", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/results/rankings`, icon: Trophy },
     { label: "Published team scores", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/results/publications`, icon: BarChart3 },
+    { label: "Page builder", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/page-builder`, icon: LayoutTemplate },
     { label: "Poster templates", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/gallery`, icon: ImageIcon },
     { label: "Settings", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/settings`, icon: Settings },
     { label: "Top candidates", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/results/rankings`, icon: Star },
