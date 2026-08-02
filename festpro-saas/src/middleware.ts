@@ -20,6 +20,7 @@ const publicRoutes = [
   "/accept-invite",
   "/api",
   "/mobile",
+  "/festivals",
   "/sw.js",
   "/manifest.json",
 ]
@@ -28,6 +29,24 @@ const authRoutes = ["/login", "/signup", "/forgot-password", "/reset-password", 
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const hostname = request.headers.get("host") || ""
+
+  // Subdomain Multitenancy: Check if host is a subdomain (e.g., festivalId.festpro.ahraz.site)
+  const mainDomains = ["festpro.ahraz.site", "ahraz.site", "localhost:3000", "127.0.0.1:3000"]
+  const currentHost = hostname.replace(/:\d+$/, "") // remove port if present
+  
+  let subdomain: string | null = null
+  if (!mainDomains.includes(hostname) && !hostname.startsWith("www.")) {
+    const parts = hostname.split(".")
+    if (parts.length > 2 || (parts.length === 2 && !hostname.includes("localhost"))) {
+      subdomain = parts[0]
+    }
+  }
+
+  // If request is coming from a custom festival subdomain (e.g. festivalId.festpro.ahraz.site)
+  if (subdomain && subdomain !== "www" && !pathname.startsWith("/api") && !pathname.startsWith("/_next")) {
+    return NextResponse.rewrite(new URL(`/festivals/${subdomain}${pathname === "/" ? "" : pathname}`, request.url))
+  }
   const code = request.nextUrl.searchParams.get("code")
   const error = request.nextUrl.searchParams.get("error")
   const errorCode = request.nextUrl.searchParams.get("error_code")
