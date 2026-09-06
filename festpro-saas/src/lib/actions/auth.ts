@@ -87,12 +87,37 @@ export async function signUp(formData: {
   last_name: string
   email: string
   password: string
+  organization_name?: string
+  license_key: string
 }) {
   try {
+    const cleanKey = String(formData.license_key || "").trim().toUpperCase()
+    if (!cleanKey) {
+      return { error: "An Access Key / License Code is required to create an account. Please contact the administrator." }
+    }
+
+    // Pre-validate License Key
+    const { getLicenses, verifyAndConsumeLicense } = await import("@/lib/actions/licensing")
+    const allLicenses = (await getLicenses()).data || []
+    const matchingLicense = allLicenses.find((l) => l.license_key.toUpperCase() === cleanKey)
+
+    if (!matchingLicense) {
+      return { error: "Invalid Access Key / License Code. Please verify the code provided by administration." }
+    }
+
+    if (matchingLicense.is_activated) {
+      return { error: "This License Key has already been activated for another organization." }
+    }
+
+    if (matchingLicense.status === "blocked") {
+      return { error: "This License Key is blocked. Please contact support." }
+    }
+
     const supabase = await createServerClient()
 
     const firstName = String(formData.first_name || "User").replace(/[^\x00-\x7F]/g, "").trim()
     const lastName = String(formData.last_name || "").replace(/[^\x00-\x7F]/g, "").trim()
+    const orgName = String(formData.organization_name || matchingLicense.client_name || `${firstName} Organization`).trim()
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: formData.email,
@@ -115,13 +140,13 @@ export async function signUp(formData: {
     }
 
     const adminClient = createAdminClient()
-    const orgSlug = `${firstName.toLowerCase().replace(/[^a-z0-9]/g, "") || "user"}-${Math.random().toString(36).substring(2, 6)}`
+    const orgSlug = `${orgName.toLowerCase().replace(/[^a-z0-9]/g, "") || "org"}-${Math.random().toString(36).substring(2, 6)}`
 
     // 1. Create Organization
     const { data: org, error: orgError } = await adminClient
       .from("organizations")
       .insert({
-        name: `${firstName} Organization`,
+        name: orgName,
         slug: orgSlug,
       })
       .select()
@@ -157,6 +182,9 @@ export async function signUp(formData: {
     if (profileError) {
       return { error: profileError.message }
     }
+
+    // 4. Activate & link License Key to this Organization
+    await verifyAndConsumeLicense(cleanKey, org.id)
 
     revalidatePath("/", "layout")
     return { success: true }

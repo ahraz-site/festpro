@@ -27,6 +27,7 @@ import {
 } from "lucide-react"
 import type { Profile } from "@/types"
 import type { ExtendedOrganization } from "@/types/organization"
+import { AccountStatusBanner } from "@/components/license/account-status-banner"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -1558,6 +1559,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
             </div>
           )}
+          {/* Account Status Banner (Hold / Block / Payment Due Alerts) */}
+          <AccountStatusBanner organizationId={currentOrgId} />
           {children}
         </div>
       </main>

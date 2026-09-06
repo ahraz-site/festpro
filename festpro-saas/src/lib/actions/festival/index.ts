@@ -77,6 +77,34 @@ export async function createFestival(orgId: string, formData: FestivalFormData) 
   if (!user) return { error: "Not authenticated" }
 
   const admin = createAdminClient()
+
+  // Check License Status (Hold / Block) and 1-Festival Limit
+  const { getOrganizationLicense } = await import("@/lib/actions/licensing")
+  const license = await getOrganizationLicense(orgId)
+
+  if (license) {
+    if (license.status === "on_hold") {
+      return {
+        error: `Your account is temporarily on hold (${license.hold_reason || "pending balance payment"}). Please contact the administrator.`,
+      }
+    }
+    if (license.status === "blocked") {
+      return { error: "Your account is currently blocked. Please contact the administrator." }
+    }
+  }
+
+  const { count } = await admin
+    .from("festivals")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", orgId)
+
+  const maxAllowed = license?.max_festivals || 1
+  if (count !== null && count >= maxAllowed) {
+    return {
+      error: `Your license plan allows only ${maxAllowed} festival. You have already created a festival. Contact admin for additional festivals.`,
+    }
+  }
+
   const slug = formData.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
 
   const { data, error } = await admin.from("festivals").insert({

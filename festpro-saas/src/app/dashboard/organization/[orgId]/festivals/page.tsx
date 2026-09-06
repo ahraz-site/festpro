@@ -68,12 +68,19 @@ export default function FestivalsListPage() {
           <h1 className="text-2xl font-bold text-gray-900">Festivals</h1>
           <p className="text-sm text-gray-500 mt-1">Manage your organization's festivals.</p>
         </div>
-        <Link href={`/dashboard/organization/${orgId}/festivals/create`}>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Festival
-          </Button>
-        </Link>
+        {festivals.length >= 1 ? (
+          <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-900 px-3.5 py-2 rounded-xl text-xs font-semibold shadow-xs">
+            <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+            Single Festival License: 1/1 Festival Active
+          </div>
+        ) : (
+          <Link href={`/dashboard/organization/${orgId}/festivals/create`}>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Festival
+            </Button>
+          </Link>
+        )}
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">

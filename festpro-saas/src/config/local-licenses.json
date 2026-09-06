@@ -1,0 +1,21 @@
+[
+  {
+    "id": "demo-lic-001",
+    "license_key": "FP-2026-FEST-DEMO",
+    "client_name": "Demo Arts Club",
+    "client_phone": "9876543210",
+    "client_email": "demo@festpro.com",
+    "status": "active",
+    "hold_reason": null,
+    "total_amount": 25000,
+    "paid_amount": 25000,
+    "pending_amount": 0,
+    "max_festivals": 1,
+    "is_activated": false,
+    "activated_at": null,
+    "organization_id": null,
+    "notes": "Starter license code for initial test and verification",
+    "created_at": "2026-09-06T14:40:00.000Z",
+    "updated_at": "2026-09-06T14:40:00.000Z"
+  }
+]

@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { User, Mail, Lock, Eye, EyeOff, Building2, ArrowRight } from "lucide-react"
+import { User, Mail, Lock, Eye, EyeOff, Building2, ArrowRight, KeyRound } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,6 +16,8 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [form, setForm] = useState({
+    license_key: "",
+    organization_name: "",
     first_name: "",
     last_name: "",
     email: "",
@@ -23,6 +25,8 @@ export default function RegisterPage() {
     confirm_password: "",
   })
   const [errors, setErrors] = useState({
+    license_key: "",
+    organization_name: "",
     first_name: "",
     last_name: "",
     email: "",
@@ -31,7 +35,16 @@ export default function RegisterPage() {
   })
 
   function validate() {
-    const newErrors = { first_name: "", last_name: "", email: "", password: "", confirm_password: "" }
+    const newErrors = {
+      license_key: "",
+      organization_name: "",
+      first_name: "",
+      last_name: "",
+      email: "",
+      password: "",
+      confirm_password: "",
+    }
+    if (!form.license_key.trim()) newErrors.license_key = "Access Code / License Key is required"
     if (!form.first_name.trim()) newErrors.first_name = "First name is required"
     if (!form.last_name.trim()) newErrors.last_name = "Last name is required"
     if (!form.email) newErrors.email = "Email is required"
@@ -49,9 +62,11 @@ export default function RegisterPage() {
 
     setIsLoading(true)
     const result = await signUp({
-      first_name: form.first_name,
-      last_name: form.last_name,
-      email: form.email,
+      license_key: form.license_key.trim(),
+      organization_name: form.organization_name.trim(),
+      first_name: form.first_name.trim(),
+      last_name: form.last_name.trim(),
+      email: form.email.trim(),
       password: form.password,
     })
 
@@ -61,7 +76,7 @@ export default function RegisterPage() {
       return
     }
 
-    toast.success("Account created! Please check your email to verify your account.")
+    toast.success("Account created successfully! Redirecting to sign in...")
     router.push("/login")
   }
 
@@ -69,10 +84,44 @@ export default function RegisterPage() {
     <Card className="w-full max-w-lg">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl">Create Your Account</CardTitle>
-        <CardDescription>Start managing your festivals in minutes</CardDescription>
+        <CardDescription>Activate your festival management access</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Access Code / License Key */}
+          <div className="space-y-2 p-3.5 bg-indigo-50/70 border border-indigo-100 rounded-xl">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="license_key" className="text-indigo-950 font-semibold flex items-center gap-1.5 text-xs uppercase tracking-wider">
+                <KeyRound className="h-4 w-4 text-indigo-600" />
+                Access Code / License Key
+              </Label>
+              <span className="text-[11px] bg-indigo-200/70 text-indigo-900 font-semibold px-2 py-0.5 rounded-full">
+                Required
+              </span>
+            </div>
+            <Input
+              id="license_key"
+              placeholder="e.g. FP-2026-AB12-CD34"
+              className="bg-white font-mono uppercase tracking-widest text-sm font-bold text-gray-800"
+              value={form.license_key}
+              onChange={(e) => setForm({ ...form, license_key: e.target.value.toUpperCase() })}
+              error={errors.license_key}
+            />
+            <p className="text-[11px] text-indigo-700">
+              Only organizations with a valid Access Code issued by administration can create an account.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="organization_name">Organization / College Name</Label>
+            <Input
+              id="organization_name"
+              placeholder="e.g. MES College Arts Club"
+              icon={<Building2 className="h-4 w-4" />}
+              value={form.organization_name}
+              onChange={(e) => setForm({ ...form, organization_name: e.target.value })}
+            />
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="first_name">First Name</Label>
