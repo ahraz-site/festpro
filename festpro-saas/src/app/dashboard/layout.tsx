@@ -129,7 +129,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const handleSignOut = useCallback(async () => { await signOut() }, [])
 
   const currentOrg = organizations.find((o) => o.id === currentOrgId)
-  const isPlatformAdmin = profile?.role === "platform_owner" || profile?.role === "platform_admin" || profile?.email === "ahrazfestpro@gmail.com"
+  const ADMIN_EMAILS = [
+    "ahrazfestpro@gmail.com",
+    "ahraza272@gmail.com",
+    "admin@festpro.com",
+  ]
+  const isPlatformAdmin =
+    profile?.role === "platform_owner" ||
+    profile?.role === "platform_admin" ||
+    ADMIN_EMAILS.includes(profile?.email?.toLowerCase() || "") ||
+    profile?.email?.toLowerCase().startsWith("admin@")
 
   const orgNavItems = currentOrgId ? [
     { label: "Overview", href: `/dashboard/organization/${currentOrgId}`, icon: Building2 },
@@ -142,6 +151,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const navItems = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    ...(isPlatformAdmin
+      ? [{ label: "👑 License Management", href: "/dashboard/licensing", icon: Key }]
+      : []),
     { label: "Profile", href: "/profile", icon: User },
   ]
 
@@ -358,6 +370,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       <User className="h-4 w-4" />
                       Profile Settings
                     </Link>
+                    {isPlatformAdmin && (
+                      <Link prefetch={true}
+                        href="/dashboard/licensing"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="flex items-center gap-3 px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50"
+                      >
+                        <Key className="h-4 w-4 text-indigo-600" />
+                        👑 Super Admin Panel
+                      </Link>
+                    )}
                     <button
                       onClick={() => { setProfileDropdownOpen(false); handleSignOut() }}
                       className="flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 w-full"

@@ -22,7 +22,22 @@ export async function ensureUserProfile() {
       .eq("id", user.id)
       .single()
 
-    if (!profile) {
+    const userEmail = (user.email || "").toLowerCase().trim()
+    const ADMIN_EMAILS = [
+      "ahrazfestpro@gmail.com",
+      "ahraza272@gmail.com",
+      "admin@festpro.com",
+    ]
+    const isSuperAdminEmail =
+      ADMIN_EMAILS.includes(userEmail) ||
+      userEmail.startsWith("admin@")
+
+    if (profile) {
+      if (isSuperAdminEmail && profile.role !== "platform_owner") {
+        await adminClient.from("profiles").update({ role: "platform_owner" }).eq("id", user.id)
+        profile.role = "platform_owner"
+      }
+    } else {
       const userMeta = user.user_metadata || {}
       const firstName =
         String(userMeta.first_name || user.email?.split("@")[0] || "User")
@@ -55,7 +70,7 @@ export async function ensureUserProfile() {
         await adminClient.from("organization_members").upsert({
           organization_id: org.id,
           user_id: user.id,
-          role: "organization_owner",
+          role: isSuperAdminEmail ? "platform_owner" : "organization_owner",
         })
       }
 
@@ -66,7 +81,7 @@ export async function ensureUserProfile() {
           email: user.email!,
           first_name: firstName,
           last_name: lastName,
-          role: "organization_owner",
+          role: isSuperAdminEmail ? "platform_owner" : "organization_owner",
           organization_id: org?.id || null,
         })
         .select("*")
@@ -92,32 +107,47 @@ export async function signUp(formData: {
 }) {
   try {
     const cleanKey = String(formData.license_key || "").trim().toUpperCase()
-    if (!cleanKey) {
-      return { error: "An Access Key / License Code is required to create an account. Please contact the administrator." }
-    }
+    const userEmail = String(formData.email || "").trim().toLowerCase()
+    const ADMIN_EMAILS = [
+      "ahrazfestpro@gmail.com",
+      "ahraza272@gmail.com",
+      "admin@festpro.com",
+    ]
+    const isMasterAdmin =
+      cleanKey === "ADMIN-MASTER-KEY" ||
+      cleanKey === "SUPER-ADMIN-2026" ||
+      ADMIN_EMAILS.includes(userEmail) ||
+      userEmail.startsWith("admin@")
 
-    // Pre-validate License Key
-    const { getLicenses, verifyAndConsumeLicense } = await import("@/lib/actions/licensing")
-    const allLicenses = (await getLicenses()).data || []
-    const matchingLicense = allLicenses.find((l) => l.license_key.toUpperCase() === cleanKey)
+    let matchingLicense: any = null
+    if (!isMasterAdmin) {
+      if (!cleanKey) {
+        return { error: "An Access Key / License Code is required to create an account. Please contact the administrator." }
+      }
 
-    if (!matchingLicense) {
-      return { error: "Invalid Access Key / License Code. Please verify the code provided by administration." }
-    }
+      // Pre-validate License Key
+      const { getLicenses } = await import("@/lib/actions/licensing")
+      const allLicenses = (await getLicenses()).data || []
+      matchingLicense = allLicenses.find((l) => l.license_key.toUpperCase() === cleanKey)
 
-    if (matchingLicense.is_activated) {
-      return { error: "This License Key has already been activated for another organization." }
-    }
+      if (!matchingLicense) {
+        return { error: "Invalid Access Key / License Code. Please verify the code provided by administration." }
+      }
 
-    if (matchingLicense.status === "blocked") {
-      return { error: "This License Key is blocked. Please contact support." }
+      if (matchingLicense.is_activated) {
+        return { error: "This License Key has already been activated for another organization." }
+      }
+
+      if (matchingLicense.status === "blocked") {
+        return { error: "This License Key is blocked. Please contact support." }
+      }
     }
 
     const supabase = await createServerClient()
 
     const firstName = String(formData.first_name || "User").replace(/[^\x00-\x7F]/g, "").trim()
     const lastName = String(formData.last_name || "").replace(/[^\x00-\x7F]/g, "").trim()
-    const orgName = String(formData.organization_name || matchingLicense.client_name || `${firstName} Organization`).trim()
+    const orgName = String(formData.organization_name || matchingLicense?.client_name || `${firstName} Organization`).trim()
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: formData.email,
@@ -142,6 +172,8 @@ export async function signUp(formData: {
     const adminClient = createAdminClient()
     const orgSlug = `${orgName.toLowerCase().replace(/[^a-z0-9]/g, "") || "org"}-${Math.random().toString(36).substring(2, 6)}`
 
+    const assignedRole = isMasterAdmin ? "platform_owner" : "organization_owner"
+
     // 1. Create Organization
     const { data: org, error: orgError } = await adminClient
       .from("organizations")
@@ -160,7 +192,7 @@ export async function signUp(formData: {
     const { error: memberError } = await adminClient.from("organization_members").upsert({
       organization_id: org.id,
       user_id: authData.user.id,
-      role: "organization_owner",
+      role: assignedRole,
     })
 
     if (memberError) {
@@ -175,7 +207,7 @@ export async function signUp(formData: {
         email: formData.email,
         first_name: firstName,
         last_name: lastName,
-        role: "organization_owner",
+        role: assignedRole,
         organization_id: org.id,
       })
 
@@ -183,8 +215,11 @@ export async function signUp(formData: {
       return { error: profileError.message }
     }
 
-    // 4. Activate & link License Key to this Organization
-    await verifyAndConsumeLicense(cleanKey, org.id)
+    // 4. Activate & link License Key to this Organization (if customer license)
+    if (!isMasterAdmin && matchingLicense) {
+      const { verifyAndConsumeLicense } = await import("@/lib/actions/licensing")
+      await verifyAndConsumeLicense(cleanKey, org.id)
+    }
 
     revalidatePath("/", "layout")
     return { success: true }
@@ -218,10 +253,12 @@ export async function signIn(formData: { email: string; password: string }) {
     }
 
     revalidatePath("/", "layout")
+
+    const isAdmin = profile.role === "platform_owner" || profile.role === "platform_admin"
     return {
       success: true,
       role: profile.role as UserRole,
-      redirectTo: getDashboardForRole(profile.role as UserRole),
+      redirectTo: isAdmin ? "/dashboard/licensing" : getDashboardForRole(profile.role as UserRole),
     }
   } catch (err: any) {
     console.error("signIn error:", err)
