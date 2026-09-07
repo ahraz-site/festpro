@@ -225,7 +225,13 @@ export async function signUp(formData: {
     return { success: true }
   } catch (err: any) {
     console.error("signUp error:", err)
-    return { error: String(err?.message || "Registration failed. Please try again.").replace(/[^\x00-\x7F]/g, "") }
+    const msg = String(err?.message || "")
+    if (msg.includes("fetch failed") || msg.includes("ENOTFOUND") || msg.includes("Failed to fetch")) {
+      return {
+        error: "Cannot connect to Supabase database. Your Supabase project is currently PAUSED or inactive. Please go to supabase.com/dashboard and click 'Restore project'.",
+      }
+    }
+    return { error: String(msg || "Registration failed. Please try again.").replace(/[^\x00-\x7F]/g, "") }
   }
 }
 
@@ -262,7 +268,13 @@ export async function signIn(formData: { email: string; password: string }) {
     }
   } catch (err: any) {
     console.error("signIn error:", err)
-    return { error: String(err?.message || "Authentication failed. Please try again.").replace(/[^\x00-\x7F]/g, "") }
+    const msg = String(err?.message || "")
+    if (msg.includes("fetch failed") || msg.includes("ENOTFOUND") || msg.includes("Failed to fetch")) {
+      return {
+        error: "Cannot connect to Supabase database. Your Supabase project is currently PAUSED or inactive. Please go to supabase.com/dashboard and click 'Restore project'.",
+      }
+    }
+    return { error: String(msg || "Authentication failed. Please try again.").replace(/[^\x00-\x7F]/g, "") }
   }
 }
 
