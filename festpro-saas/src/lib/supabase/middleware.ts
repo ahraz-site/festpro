@@ -23,7 +23,11 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  await supabase.auth.getUser()
+  try {
+    await supabase.auth.getUser()
+  } catch (err) {
+    // Ignore network or connection errors during session update
+  }
 
   return supabaseResponse
 }

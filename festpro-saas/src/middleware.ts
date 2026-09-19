@@ -74,7 +74,11 @@ export async function middleware(request: NextRequest) {
   if (isPublicRoute) {
     try {
       if (url && key) {
-        return await updateSession(request)
+        const sessionPromise = updateSession(request)
+        const timeoutPromise = new Promise<NextResponse>((resolve) =>
+          setTimeout(() => resolve(NextResponse.next({ request })), 1500)
+        )
+        return await Promise.race([sessionPromise, timeoutPromise])
       }
     } catch (e) {
       console.error("Middleware session update error:", e)
@@ -103,9 +107,13 @@ export async function middleware(request: NextRequest) {
       },
     })
 
+    const userPromise = supabase.auth.getUser()
+    const timeoutPromise = new Promise<any>((resolve) =>
+      setTimeout(() => resolve({ data: { user: null } }), 2000)
+    )
     const {
       data: { user },
-    } = await supabase.auth.getUser()
+    } = await Promise.race([userPromise, timeoutPromise])
 
     if (!user) {
       const loginUrl = new URL("/login", request.url)
