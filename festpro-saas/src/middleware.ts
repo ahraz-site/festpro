@@ -130,11 +130,17 @@ export async function middleware(request: NextRequest) {
       return response
     }
 
-    const { data: profile } = await supabase
+    const profilePromise = supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .single()
+
+    const profileTimeoutPromise = new Promise<any>((resolve) =>
+      setTimeout(() => resolve({ data: null }), 2000)
+    )
+
+    const { data: profile } = await Promise.race([profilePromise, profileTimeoutPromise])
 
     const role = (profile?.role as UserRole) || "organization_owner"
 
