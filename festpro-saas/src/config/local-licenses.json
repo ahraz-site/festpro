@@ -17,5 +17,24 @@
     "notes": "Starter license code for initial test and verification",
     "created_at": "2026-09-06T14:40:00.000Z",
     "updated_at": "2026-09-06T14:40:00.000Z"
+  },
+  {
+    "id": "lic-ihyaussunna-001",
+    "license_key": "FP-2026-D30D-69DC",
+    "client_name": "Ihyaussunna",
+    "client_phone": null,
+    "client_email": "rujhanmuhammad6@gmail.com",
+    "status": "active",
+    "hold_reason": null,
+    "total_amount": 10000,
+    "paid_amount": 10000,
+    "pending_amount": 0,
+    "max_festivals": 1,
+    "is_activated": false,
+    "activated_at": null,
+    "organization_id": null,
+    "notes": "License for Ihyaussunna festival",
+    "created_at": "2026-09-20T17:20:00.000Z",
+    "updated_at": "2026-09-20T17:20:00.000Z"
   }
 ]

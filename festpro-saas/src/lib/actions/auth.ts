@@ -125,10 +125,26 @@ export async function signUp(formData: {
         return { error: "An Access Key / License Code is required to create an account. Please contact the administrator." }
       }
 
-      // Pre-validate License Key
-      const { getLicenses } = await import("@/lib/actions/licensing")
-      const allLicenses = (await getLicenses()).data || []
-      matchingLicense = allLicenses.find((l) => l.license_key.toUpperCase() === cleanKey)
+      // Pre-validate License Key directly against Supabase
+      const admin = createAdminClient()
+      try {
+        const { data: dbLicense } = await admin
+          .from("saas_licenses")
+          .select("*")
+          .eq("license_key", cleanKey)
+          .maybeSingle()
+        if (dbLicense) {
+          matchingLicense = dbLicense
+        }
+      } catch (e) {
+        console.warn("Direct saas_licenses query error:", e)
+      }
+
+      if (!matchingLicense) {
+        const { getLicenses } = await import("@/lib/actions/licensing")
+        const allLicenses = (await getLicenses()).data || []
+        matchingLicense = allLicenses.find((l) => l.license_key.toUpperCase() === cleanKey)
+      }
 
       if (!matchingLicense) {
         return { error: "Invalid Access Key / License Code. Please verify the code provided by administration." }
