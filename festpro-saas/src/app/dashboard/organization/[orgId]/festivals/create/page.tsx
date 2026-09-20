@@ -12,12 +12,13 @@ import { createFestival } from "@/lib/actions/festival"
 import { FESTIVAL_STATUSES, VISIBILITY_OPTIONS, TIMEZONE_OPTIONS } from "@/config/festival"
 import type { FestivalFormData } from "@/types/festival"
 import { Loader2, CalendarDays } from "lucide-react"
+import { COUNTRIES, INDIAN_STATES, DISTRICTS_BY_STATE } from "@/config/location-data"
 
 const defaultForm: FestivalFormData = {
   name: "", short_name: "", code: "", description: "", theme: "default",
   start_date: "", end_date: "", registration_start_date: "", registration_end_date: "",
-  result_publish_date: "", venue_name: "", address: "", district: "", state: "", country: "",
-  latitude: "", longitude: "", timezone: "UTC", status: "draft", visibility: "public",
+  result_publish_date: "", venue_name: "", address: "", district: "", state: "Kerala", country: "India",
+  latitude: "", longitude: "", timezone: "Asia/Kolkata", status: "draft", visibility: "public",
   max_participants: "", max_competitions: "",
 }
 
@@ -130,17 +131,68 @@ export default function CreateFestivalPage() {
                 <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
               </div>
               <div className="grid gap-4 sm:grid-cols-3">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">District</label>
-                  <Input value={form.district} onChange={(e) => setForm({ ...form, district: e.target.value })} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">State</label>
-                  <Input value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} />
-                </div>
+                {/* Country */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">Country</label>
-                  <Input value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
+                  <Select
+                    value={form.country}
+                    onChange={(e) => {
+                      const newCountry = e.target.value
+                      setForm({
+                        ...form,
+                        country: newCountry,
+                        state: newCountry === "India" ? "Kerala" : "",
+                        district: "",
+                      })
+                    }}
+                    options={COUNTRIES}
+                    placeholder="Select Country"
+                  />
+                </div>
+
+                {/* State */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">State</label>
+                  {form.country === "India" ? (
+                    <Select
+                      value={form.state}
+                      onChange={(e) => {
+                        const newState = e.target.value
+                        setForm({
+                          ...form,
+                          state: newState,
+                          district: "",
+                        })
+                      }}
+                      options={INDIAN_STATES}
+                      placeholder="Select State"
+                    />
+                  ) : (
+                    <Input
+                      value={form.state}
+                      onChange={(e) => setForm({ ...form, state: e.target.value })}
+                      placeholder="State / Province"
+                    />
+                  )}
+                </div>
+
+                {/* District */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">District</label>
+                  {DISTRICTS_BY_STATE[form.state] ? (
+                    <Select
+                      value={form.district}
+                      onChange={(e) => setForm({ ...form, district: e.target.value })}
+                      options={DISTRICTS_BY_STATE[form.state]}
+                      placeholder="Select District"
+                    />
+                  ) : (
+                    <Input
+                      value={form.district}
+                      onChange={(e) => setForm({ ...form, district: e.target.value })}
+                      placeholder="District / City"
+                    />
+                  )}
                 </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">

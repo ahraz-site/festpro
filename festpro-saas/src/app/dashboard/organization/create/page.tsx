@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/select"
 import { toast } from "sonner"
 import { createOrganization } from "@/lib/actions/organization"
 import { Loader2, Building2 } from "lucide-react"
+import { COUNTRIES, INDIAN_STATES, DISTRICTS_BY_STATE } from "@/config/location-data"
 
 export default function CreateOrganizationPage() {
   const router = useRouter()
@@ -17,13 +18,13 @@ export default function CreateOrganizationPage() {
     name: "",
     code: "",
     address: "",
-    country: "",
-    state: "",
+    country: "India",
+    state: "Kerala",
     district: "",
     website: "",
     org_email: "",
     org_phone: "",
-    timezone: "UTC",
+    timezone: "Asia/Kolkata",
     language: "en",
     brand_color: "#4F46E5",
   })
@@ -99,17 +100,68 @@ export default function CreateOrganizationPage() {
               <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="123 Main St" />
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
+              {/* Country */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Country</label>
-                <Input value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} placeholder="United States" />
+                <Select
+                  value={form.country}
+                  onChange={(e) => {
+                    const newCountry = e.target.value
+                    setForm({
+                      ...form,
+                      country: newCountry,
+                      state: newCountry === "India" ? "Kerala" : "",
+                      district: "",
+                    })
+                  }}
+                  options={COUNTRIES}
+                  placeholder="Select Country"
+                />
               </div>
+
+              {/* State */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">State</label>
-                <Input value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} placeholder="California" />
+                {form.country === "India" ? (
+                  <Select
+                    value={form.state}
+                    onChange={(e) => {
+                      const newState = e.target.value
+                      setForm({
+                        ...form,
+                        state: newState,
+                        district: "",
+                      })
+                    }}
+                    options={INDIAN_STATES}
+                    placeholder="Select State"
+                  />
+                ) : (
+                  <Input
+                    value={form.state}
+                    onChange={(e) => setForm({ ...form, state: e.target.value })}
+                    placeholder="State / Province"
+                  />
+                )}
               </div>
+
+              {/* District */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">District</label>
-                <Input value={form.district} onChange={(e) => setForm({ ...form, district: e.target.value })} />
+                {DISTRICTS_BY_STATE[form.state] ? (
+                  <Select
+                    value={form.district}
+                    onChange={(e) => setForm({ ...form, district: e.target.value })}
+                    options={DISTRICTS_BY_STATE[form.state]}
+                    placeholder="Select District"
+                  />
+                ) : (
+                  <Input
+                    value={form.district}
+                    onChange={(e) => setForm({ ...form, district: e.target.value })}
+                    placeholder="District / City"
+                  />
+                )}
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
