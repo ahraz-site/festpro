@@ -106,8 +106,8 @@ export default function LoginPage() {
         </p>
         <p className="text-xs text-gray-400">
           Already have a license key?{" "}
-          <Link href="/activate" className="font-medium text-indigo-500 hover:text-indigo-600">
-            Activate License
+          <Link href="/signup" className="font-semibold text-indigo-600 hover:text-indigo-700">
+            Activate License / Create Account
           </Link>
         </p>
       </CardFooter>
