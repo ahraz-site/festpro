@@ -58,6 +58,21 @@ export interface FestivalSettings {
   judge_settings: Record<string, any>
   notification_settings: Record<string, any>
   custom_fields: any[]
+  terminology?: {
+    unit: "groups" | "teams" | "houses" | "units" | "individual"
+    classification: "zones" | "categories" | "both" | "none"
+    classificationValues: string[]
+  }
+  modules?: Record<string, boolean>
+  rules?: {
+    max_individual_programmes: number
+    max_group_participants: number
+    allow_mix_zone: boolean
+    block_duplicate_registration: boolean
+    require_chest_numbers: boolean
+    enable_grades: boolean
+    points_system: "position_and_grade" | "position_only" | "grade_only"
+  }
   created_at: string
   updated_at: string
 }
@@ -272,6 +287,39 @@ export interface FestivalDashboardData {
   announcements: FestivalAnnouncement[]
   sponsors: FestivalSponsor[]
   recentActivity: any[]
+  leaderboard?: Array<{
+    id: string
+    name: string
+    code?: string
+    points: number
+    rank?: number
+    gold?: number
+    silver?: number
+    bronze?: number
+  }>
+  upcomingProgrammes?: Array<{
+    id: string
+    title: string
+    code?: string
+    stageName?: string
+    date?: string
+    time?: string
+    status?: string
+  }>
+  activeStages?: Array<{
+    id: string
+    name: string
+    venueName?: string
+    currentProgram?: string
+    status?: string
+  }>
+  recentResults?: Array<{
+    id: string
+    programName: string
+    winnerName: string
+    rank: number
+    points?: number
+  }>
 }
 
 export interface FestivalFormData {
@@ -297,4 +345,26 @@ export interface FestivalFormData {
   visibility: FestivalVisibility
   max_participants: string
   max_competitions: string
+}
+
+export interface FestivalWizardGroup {
+  name: string
+  code: string
+  color: string
+}
+
+export interface FestivalWizardData extends FestivalFormData {
+  terminology: {
+    unit: "groups" | "teams" | "houses" | "units" | "individual"
+    classification: "zones" | "categories" | "both" | "none"
+    classificationValues: string[]
+  }
+  groups: FestivalWizardGroup[]
+  rules: {
+    max_individual_programmes: number
+    max_group_participants: number
+    allow_mix_zone: boolean
+    block_duplicate_registration: boolean
+  }
+  modules: Record<string, boolean>
 }

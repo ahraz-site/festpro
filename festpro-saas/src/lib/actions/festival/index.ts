@@ -9,8 +9,9 @@ import type {
   Festival, FestivalSettings, FestivalDay, FestivalVenue, FestivalStage,
   FestivalCommittee, FestivalContact, FestivalDocument, FestivalAnnouncement,
   FestivalSponsor, FestivalGalleryItem, FestivalBanner, FestivalStatistics,
-  FestivalDashboardData, FestivalFormData,
+  FestivalDashboardData, FestivalFormData, FestivalWizardData,
 } from "@/types/festival"
+import { DEFAULT_FESTIVAL_CONFIG } from "@/config/festival-modules"
 
 // ────────────────────────────────────────────
 // HELPERS
@@ -72,7 +73,7 @@ export async function getOrgIdForFestival(festivalId: string): Promise<string | 
 // FESTIVAL CRUD
 // ────────────────────────────────────────────
 
-export async function createFestival(orgId: string, formData: FestivalFormData) {
+export async function createFestival(orgId: string, formData: FestivalFormData | FestivalWizardData) {
   const user = await getAuth()
   if (!user) return { error: "Not authenticated" }
 
@@ -135,6 +136,53 @@ export async function createFestival(orgId: string, formData: FestivalFormData) 
   }).select().single()
 
   if (error) return { error: error.message }
+
+  // Save Festival Settings (Terminology, Modules, Rules)
+  const wizard = formData as Partial<FestivalWizardData>
+  const settingsData = {
+    festival_id: data.id,
+    organization_id: orgId,
+    terminology: wizard.terminology || DEFAULT_FESTIVAL_CONFIG.terminology,
+    modules: wizard.modules || DEFAULT_FESTIVAL_CONFIG.modules,
+    rules: wizard.rules || DEFAULT_FESTIVAL_CONFIG.rules,
+  }
+
+  try {
+    await admin.from("festival_settings").upsert(settingsData, { onConflict: "festival_id" })
+  } catch (settingsErr) {
+    console.warn("Could not save festival_settings:", settingsErr)
+  }
+
+  // Seed initial groups/teams if provided in wizard
+  if (wizard.groups && Array.isArray(wizard.groups) && wizard.groups.length > 0) {
+    try {
+      const teamsToInsert = wizard.groups.map((g) => ({
+        festival_id: data.id,
+        organization_id: orgId,
+        name: g.name,
+        code: g.code || g.name.substring(0, 3).toUpperCase(),
+        color: g.color || "#4F46E5",
+      }))
+      await admin.from("teams").insert(teamsToInsert)
+    } catch (teamsErr) {
+      console.warn("Could not insert initial teams:", teamsErr)
+    }
+  }
+
+  // Seed initial classification values if provided in wizard
+  if (wizard.terminology?.classificationValues?.length) {
+    try {
+      const catsToInsert = wizard.terminology.classificationValues.map((v) => ({
+        festival_id: data.id,
+        organization_id: orgId,
+        name: v,
+        code: v.replace(/[^a-zA-Z0-9]/g, "").substring(0, 6).toUpperCase(),
+      }))
+      await admin.from("competition_categories").insert(catsToInsert)
+    } catch (catsErr) {
+      console.warn("Could not insert initial categories:", catsErr)
+    }
+  }
 
   revalidatePath(`/dashboard/organization/${orgId}`, "layout")
   return { success: true, festivalId: data.id }
@@ -276,10 +324,44 @@ export async function deleteFestival(festivalId: string) {
 // SETTINGS
 // ────────────────────────────────────────────
 
-export async function getFestivalSettings(festivalId: string): Promise<FestivalSettings | null> {
+export async function getFestivalSettings(festivalId: string): Promise<FestivalSettings> {
   const admin = createAdminClient()
-  const { data } = await admin.from("festival_settings").select("*").eq("festival_id", festivalId).single()
-  return data as FestivalSettings | null
+  try {
+    const { data } = await admin.from("festival_settings").select("*").eq("festival_id", festivalId).maybeSingle()
+    if (data) {
+      return {
+        ...data,
+        terminology: data.terminology || DEFAULT_FESTIVAL_CONFIG.terminology,
+        modules: data.modules || DEFAULT_FESTIVAL_CONFIG.modules,
+        rules: data.rules || DEFAULT_FESTIVAL_CONFIG.rules,
+      } as FestivalSettings
+    }
+  } catch (err) {
+    console.warn("Could not query festival_settings:", err)
+  }
+
+  return {
+    id: `default-${festivalId}`,
+    festival_id: festivalId,
+    festival_color: "#4F46E5",
+    theme_color: "#7C3AED",
+    dark_mode: false,
+    language: "en",
+    certificate_template: null,
+    result_template: null,
+    chest_number_format: "CHEST-{year}-{number}",
+    registration_prefix: "REG",
+    qr_settings: {},
+    attendance_settings: {},
+    judge_settings: { blind_scoring: false, min_judges_per_competition: 2 },
+    notification_settings: { email: true, push: true, sms: false },
+    custom_fields: [],
+    terminology: DEFAULT_FESTIVAL_CONFIG.terminology,
+    modules: DEFAULT_FESTIVAL_CONFIG.modules,
+    rules: DEFAULT_FESTIVAL_CONFIG.rules,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  } as FestivalSettings
 }
 
 export async function updateFestivalSettings(festivalId: string, formData: Partial<FestivalSettings>) {
@@ -287,9 +369,14 @@ export async function updateFestivalSettings(festivalId: string, formData: Parti
   if (!check.allowed) return { error: check.error }
 
   const admin = createAdminClient()
-  const { error } = await admin.from("festival_settings").update(formData).eq("festival_id", festivalId)
+  const { error } = await admin
+    .from("festival_settings")
+    .upsert({ festival_id: festivalId, ...formData }, { onConflict: "festival_id" })
+
   if (error) return { error: error.message }
 
+  const orgId = await getOrgIdForFestival(festivalId)
+  if (orgId) revalidatePath(`/dashboard/organization/${orgId}`, "layout")
   return { success: true }
 }
 
@@ -758,7 +845,25 @@ export async function getFestivalDashboardData(festivalId: string): Promise<Fest
   const check = await checkFestivalAccess(festivalId)
   if (!check.allowed) return null
 
-  const [festival, settings, statistics, days, venues, stages, announcements, sponsors] = await Promise.all([
+  const admin = createAdminClient()
+
+  const [
+    festival,
+    settings,
+    statistics,
+    days,
+    venues,
+    stages,
+    announcements,
+    sponsors,
+    teamCountRes,
+    participantCountRes,
+    compCountRes,
+    stageCountRes,
+    teamsRes,
+    teamPointsRes,
+    schedulesRes,
+  ] = await Promise.all([
     getFestival(festivalId),
     getFestivalSettings(festivalId),
     getFestivalStatistics(festivalId),
@@ -767,29 +872,71 @@ export async function getFestivalDashboardData(festivalId: string): Promise<Fest
     getFestivalStages(festivalId),
     getFestivalAnnouncements(festivalId),
     getFestivalSponsors(festivalId),
+    admin.from("teams").select("id", { count: "exact", head: true }).eq("festival_id", festivalId),
+    admin.from("participants").select("id", { count: "exact", head: true }).eq("festival_id", festivalId),
+    admin.from("competitions").select("id", { count: "exact", head: true }).eq("festival_id", festivalId),
+    admin.from("festival_stages").select("id", { count: "exact", head: true }).eq("festival_id", festivalId),
+    admin.from("teams").select("id, name, code").eq("festival_id", festivalId).order("created_at"),
+    admin.from("team_points").select("*").eq("festival_id", festivalId).order("rank", { ascending: true, nullsFirst: false }),
+    admin.from("stage_schedules").select("id, scheduled_date, start_time, end_time, status, competition:competitions(id, name, code), stage:festival_stages(id, name)").eq("festival_id", festivalId).order("scheduled_date", { ascending: true }).limit(5),
   ])
 
   if (!festival) return null
 
-  const defaultStats: FestivalStatistics = {
+  const liveStats: FestivalStatistics = {
     festival_id: festivalId,
-    total_competitions: 0,
-    total_participants: 0,
-    total_teams: 0,
-    total_stages: 0,
-    total_results_published: 0,
+    total_competitions: compCountRes.count ?? statistics?.total_competitions ?? 0,
+    total_participants: participantCountRes.count ?? statistics?.total_participants ?? 0,
+    total_teams: teamCountRes.count ?? statistics?.total_teams ?? 0,
+    total_stages: stageCountRes.count ?? statistics?.total_stages ?? 0,
+    total_results_published: statistics?.total_results_published ?? 0,
   } as any
+
+  const pointsMap = new Map((teamPointsRes.data || []).map((tp: any) => [tp.entity_id, tp]))
+  const leaderboard = (teamsRes.data || []).map((team: any, idx: number) => {
+    const tp = pointsMap.get(team.id) as any
+    return {
+      id: team.id,
+      name: team.name,
+      code: team.code,
+      points: tp?.total_points || 0,
+      rank: tp?.rank || idx + 1,
+      gold: tp?.medals_gold || 0,
+      silver: tp?.medals_silver || 0,
+      bronze: tp?.medals_bronze || 0,
+    }
+  }).sort((a, b) => b.points - a.points)
+
+  const upcomingProgrammes = (schedulesRes.data || []).map((sch: any) => ({
+    id: sch.id,
+    title: sch.competition?.name || "Program",
+    code: sch.competition?.code || "",
+    stageName: sch.stage?.name || "Main Stage",
+    date: sch.scheduled_date || "",
+    time: sch.start_time ? sch.start_time.slice(0, 5) : "",
+    status: sch.status || "scheduled",
+  }))
+
+  const activeStages = (stages || []).map((st: any) => ({
+    id: st.id,
+    name: st.name,
+    venueName: st.venue_name || "",
+    status: st.is_active ? "Active" : "Idle",
+  }))
 
   return {
     festival,
     settings: settings || ({} as any),
-    statistics: statistics || defaultStats,
+    statistics: liveStats,
     days: days || [],
     venues: venues || [],
     stages: stages || [],
     announcements: (announcements || []).filter((a: FestivalAnnouncement) => a.status === "published"),
     sponsors: (sponsors || []).filter((s: FestivalSponsor) => s.status === "confirmed"),
     recentActivity: [],
+    leaderboard,
+    upcomingProgrammes,
+    activeStages,
   } as FestivalDashboardData
 }
 

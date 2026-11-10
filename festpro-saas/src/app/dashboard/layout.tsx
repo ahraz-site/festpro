@@ -4,30 +4,41 @@ import { useEffect, useState, useCallback } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
-import { Button } from "@/components/ui/button"
 import { signOut, ensureUserProfile } from "@/lib/actions/auth"
+import { getFestivalSettings } from "@/lib/actions/festival"
+import { COMPETITION_UNITS, FESTIVAL_MODULES, type CompetitionUnitType } from "@/config/festival-modules"
+import type { FestivalSettings } from "@/types/festival"
 import { AhrazFestProLogo } from "@/components/ui/logo"
 import {
   Bell, LogOut, User, Menu, X, LayoutDashboard, Building2, Settings,
-  Users, Activity, ChevronDown, Plus, Check,   CalendarDays, MapPin,
-  LayoutGrid, CreditCard, Image, FileText, MessageSquare, Shield,
-  Trophy, BookOpen, Calendar, QrCode, IdCard, ClipboardList, Upload,
-  Clock, Radio, WandSparkles, AlertTriangle, Phone, MessageSquare as MessageSqIcon,
-  Star, CheckCircle, ListOrdered, Award, Medal, Crown, Globe,
-  DollarSign, BarChart3, Receipt, Wallet, PieChart, Gift,
-  Megaphone, Workflow, Mail, Server, Key, Flag,   Bug, Database, Lock, History,
-  UserCheck, Briefcase, Printer, Car, Camera, Scan, Handshake, PiggyBank, Target,
-  Ticket, Search, Package, Phone as PhoneIcon, ClipboardList as ClipboardListIcon, LogIn,
-  HelpCircle, ShieldCheck, Layers,
-  Warehouse, ShoppingCart, Truck, Wrench, TrendingUp,   ClipboardCheck, Route,
-  Utensils, ChefHat, Trash2,
-  Smartphone, CloudSync, TrendingUp as TrendingUpIcon, Upload as UploadIcon,
-  Stethoscope, Pill, ArrowRight, ArrowLeft, Palette, Bot, Brain, Cpu, Eye, Mic, Languages, FileKey,
-  FileSignature, Share2, HardDrive, Archive as ArchiveIcon, Folder, GitBranch, Rocket, Container, Gauge, Book, LifeBuoy, Download,
+  Users, Activity, ChevronDown, Plus, Check, CalendarDays,
+  LayoutGrid, CreditCard, Image as ImageIcon, FileText, MessageSquare, Shield,
+  Trophy, Calendar, QrCode, Clock, Radio, AlertTriangle, Phone,
+  Award, Medal, Globe, DollarSign, BarChart3, Wallet,
+  Megaphone, Key, UserCheck, Printer, Search,
+  ArrowRight, ArrowLeft, Bookmark, ClipboardCheck, Utensils, Truck
 } from "lucide-react"
 import type { Profile } from "@/types"
 import type { ExtendedOrganization } from "@/types/organization"
 import { AccountStatusBanner } from "@/components/license/account-status-banner"
+
+const MODULE_ICONS: Record<string, any> = {
+  live_stage: Radio,
+  green_room: Clock,
+  attendance: UserCheck,
+  qr_code: QrCode,
+  appeals: AlertTriangle,
+  certificates: Award,
+  reports: FileText,
+  finance: DollarSign,
+  fund_collection: Wallet,
+  food: Utensils,
+  accommodation: Building2,
+  transport: Truck,
+  gallery: ImageIcon,
+  news: Megaphone,
+  notifications: MessageSquare,
+}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -40,6 +51,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
   const [searchModalOpen, setSearchModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+
+  // Festival workspace states
+  const [currentFestival, setCurrentFestival] = useState<{ id: string; name: string; short_name?: string; status?: string } | null>(null)
+  const [festivalSettings, setFestivalSettings] = useState<FestivalSettings | null>(null)
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -58,18 +73,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const parts = pathname.split("/")
   const festivalSectionIdx = parts.findIndex((p) => p === "festivals")
   const currentFestivalId = isFestivalRoute && festivalSectionIdx >= 0 ? parts[festivalSectionIdx + 1] : null
-  const currentFestivalSection = isFestivalRoute && festivalSectionIdx >= 0 ? parts[festivalSectionIdx + 2] || "dashboard" : null
-  const isCompetitionRoute = isFestivalRoute && currentFestivalSection === "competitions"
-  const competitionSectionIdx = parts.findIndex((p) => p === "competitions")
-  const currentCompetitionId = isCompetitionRoute && competitionSectionIdx >= 0 ? parts[competitionSectionIdx + 1] : null
-  const currentCompetitionSection = isCompetitionRoute && competitionSectionIdx >= 0 ? parts[competitionSectionIdx + 2] || "list" : null
-  const isParticipantRoute = isFestivalRoute && currentFestivalSection === "participants"
-  const participantSectionIdx = parts.findIndex((p) => p === "participants")
-  const currentParticipantId = isParticipantRoute && participantSectionIdx >= 0 ? parts[participantSectionIdx + 1] : null
-  const currentParticipantSection = isParticipantRoute && participantSectionIdx >= 0 ? parts[participantSectionIdx + 2] || "list" : null
 
+  // Restore cached profile/orgs for instant render
   useEffect(() => {
-    // Try restoring from sessionStorage instantly for 0ms initial render
     try {
       const cachedProf = sessionStorage.getItem("festpro_cached_profile")
       const cachedOrgs = sessionStorage.getItem("festpro_cached_orgs")
@@ -88,11 +94,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       ])
 
       let prof = profRes.data
+      if (!prof) prof = await ensureUserProfile()
       if (!prof) {
-        prof = await ensureUserProfile()
-      }
-      if (!prof) {
-        // Fallback default profile so screen is never blank
         prof = {
           id: user.id,
           email: user.email || "user@festpro.com",
@@ -126,6 +129,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     load()
   }, [router])
 
+  // Reactively fetch festival info and settings when inside a festival workspace
+  useEffect(() => {
+    if (!currentFestivalId) {
+      setCurrentFestival(null)
+      setFestivalSettings(null)
+      return
+    }
+
+    const supabase = createClient()
+    supabase
+      .from("festivals")
+      .select("id, name, short_name, status")
+      .eq("id", currentFestivalId)
+      .single()
+      .then(({ data }) => {
+        if (data) setCurrentFestival(data)
+      })
+
+    getFestivalSettings(currentFestivalId)
+      .then((settings) => {
+        if (settings) setFestivalSettings(settings)
+      })
+      .catch(() => {})
+  }, [currentFestivalId])
+
   const handleSignOut = useCallback(async () => { await signOut() }, [])
 
   const currentOrg = organizations.find((o) => o.id === currentOrgId)
@@ -139,6 +167,33 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     profile?.role === "platform_admin" ||
     ADMIN_EMAILS.includes(profile?.email?.toLowerCase() || "") ||
     profile?.email?.toLowerCase().startsWith("admin@")
+
+  // Dynamic terminology
+  const unitKey = (festivalSettings?.terminology?.unit || "groups") as CompetitionUnitType
+  const unitConfig = COMPETITION_UNITS[unitKey] || COMPETITION_UNITS.groups
+  const unitPlural = unitConfig.plural
+
+  // Core festival links (QUAF style)
+  const festivalCoreItems = currentFestivalId ? [
+    { label: "Dashboard", href: "", icon: LayoutDashboard },
+    ...(unitKey !== "individual" ? [{ label: unitPlural, href: "/teams", icon: Users }] : []),
+    { label: "Participants", href: "/participants", icon: Bookmark },
+    { label: "Programmes", href: "/competitions", icon: Trophy },
+    { label: "Registrations", href: "/competitions/registrations", icon: ClipboardCheck },
+    { label: "Schedule", href: "/schedules", icon: Calendar },
+    { label: "Stages / Venues", href: "/stages", icon: LayoutGrid },
+    { label: "Judges", href: "/judging", icon: Shield },
+    { label: "Mark Entry", href: "/results/publish", icon: FileText },
+    { label: "Results", href: "/results", icon: Award },
+    { label: "Points Table", href: "/results/team-points", icon: Medal },
+    { label: "Reports & Print", href: "/documents", icon: Printer },
+    { label: "Settings", href: "/settings", icon: Settings },
+  ] : []
+
+  // Active optional modules
+  const enabledOptionalModules = FESTIVAL_MODULES.filter(
+    (m) => !m.isCore && festivalSettings?.modules?.[m.id] === true
+  )
 
   const orgNavItems = currentOrgId ? [
     { label: "Overview", href: `/dashboard/organization/${currentOrgId}`, icon: Building2 },
@@ -161,155 +216,71 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { title: "Main Dashboard", href: "/dashboard", section: "General", icon: LayoutDashboard },
     { title: "User Profile Settings", href: "/profile", section: "General", icon: User },
     { title: "Create Organization", href: "/dashboard/organization/create", section: "Organizations", icon: Plus },
-    
-    // Platform Administration
-    { title: "Platform Dashboard", href: "/dashboard/platform", section: "Platform Administration", icon: LayoutDashboard },
+    { title: "License Management", href: "/dashboard/licensing", section: "Platform Administration", icon: Key },
     { title: "Tenants / Clients", href: "/dashboard/platform/tenants", section: "Platform Administration", icon: Building2 },
     { title: "Subscription Plans", href: "/dashboard/platform/plans", section: "Platform Administration", icon: CreditCard },
     { title: "Billing & Invoices", href: "/dashboard/platform/billing", section: "Platform Administration", icon: DollarSign },
-    { title: "Custom Domains", href: "/dashboard/platform/domains", section: "Platform Administration", icon: Globe },
-    { title: "License Keys", href: "/dashboard/platform/licenses", section: "Platform Administration", icon: Key },
-    { title: "Platform Reports", href: "/dashboard/platform/reports", section: "Platform Administration", icon: BarChart3 },
-    { title: "Platform Analytics", href: "/dashboard/platform/analytics", section: "Platform Administration", icon: TrendingUpIcon },
-    { title: "Platform Settings", href: "/dashboard/platform/settings", section: "Platform Administration", icon: Settings },
-    
-    // Observability
-    { title: "Observability Overview", href: "/dashboard/platform/observability", section: "Observability", icon: LayoutDashboard },
-    { title: "System Health Monitor", href: "/dashboard/platform/observability/health", section: "Observability", icon: Activity },
-    { title: "System Logs", href: "/dashboard/platform/observability/logs", section: "Observability", icon: BarChart3 },
-    { title: "Alerts & Notifications", href: "/dashboard/platform/observability/alerts", section: "Observability", icon: Bell },
-    { title: "Incidents Management", href: "/dashboard/platform/observability/incidents", section: "Observability", icon: AlertTriangle },
-    { title: "Database Backups", href: "/dashboard/platform/observability/backups", section: "Observability", icon: Database },
-    { title: "Deployments", href: "/dashboard/platform/observability/deployments", section: "Observability", icon: Layers },
-    { title: "Maintenance Schedules", href: "/dashboard/platform/observability/maintenance", section: "Observability", icon: Clock },
-
-    // AI Platform
-    { title: "AI Dashboard", href: "/dashboard/platform/ai", section: "AI Platform", icon: LayoutDashboard },
-    { title: "AI Copilot Assistant", href: "/dashboard/platform/ai/copilot", section: "AI Platform", icon: Bot },
-    { title: "AI Conversations", href: "/dashboard/platform/ai/conversations", section: "AI Platform", icon: MessageSquare },
-    { title: "Knowledge Base RAG", href: "/dashboard/platform/ai/knowledge", section: "AI Platform", icon: Database },
-    { title: "Prompt Templates", href: "/dashboard/platform/ai/prompts", section: "AI Platform", icon: Layers },
-    { title: "AI Model Providers", href: "/dashboard/platform/ai/providers", section: "AI Platform", icon: Cpu },
-    { title: "Autonomous Agents", href: "/dashboard/platform/ai/agents", section: "AI Platform", icon: Brain },
-    { title: "AI Predictions & Forecasting", href: "/dashboard/platform/ai/predictions", section: "AI Platform", icon: TrendingUp },
-    { title: "AI Background Jobs", href: "/dashboard/platform/ai/jobs", section: "AI Platform", icon: Activity },
-    { title: "AI Usage & Cost Calculator", href: "/dashboard/platform/ai/cost", section: "AI Platform", icon: DollarSign },
-
-    // Localization
-    { title: "Localization Dashboard", href: "/dashboard/platform/localization", section: "Localization", icon: LayoutDashboard },
-    { title: "Supported Languages", href: "/dashboard/platform/localization/languages", section: "Localization", icon: Languages },
-    { title: "Language Packs", href: "/dashboard/platform/localization/packs", section: "Localization", icon: FileKey },
-    { title: "Translation Manager", href: "/dashboard/platform/localization/translations", section: "Localization", icon: Globe },
-    { title: "Regional Settings", href: "/dashboard/platform/localization/regional", section: "Localization", icon: Settings },
-    { title: "Translation Imports", href: "/dashboard/platform/localization/imports", section: "Localization", icon: Upload },
-    { title: "Accessibility Compliance", href: "/dashboard/platform/localization/accessibility", section: "Localization", icon: Eye },
-    { title: "Text to Speech Engine", href: "/dashboard/platform/localization/tts", section: "Localization", icon: Mic },
-
-    // EDMS Document Management
-    { title: "Document Management Dashboard", href: "/dashboard/platform/edms", section: "Document Management", icon: LayoutDashboard },
-    { title: "Document Explorer", href: "/dashboard/platform/edms/explorer", section: "Document Management", icon: FileText },
-    { title: "Document Categories", href: "/dashboard/platform/edms/categories", section: "Document Management", icon: Folder },
-    { title: "Document Approvals & Signatures", href: "/dashboard/platform/edms/approvals", section: "Document Management", icon: FileSignature },
-    { title: "Document Templates", href: "/dashboard/platform/edms/templates", section: "Document Management", icon: FileText },
-    { title: "EDMS Knowledge Base", href: "/dashboard/platform/edms/knowledge", section: "Document Management", icon: BookOpen },
-    { title: "Document Sharing & Access", href: "/dashboard/platform/edms/shares", section: "Document Management", icon: Share2 },
-    { title: "Data Retention Policies", href: "/dashboard/platform/edms/retention", section: "Document Management", icon: Shield },
-    { title: "Document Archives", href: "/dashboard/platform/edms/archive", section: "Document Management", icon: ArchiveIcon },
-
-    // DevOps Platform
-    { title: "DevOps Dashboard", href: "/dashboard/platform/devops", section: "DevOps Platform", icon: LayoutDashboard },
-    { title: "Environments & Infra", href: "/dashboard/platform/devops/environments", section: "DevOps Platform", icon: Globe },
-    { title: "CI/CD Pipelines", href: "/dashboard/platform/devops/pipelines", section: "DevOps Platform", icon: GitBranch },
-    { title: "Deployment Status", href: "/dashboard/platform/devops/deployments", section: "DevOps Platform", icon: Rocket },
-    { title: "Build Logs & Artifacts", href: "/dashboard/platform/devops/builds", section: "DevOps Platform", icon: Activity },
-    { title: "Releases & LTS Support", href: "/dashboard/platform/devops/releases", section: "DevOps Platform", icon: Package },
-    { title: "Kubernetes Clusters", href: "/dashboard/platform/devops/clusters", section: "DevOps Platform", icon: Server },
-    { title: "Docker Containers", href: "/dashboard/platform/devops/containers", section: "DevOps Platform", icon: Container },
-    { title: "Feature Rollouts", href: "/dashboard/platform/devops/feature-rollouts", section: "DevOps Platform", icon: Flag },
-    { title: "Security Scans", href: "/dashboard/platform/devops/security-scans", section: "DevOps Platform", icon: Shield },
-    { title: "Secrets & Vault", href: "/dashboard/platform/devops/secrets", section: "DevOps Platform", icon: Lock },
-
-    // Enterprise Security
-    { title: "Enterprise Security Dashboard", href: "/dashboard/platform/security", section: "Enterprise Security", icon: Shield },
-    { title: "Security Compliance Audit", href: "/dashboard/platform/security/compliance", section: "Enterprise Security", icon: FileText },
-    { title: "Vulnerability Scans", href: "/dashboard/platform/security/scans", section: "Enterprise Security", icon: Bug },
-    { title: "Operations Console", href: "/dashboard/platform/operations", section: "Enterprise Security", icon: AlertTriangle },
-    { title: "Performance Metrics", href: "/dashboard/platform/performance", section: "Enterprise Security", icon: Activity },
   ]
 
-  const filteredSearchSections = ALL_SEARCHABLE_SECTIONS.filter((item) =>
-    !searchQuery ||
-    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.section.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.href.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredSearchSections = ALL_SEARCHABLE_SECTIONS.filter((s) =>
+    s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.section.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       {/* Top Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-gray-200 bg-white">
-        <div className="flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-3">
-            <button className="lg:hidden p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg" onClick={() => setSidebarOpen(!sidebarOpen)}>
+      <header className="fixed top-0 left-0 right-0 z-50 h-16 border-b border-slate-200 bg-white/95 backdrop-blur-md">
+        <div className="flex h-full items-center justify-between px-4 sm:px-6">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-2 text-slate-500 hover:text-slate-700 rounded-lg lg:hidden"
+            >
               {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
+            <AhrazFestProLogo />
 
-            {/* Back Button in Top Header */}
-            {pathname !== "/dashboard" && (
-              <button
-                onClick={() => router.back()}
-                className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-lg transition-colors"
-                title="Go Back"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" /> Back
-              </button>
-            )}
-
-            <Link prefetch={true} href="/dashboard" className="flex items-center shrink-0">
-              <AhrazFestProLogo height={28} />
-            </Link>
-
-            {/* Organization Switcher */}
+            {/* Organization Selector */}
             {organizations.length > 0 && (
-              <div className="relative ml-2 sm:ml-4">
+              <div className="relative">
                 <button
                   onClick={() => setOrgDropdownOpen(!orgDropdownOpen)}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                  className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors"
                 >
-                  <Building2 className="h-4 w-4" />
+                  <Building2 className="h-3.5 w-3.5 text-indigo-600" />
                   <span className="hidden md:inline max-w-[120px] truncate">
                     {currentOrg?.name || "Select Organization"}
                   </span>
-                  <ChevronDown className="h-3 w-3" />
+                  <ChevronDown className="h-3 w-3 text-slate-400" />
                 </button>
 
                 {orgDropdownOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setOrgDropdownOpen(false)} />
-                    <div className="absolute left-0 top-full mt-1 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1">
-                      <div className="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Organizations</div>
+                    <div className="absolute left-0 top-full mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-lg z-20 py-1">
+                      <div className="px-3 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Organizations</div>
                       {organizations.map((org) => (
                         <Link prefetch={true}
                           key={org.id}
                           href={`/dashboard/organization/${org.id}`}
                           onClick={() => setOrgDropdownOpen(false)}
-                          className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          className="flex items-center gap-3 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
                         >
-                          <div className="flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold text-white" style={{ backgroundColor: org.brand_color || "#4F46E5" }}>
+                          <div className="flex h-6 w-6 items-center justify-center rounded-lg text-xs font-bold text-white shrink-0" style={{ backgroundColor: org.brand_color || "#4F46E5" }}>
                             {org.name[0]}
                           </div>
                           <span className="flex-1 truncate">{org.name}</span>
                           {org.id === currentOrgId && <Check className="h-4 w-4 text-indigo-600" />}
                         </Link>
                       ))}
-                      <div className="border-t border-gray-100 mt-1 pt-1">
+                      <div className="border-t border-slate-100 mt-1 pt-1">
                         <Link prefetch={true}
                           href="/dashboard/organization/create"
                           onClick={() => setOrgDropdownOpen(false)}
-                          className="flex items-center gap-3 px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50"
+                          className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-indigo-600 hover:bg-indigo-50"
                         >
-                          <Plus className="h-4 w-4" />
-                          Create Organization
+                          <Plus className="h-4 w-4" /> Create Organization
                         </Link>
                       </div>
                     </div>
@@ -317,58 +288,66 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 )}
               </div>
             )}
+
+            {/* Active Festival Indicator */}
+            {currentFestival && (
+              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-50 border border-indigo-100 text-xs font-bold text-indigo-900 max-w-[220px] truncate">
+                <Trophy className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                <span className="truncate">{currentFestival.name}</span>
+              </div>
+            )}
           </div>
 
-          {/* Global Quick Search Input */}
+          {/* Quick Search Input */}
           <div className="relative flex-1 max-w-md mx-4 hidden md:block">
             <div
               onClick={() => setSearchModalOpen(true)}
-              className="flex items-center gap-2.5 px-3 py-1.5 text-sm text-gray-400 bg-gray-100 hover:bg-gray-200/80 rounded-xl cursor-pointer transition-all border border-transparent hover:border-gray-300"
+              className="flex items-center gap-2.5 px-3 py-1.5 text-xs text-slate-400 bg-slate-100 hover:bg-slate-200/80 rounded-xl cursor-pointer transition-all border border-transparent hover:border-slate-300"
             >
-              <Search className="h-4 w-4 text-gray-400 shrink-0" />
+              <Search className="h-3.5 w-3.5 text-slate-400 shrink-0" />
               <span className="flex-1 truncate">Search any section or page...</span>
-              <kbd className="hidden lg:inline-block px-1.5 py-0.5 text-[10px] font-mono font-semibold text-gray-500 bg-white border border-gray-200 rounded shadow-xs">Ctrl+K</kbd>
+              <kbd className="hidden lg:inline-block px-1.5 py-0.5 text-[10px] font-mono font-semibold text-slate-500 bg-white border border-slate-200 rounded shadow-2xs">Ctrl+K</kbd>
             </div>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Mobile Search Button */}
             <button
               onClick={() => setSearchModalOpen(true)}
-              className="md:hidden p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+              className="md:hidden p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
               title="Search Sections"
             >
               <Search className="h-5 w-5" />
             </button>
-            <button className="relative p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+            <button className="relative p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
               <Bell className="h-5 w-5" />
             </button>
+
+            {/* Profile Dropdown */}
             <div className="relative">
               <button
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="flex items-center gap-2 rounded-lg hover:bg-gray-100 p-1.5 transition-colors"
+                className="flex items-center gap-2 rounded-lg hover:bg-slate-100 p-1.5 transition-colors"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 text-sm font-medium">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700 text-xs font-bold">
                   {profile?.first_name?.[0] || "U"}{profile?.last_name?.[0] || ""}
                 </div>
-                <div className="hidden md:block text-sm text-left">
-                  <p className="font-medium text-gray-900 leading-tight">{profile ? `${profile.first_name} ${profile.last_name || ""}` : "Account"}</p>
-                  <p className="text-xs text-gray-500 capitalize leading-tight">{profile?.role ? profile.role.replace(/_/g, " ") : "Member"}</p>
+                <div className="hidden md:block text-xs text-left">
+                  <p className="font-bold text-slate-900 leading-tight">{profile ? `${profile.first_name} ${profile.last_name || ""}` : "Account"}</p>
+                  <p className="text-[11px] text-slate-400 capitalize leading-tight">{profile?.role ? profile.role.replace(/_/g, " ") : "Member"}</p>
                 </div>
-                <ChevronDown className="h-3 w-3 text-gray-400 hidden md:block" />
+                <ChevronDown className="h-3 w-3 text-slate-400 hidden md:block" />
               </button>
 
               {profileDropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setProfileDropdownOpen(false)} />
-                  <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1">
+                  <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-slate-200 rounded-xl shadow-lg z-20 py-1">
                     <Link prefetch={true}
                       href="/profile"
                       onClick={() => setProfileDropdownOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      className="flex items-center gap-3 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
                     >
-                      <User className="h-4 w-4" />
-                      Profile Settings
+                      <User className="h-4 w-4" /> Profile Settings
                     </Link>
                     {isPlatformAdmin && (
                       <Link prefetch={true}
@@ -376,16 +355,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         onClick={() => setProfileDropdownOpen(false)}
                         className="flex items-center gap-3 px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50"
                       >
-                        <Key className="h-4 w-4 text-indigo-600" />
-                        👑 Super Admin Panel
+                        <Key className="h-4 w-4 text-indigo-600" /> 👑 Super Admin Panel
                       </Link>
                     )}
                     <button
                       onClick={() => { setProfileDropdownOpen(false); handleSignOut() }}
-                      className="flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 w-full"
+                      className="flex items-center gap-3 px-3 py-2 text-sm text-rose-600 hover:bg-rose-50 w-full"
                     >
-                      <LogOut className="h-4 w-4" />
-                      Sign Out
+                      <LogOut className="h-4 w-4" /> Sign Out
                     </button>
                   </div>
                 </>
@@ -395,346 +372,112 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </header>
 
-      {/* Sidebar */}
-      <aside className={`fixed left-0 top-16 z-40 h-[calc(100vh-4rem)] w-64 border-r border-gray-200 bg-white transform transition-transform duration-200 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 overflow-y-auto`}>
-        <nav className="p-4 space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon
-            const isActive = pathname === item.href
-            return (
-              <Link prefetch={true}
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                }`}
-                onClick={() => setSidebarOpen(false)}
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            )
-          })}
-
-          {/* Platform Administration Section */}
-          {isPlatformAdmin && (
+      {/* Sidebar Navigation */}
+      <aside className={`fixed left-0 top-16 z-40 h-[calc(100vh-4rem)] w-64 border-r border-slate-200 bg-white transform transition-transform duration-200 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 overflow-y-auto`}>
+        <nav className="p-3.5 space-y-1">
+          {/* CASE A: INSIDE A FESTIVAL WORKSPACE (QUAF STYLE) */}
+          {currentFestivalId ? (
             <>
-              <div className="pt-4 pb-2">
-            <Link prefetch={true}
-              href="/dashboard/platform"
-              className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600"
-            >
-              Platform Administration
-            </Link>
-          </div>
-          {[
-            { label: "Dashboard", href: "/dashboard/platform", icon: LayoutDashboard },
-            { label: "Sales & CRM", href: "/dashboard/sales", icon: Building2 },
-            { label: "License Management", href: "/dashboard/licensing", icon: Key },
-            { label: "Tenants", href: "/dashboard/platform/tenants", icon: Building2 },
-            { label: "Plans", href: "/dashboard/platform/plans", icon: CreditCard },
-            { label: "Billing", href: "/dashboard/platform/billing", icon: DollarSign },
-            { label: "Domains", href: "/dashboard/platform/domains", icon: Globe },
-            { label: "Licenses", href: "/dashboard/platform/licenses", icon: Key },
-            { label: "Reports", href: "/dashboard/platform/reports", icon: BarChart3 },
-            { label: "Analytics", href: "/dashboard/platform/analytics", icon: TrendingUpIcon },
-            { label: "Settings", href: "/dashboard/platform/settings", icon: Settings },
-          ].map((item) => {
-            const fullHref = item.href
-            const isIndex = fullHref === "/dashboard/platform"
-            const isActive = isIndex ? pathname === fullHref : (pathname === fullHref || pathname.startsWith(fullHref + "/"))
-            return (
-              <Link prefetch={true}
-                key={item.label}
-                href={fullHref}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                }`}
-                onClick={() => setSidebarOpen(false)}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            )
-          })}
-
-          {/* Observability Section */}
-          <div className="pt-4 pb-2">
-            <Link prefetch={true}
-              href="/dashboard/platform/observability"
-              className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600"
-            >
-              Observability
-            </Link>
-          </div>
-          {[
-            { label: "Dashboard", href: "/dashboard/platform/observability", icon: LayoutDashboard },
-            { label: "System Health", href: "/dashboard/platform/observability/health", icon: Activity },
-            { label: "Logs", href: "/dashboard/platform/observability/logs", icon: BarChart3 },
-            { label: "Alerts", href: "/dashboard/platform/observability/alerts", icon: Bell },
-            { label: "Incidents", href: "/dashboard/platform/observability/incidents", icon: AlertTriangle },
-            { label: "Backups", href: "/dashboard/platform/observability/backups", icon: Database },
-            { label: "Deployments", href: "/dashboard/platform/observability/deployments", icon: Layers },
-            { label: "Maintenance", href: "/dashboard/platform/observability/maintenance", icon: Clock },
-          ].map((item) => {
-            const fullHref = item.href
-            const isIndex = fullHref === "/dashboard/platform/observability"
-            const isActive = isIndex ? pathname === fullHref : (pathname === fullHref || pathname.startsWith(fullHref + "/"))
-            return (
-              <Link prefetch={true}
-                key={item.label}
-                href={fullHref}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                }`}
-                onClick={() => setSidebarOpen(false)}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            )
-          })}
-
-          {/* AI Platform Section */}
-          <div className="pt-4 pb-2">
-            <Link prefetch={true}
-              href="/dashboard/platform/ai"
-              className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600"
-            >
-              AI Platform
-            </Link>
-          </div>
-          {[
-            { label: "Dashboard", href: "/dashboard/platform/ai", icon: LayoutDashboard },
-            { label: "Copilot", href: "/dashboard/platform/ai/copilot", icon: Bot },
-            { label: "Conversations", href: "/dashboard/platform/ai/conversations", icon: MessageSquare },
-            { label: "Knowledge Base", href: "/dashboard/platform/ai/knowledge", icon: Database },
-            { label: "Prompts", href: "/dashboard/platform/ai/prompts", icon: Layers },
-            { label: "Providers", href: "/dashboard/platform/ai/providers", icon: Cpu },
-            { label: "Agents", href: "/dashboard/platform/ai/agents", icon: Brain },
-            { label: "Predictions", href: "/dashboard/platform/ai/predictions", icon: TrendingUp },
-            { label: "Jobs", href: "/dashboard/platform/ai/jobs", icon: Activity },
-            { label: "Cost", href: "/dashboard/platform/ai/cost", icon: DollarSign },
-          ].map((item) => {
-            const fullHref = item.href
-            const isIndex = fullHref === "/dashboard/platform/ai"
-            const isActive = isIndex ? pathname === fullHref : (pathname === fullHref || pathname.startsWith(fullHref + "/"))
-            return (
-              <Link prefetch={true}
-                key={item.label}
-                href={fullHref}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                }`}
-                onClick={() => setSidebarOpen(false)}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            )
-          })}
-
-          {/* Localization Section */}
-          <div className="pt-4 pb-2">
-            <Link prefetch={true}
-              href="/dashboard/platform/localization"
-              className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600"
-            >
-              Localization
-            </Link>
-          </div>
-          {[
-            { label: "Dashboard", href: "/dashboard/platform/localization", icon: LayoutDashboard },
-            { label: "Languages", href: "/dashboard/platform/localization/languages", icon: Languages },
-            { label: "Packs", href: "/dashboard/platform/localization/packs", icon: FileKey },
-            { label: "Translations", href: "/dashboard/platform/localization/translations", icon: Globe },
-            { label: "Regional", href: "/dashboard/platform/localization/regional", icon: Settings },
-            { label: "Import/Export", href: "/dashboard/platform/localization/imports", icon: Upload },
-            { label: "Accessibility", href: "/dashboard/platform/localization/accessibility", icon: Eye },
-            { label: "Text to Speech", href: "/dashboard/platform/localization/tts", icon: Mic },
-          ].map((item) => {
-            const fullHref = item.href
-            const isIndex = fullHref === "/dashboard/platform/localization"
-            const isActive = isIndex ? pathname === fullHref : (pathname === fullHref || pathname.startsWith(fullHref + "/"))
-            return (
-              <Link prefetch={true}
-                key={item.label}
-                href={fullHref}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                }`}
-                onClick={() => setSidebarOpen(false)}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            )
-          })}
-
-          {/* EDMS Section */}
-          <div className="pt-4 pb-2">
-            <Link prefetch={true}
-              href="/dashboard/platform/edms"
-              className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600"
-            >
-              Document Management
-            </Link>
-          </div>
-          {[
-            { label: "Dashboard", href: "/dashboard/platform/edms", icon: LayoutDashboard },
-            { label: "Explorer", href: "/dashboard/platform/edms/explorer", icon: FileText },
-            { label: "Categories", href: "/dashboard/platform/edms/categories", icon: Folder },
-            { label: "Approvals", href: "/dashboard/platform/edms/approvals", icon: FileSignature },
-            { label: "Templates", href: "/dashboard/platform/edms/templates", icon: FileText },
-            { label: "Knowledge", href: "/dashboard/platform/edms/knowledge", icon: BookOpen },
-            { label: "Sharing", href: "/dashboard/platform/edms/shares", icon: Share2 },
-            { label: "Retention", href: "/dashboard/platform/edms/retention", icon: Shield },
-            { label: "Archive", href: "/dashboard/platform/edms/archive", icon: ArchiveIcon },
-          ].map((item) => {
-            const fullHref = item.href
-            const isIndex = fullHref === "/dashboard/platform/edms"
-            const isActive = isIndex ? pathname === fullHref : (pathname === fullHref || pathname.startsWith(fullHref + "/"))
-            return (
-              <Link prefetch={true}
-                key={item.label}
-                href={fullHref}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                }`}
-                onClick={() => setSidebarOpen(false)}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            )
-          })}
-
-          {/* DevOps Section */}
-          <div className="pt-4 pb-2">
-            <Link prefetch={true}
-              href="/dashboard/platform/devops"
-              className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600"
-            >
-              DevOps Platform
-            </Link>
-          </div>
-          {[
-            { label: "Dashboard", href: "/dashboard/platform/devops", icon: LayoutDashboard },
-            { label: "Environments", href: "/dashboard/platform/devops/environments", icon: Globe },
-            { label: "Pipelines", href: "/dashboard/platform/devops/pipelines", icon: GitBranch },
-            { label: "Deployments", href: "/dashboard/platform/devops/deployments", icon: Rocket },
-            { label: "Builds", href: "/dashboard/platform/devops/builds", icon: Activity },
-            { label: "Releases", href: "/dashboard/platform/devops/releases", icon: Package },
-            { label: "Clusters", href: "/dashboard/platform/devops/clusters", icon: Server },
-            { label: "Containers", href: "/dashboard/platform/devops/containers", icon: Container },
-            { label: "Feature Rollouts", href: "/dashboard/platform/devops/feature-rollouts", icon: Flag },
-            { label: "Security Scans", href: "/dashboard/platform/devops/security-scans", icon: Shield },
-            { label: "Secrets", href: "/dashboard/platform/devops/secrets", icon: Lock },
-            { label: "Settings", href: "/dashboard/platform/devops/settings", icon: Settings },
-          ].map((item) => {
-            const fullHref = item.href
-            const isIndex = fullHref === "/dashboard/platform/devops"
-            const isActive = isIndex ? pathname === fullHref : (pathname === fullHref || pathname.startsWith(fullHref + "/"))
-            return (
-              <Link prefetch={true}
-                key={item.label}
-                href={fullHref}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                }`}
-                onClick={() => setSidebarOpen(false)}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            )
-          })}
-
-          {/* Enterprise Security Section */}
-          <div className="pt-4 pb-2">
-            <Link prefetch={true}
-              href="/dashboard/platform/security"
-              className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600"
-            >
-              Enterprise Security
-            </Link>
-          </div>
-          {[
-            { label: "Dashboard", href: "/dashboard/platform/security", icon: Shield },
-            { label: "Compliance", href: "/dashboard/platform/security/compliance", icon: FileText },
-            { label: "Scans", href: "/dashboard/platform/security/scans", icon: Bug },
-            { label: "Operations", href: "/dashboard/platform/operations", icon: AlertTriangle },
-            { label: "Performance", href: "/dashboard/platform/performance", icon: Activity },
-            { label: "Reports", href: "/dashboard/platform/reports", icon: BarChart3 },
-          ].map((item) => {
-            const fullHref = item.href
-            const isIndex = fullHref === "/dashboard/platform/security"
-            const isActive = isIndex ? pathname === fullHref : (pathname === fullHref || pathname.startsWith(fullHref + "/"))
-            return (
-              <Link prefetch={true}
-                key={item.label}
-                href={fullHref}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                }`}
-                onClick={() => setSidebarOpen(false)}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            )
-          })}
-
-          {/* Enterprise Operations Section */}
-          <div className="pt-4 pb-2">
-            <Link prefetch={true}
-              href="/dashboard/platform/releases"
-              className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600"
-            >
-              Release & LTS
-            </Link>
-          </div>
-          {[
-            { label: "Releases", href: "/dashboard/platform/releases", icon: Package },
-            { label: "Docs", href: "/dashboard/platform/docs", icon: BookOpen },
-            { label: "Maintenance", href: "/dashboard/platform/releases", icon: Calendar },
-          ].map((item) => {
-            const fullHref = item.href
-            const isActive = pathname === fullHref || pathname.startsWith(fullHref + "/")
-            return (
-              <Link prefetch={true}
-                key={item.label}
-                href={fullHref}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                }`}
-                onClick={() => setSidebarOpen(false)}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            )
-          })}
-            </>
-          )}
-
-          {/* Organization Section */}
-          {currentOrgId && (
-            <>
-              <div className="pt-4 pb-2">
-                <a href={`/dashboard/organization/${currentOrgId}`} className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600">
-                  {currentOrg?.name || "Organization"}
-                </a>
+              {/* Festival Header Card */}
+              <div className="p-3 mb-3 bg-gradient-to-br from-indigo-50/80 to-purple-50/50 rounded-xl border border-indigo-100">
+                <div className="flex items-center gap-2.5 mb-2">
+                  <div className="h-8 w-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                    {currentFestival?.short_name?.slice(0, 3).toUpperCase() || currentFestival?.name?.slice(0, 2).toUpperCase() || "FP"}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-xs font-bold text-slate-900 truncate leading-tight">
+                      {currentFestival?.name || "Festival Workspace"}
+                    </h3>
+                    <span className="inline-flex items-center text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded capitalize mt-0.5 border border-emerald-200">
+                      {currentFestival?.status || "Active"}
+                    </span>
+                  </div>
+                </div>
+                <Link
+                  prefetch={true}
+                  href={`/dashboard/organization/${currentOrgId}/festivals`}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
+                >
+                  <ArrowLeft className="h-3 w-3" /> All Festivals
+                </Link>
               </div>
-              {orgNavItems.map((item) => {
+
+              {/* Core Operations Menu */}
+              <div className="pt-1 pb-1">
+                <span className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Core Menu
+                </span>
+              </div>
+              {festivalCoreItems.map((item) => {
+                const fullHref = item.href === ""
+                  ? `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}`
+                  : `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
+                const isActive = item.href === ""
+                  ? pathname === fullHref
+                  : pathname === fullHref || pathname.startsWith(fullHref + "/")
+                const Icon = item.icon
+                return (
+                  <Link
+                    prefetch={true}
+                    key={item.label}
+                    href={fullHref}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
+                      isActive
+                        ? "text-indigo-700 bg-indigo-50 font-bold"
+                        : "text-slate-600 hover:text-indigo-700 hover:bg-slate-50"
+                    }`}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-indigo-600" : "text-slate-400"}`} />
+                    <span className="truncate">{item.label}</span>
+                  </Link>
+                )
+              })}
+
+              {/* Optional Enabled Modules */}
+              {enabledOptionalModules.length > 0 && (
+                <>
+                  <div className="pt-4 pb-1">
+                    <span className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Active Modules
+                    </span>
+                  </div>
+                  {enabledOptionalModules.map((mod) => {
+                    const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${mod.href}`
+                    const isActive = pathname === fullHref || pathname.startsWith(fullHref + "/")
+                    const ModIcon = MODULE_ICONS[mod.id] || LayoutGrid
+                    return (
+                      <Link
+                        prefetch={true}
+                        key={mod.id}
+                        href={fullHref}
+                        className={`flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
+                          isActive
+                            ? "text-indigo-700 bg-indigo-50 font-bold"
+                            : "text-slate-600 hover:text-indigo-700 hover:bg-slate-50"
+                        }`}
+                        onClick={() => setSidebarOpen(false)}
+                      >
+                        <ModIcon className={`h-4 w-4 shrink-0 ${isActive ? "text-indigo-600" : "text-slate-400"}`} />
+                        <span className="truncate">{mod.name}</span>
+                      </Link>
+                    )
+                  })}
+                </>
+              )}
+            </>
+          ) : (
+            /* CASE B: PLATFORM & ORGANIZATION GENERAL SIDEBAR */
+            <>
+              {navItems.map((item) => {
                 const Icon = item.icon
                 const isActive = pathname === item.href
                 return (
                   <Link prefetch={true}
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                      isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
+                      isActive ? "text-indigo-700 bg-indigo-50" : "text-slate-600 hover:text-indigo-700 hover:bg-slate-50"
                     }`}
                     onClick={() => setSidebarOpen(false)}
                   >
@@ -744,808 +487,90 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 )
               })}
 
-              {/* Festivals sub-nav */}
-              <div className="pt-4 pb-2">
-                <Link prefetch={true}
-                  href={`/dashboard/organization/${currentOrgId}/festivals`}
-                  className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600"
-                >
-                  Festivals
-                </Link>
-              </div>
-              <Link prefetch={true}
-                href={`/dashboard/organization/${currentOrgId}/festivals`}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  pathname === `/dashboard/organization/${currentOrgId}/festivals` ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                }`}
-                onClick={() => setSidebarOpen(false)}
-              >
-                <CalendarDays className="h-4 w-4" />
-                All Festivals
-              </Link>
-
-              {/* Festival detail sub-nav */}
-              {currentFestivalId && (
+              {/* Platform Administration */}
+              {isPlatformAdmin && (
                 <>
-                  <div className="pt-4 pb-2">
-                    <Link prefetch={true}
-                      href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}`}
-                      className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
-                    >
-                      Festival Menu
-                    </Link>
+                  <div className="pt-4 pb-1">
+                    <span className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Platform Administration
+                    </span>
                   </div>
                   {[
-                    { label: "Dashboard", href: "", icon: LayoutDashboard },
-                    { label: "Days", href: "/days", icon: CalendarDays },
-                    { label: "Venues", href: "/venues", icon: MapPin },
-                    { label: "Stages", href: "/stages", icon: LayoutGrid },
-                    { label: "Committees", href: "/committees", icon: Users },
-                    { label: "Sponsors", href: "/sponsors", icon: CreditCard },
-                    { label: "Announcements", href: "/announcements", icon: MessageSquare },
-                    { label: "Gallery", href: "/gallery", icon: Image },
-                    { label: "Documents", href: "/documents", icon: FileText },
-                    { label: "Settings", href: "/settings", icon: Settings },
+                    { label: "Platform Overview", href: "/dashboard/platform", icon: LayoutDashboard },
+                    { label: "👑 License Management", href: "/dashboard/licensing", icon: Key },
+                    { label: "Tenants / Clients", href: "/dashboard/platform/tenants", icon: Building2 },
+                    { label: "Subscription Plans", href: "/dashboard/platform/plans", icon: CreditCard },
+                    { label: "Billing & Invoices", href: "/dashboard/platform/billing", icon: DollarSign },
+                    { label: "Platform Settings", href: "/dashboard/platform/settings", icon: Settings },
                   ].map((item) => {
-                    const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
-                    const isActive = item.href === "" ? pathname === fullHref : pathname === fullHref || (item.href !== "" && pathname.startsWith(fullHref))
+                    const isActive = pathname === item.href || (item.href !== "/dashboard/platform" && pathname.startsWith(item.href + "/"))
+                    const Icon = item.icon
                     return (
                       <Link prefetch={true}
                         key={item.label}
-                        href={fullHref}
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
+                        href={item.href}
+                        className={`flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
+                          isActive ? "text-indigo-700 bg-indigo-50 font-bold" : "text-slate-600 hover:text-indigo-700 hover:bg-slate-50"
                         }`}
                         onClick={() => setSidebarOpen(false)}
                       >
-                        <item.icon className="h-4 w-4" />
+                        <Icon className="h-4 w-4" />
+                        {item.label}
+                      </Link>
+                    )
+                  })}
+                </>
+              )}
+
+              {/* Organization Section */}
+              {currentOrgId && (
+                <>
+                  <div className="pt-4 pb-1">
+                    <span className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                      {currentOrg?.name || "Organization"}
+                    </span>
+                  </div>
+                  {orgNavItems.map((item) => {
+                    const Icon = item.icon
+                    const isActive = pathname === item.href
+                    return (
+                      <Link prefetch={true}
+                        key={item.href}
+                        href={item.href}
+                        className={`flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
+                          isActive ? "text-indigo-700 bg-indigo-50" : "text-slate-600 hover:text-indigo-700 hover:bg-slate-50"
+                        }`}
+                        onClick={() => setSidebarOpen(false)}
+                      >
+                        <Icon className="h-4 w-4" />
                         {item.label}
                       </Link>
                     )
                   })}
 
-                  {/* Competition sub-nav */}
-                  {currentCompetitionId ? (
-                    <>
-                      <div className="pt-4 pb-2">
-                        <Link prefetch={true}
-                          href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/competitions`}
-                          className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
-                        >
-                          Competition
-                        </Link>
-                      </div>
-                      {[
-                        { label: "Details", href: "", icon: Trophy },
-                        { label: "Rounds", href: "/rounds", icon: LayoutGrid },
-                        { label: "Rules", href: "/rules", icon: BookOpen },
-                        { label: "Stage", href: "/stages", icon: MapPin },
-                        { label: "Judges", href: "/judges", icon: Shield },
-                        { label: "Schedule", href: "/schedule", icon: Calendar },
-                        { label: "Eligibility", href: "/eligibility", icon: Users },
-                      ].map((item) => {
-                        const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/competitions/${currentCompetitionId}${item.href}`
-                        const isActive = item.href === "" ? pathname === fullHref : pathname.startsWith(fullHref)
-                        return (
-                          <Link prefetch={true}
-                            key={item.label}
-                            href={fullHref}
-                            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                              isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                            }`}
-                            onClick={() => setSidebarOpen(false)}
-                          >
-                            <item.icon className="h-4 w-4" />
-                            {item.label}
-                          </Link>
-                        )
-                      })}
-                    </>
-                  ) : (
-                    <Link prefetch={true}
-                      href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/competitions`}
-                      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                        pathname.startsWith(`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/competitions`)
-                          ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                      }`}
-                      onClick={() => setSidebarOpen(false)}
-                    >
-                      <Trophy className="h-4 w-4" />
-                      Competitions
-                    </Link>
-                  )}
-
-                  {/* Scheduling & Live Stage sub-nav */}
-                  <div className="pt-4 pb-2">
-                    <Link prefetch={true}
-                      href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/sessions`}
-                      className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
-                    >
-                      Scheduling
-                    </Link>
+                  <div className="pt-4 pb-1">
+                    <span className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Festivals
+                    </span>
                   </div>
-                  {[
-                    { label: "Sessions", href: "/sessions", icon: Clock },
-                    { label: "Schedules", href: "/schedules", icon: Calendar },
-                    { label: "Live Stage", href: "/live", icon: Radio },
-                    { label: "Display Screen", href: "/live/display", icon: LayoutDashboard },
-                    { label: "Announcements", href: "/announcements", icon: MessageSqIcon },
-                    { label: "Conflicts", href: "/conflicts", icon: AlertTriangle },
-                    { label: "Call History", href: "/call-history", icon: Phone },
-                    { label: "Judge Availability", href: "/judge-availability", icon: Users },
-                  ].map((item) => {
-                    const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
-                    const isActive = pathname.startsWith(fullHref)
-                    return (
-                      <Link prefetch={true}
-                        key={item.label}
-                        href={fullHref}
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                        }`}
-                        onClick={() => setSidebarOpen(false)}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        {item.label}
-                      </Link>
-                    )
-                  })}
-
-                  {/* Judging sub-nav */}
-                  <div className="pt-4 pb-2">
-                    <Link prefetch={true}
-                      href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/judging`}
-                      className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
-                    >
-                      Judging
-                    </Link>
-                  </div>
-                  {[
-                    { label: "Dashboard", href: "/judging", icon: Star },
-                    { label: "Criteria", href: "/judging/criteria", icon: ListOrdered },
-                    { label: "Approvals", href: "/judging/approvals", icon: CheckCircle },
-                    { label: "Results", href: "/judging/results", icon: Trophy },
-                  ].map((item) => {
-                    const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
-                    const isActive = pathname.startsWith(fullHref)
-                    return (
-                      <Link prefetch={true}
-                        key={item.label}
-                        href={fullHref}
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                        }`}
-                        onClick={() => setSidebarOpen(false)}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        {item.label}
-                      </Link>
-                    )
-                  })}
-
-                  {/* Results sub-nav */}
-                  <div className="pt-4 pb-2">
-                    <Link prefetch={true}
-                      href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/results`}
-                      className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
-                    >
-                      Results
-                    </Link>
-                  </div>
-                  {[
-                    { label: "Dashboard", href: "/results", icon: Trophy },
-                    { label: "Grades", href: "/results/grades", icon: Award },
-                    { label: "Team Points", href: "/results/team-points", icon: Medal },
-                    { label: "Championship", href: "/results/championship", icon: Crown },
-                    { label: "Appeals", href: "/results/appeals", icon: AlertTriangle },
-                    { label: "Certificates", href: "/results/certificates", icon: FileText },
-                    { label: "Publications", href: "/results/publications", icon: Globe },
-                    { label: "Rankings", href: "/results/rankings", icon: ListOrdered },
-                    { label: "Publish Queue", href: "/results/publish", icon: Calendar },
-                  ].map((item) => {
-                    const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
-                    const isActive = pathname.startsWith(fullHref)
-                    return (
-                      <Link prefetch={true}
-                        key={item.label}
-                        href={fullHref}
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                        }`}
-                        onClick={() => setSidebarOpen(false)}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        {item.label}
-                      </Link>
-                    )
-                  })}
-
-                  {/* Finance & Reports sub-nav */}
-                  <div className="pt-4 pb-2">
-                    <Link prefetch={true}
-                      href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/finance`}
-                      className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
-                    >
-                      Finance
-                    </Link>
-                  </div>
-                  {[
-                    { label: "Dashboard", href: "/finance", icon: DollarSign },
-                    { label: "Accounts", href: "/finance/accounts", icon: Wallet },
-                    { label: "Transactions", href: "/finance/transactions", icon: Receipt },
-                    { label: "Payments", href: "/finance/payments", icon: CreditCard },
-                    { label: "Expenses", href: "/finance/expenses", icon: DollarSign },
-                    { label: "Income", href: "/finance/income", icon: BarChart3 },
-                    { label: "Budgets", href: "/finance/budgets", icon: PieChart },
-                    { label: "Sponsors", href: "/finance/sponsors", icon: Building2 },
-                    { label: "Donations", href: "/finance/donations", icon: Gift },
-                    { label: "Reports", href: "/finance/reports", icon: FileText },
-                    { label: "Analytics", href: "/finance/analytics", icon: Activity },
-                    { label: "Settings", href: "/finance/settings", icon: Settings },
-                  ].map((item) => {
-                    const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
-                    const isActive = pathname.startsWith(fullHref)
-                    return (
-                      <Link prefetch={true}
-                        key={item.label}
-                        href={fullHref}
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                        }`}
-                        onClick={() => setSidebarOpen(false)}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        {item.label}
-                      </Link>
-                    )
-                  })}
-
-                  {/* Communication sub-nav */}
-                  <div className="pt-4 pb-2">
-                    <Link prefetch={true}
-                      href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/communication`}
-                      className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
-                    >
-                      Communication
-                    </Link>
-                  </div>
-                  {[
-                    { label: "Dashboard", href: "/communication", icon: Bell },
-                    { label: "Notifications", href: "/communication/notifications", icon: Bell },
-                    { label: "Announcements", href: "/communication/announcements", icon: Megaphone },
-                    { label: "Email", href: "/communication/email", icon: Mail },
-                    { label: "SMS", href: "/communication/sms", icon: MessageSquare },
-                    { label: "Workflows", href: "/communication/workflows", icon: Workflow },
-                    { label: "Settings", href: "/communication/settings", icon: Settings },
-                  ].map((item) => {
-                    const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
-                    const isActive = pathname.startsWith(fullHref)
-                    return (
-                      <Link prefetch={true}
-                        key={item.label}
-                        href={fullHref}
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                        }`}
-                        onClick={() => setSidebarOpen(false)}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        {item.label}
-                      </Link>
-                    )
-                  })}
-
-                  {/* Admin sub-nav */}
-                  <div className="pt-4 pb-2">
-                    <Link prefetch={true}
-                      href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/admin`}
-                      className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
-                    >
-                      Administration
-                    </Link>
-                  </div>
-                  {[
-                    { label: "Dashboard", href: "/admin", icon: Shield },
-                    { label: "Audit Logs", href: "/admin/audit", icon: FileText },
-                    { label: "Security", href: "/admin/security", icon: Lock },
-                    { label: "Sessions", href: "/admin/sessions", icon: Users },
-                    { label: "Login History", href: "/admin/login-history", icon: History },
-                    { label: "System Settings", href: "/admin/settings", icon: Settings },
-                    { label: "Feature Flags", href: "/admin/features", icon: Flag },
-                    { label: "API Tokens", href: "/admin/api-tokens", icon: Key },
-                    { label: "Backups", href: "/admin/backups", icon: Database },
-                    { label: "Error Logs", href: "/admin/errors", icon: Bug },
-                  ].map((item) => {
-                    const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
-                    const isActive = pathname.startsWith(fullHref)
-                    return (
-                      <Link prefetch={true}
-                        key={item.label}
-                        href={fullHref}
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                        }`}
-                        onClick={() => setSidebarOpen(false)}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        {item.label}
-                      </Link>
-                    )
-                  })}
-
-                  {/* Volunteer & Staff sub-nav */}
-                  <div className="pt-4 pb-2">
-                    <Link prefetch={true}
-                      href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/volunteer`}
-                      className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
-                    >
-                      Volunteer & Staff
-                    </Link>
-                  </div>
-                  {[
-                    { label: "Dashboard", href: "/volunteer", icon: Users },
-                    { label: "Volunteers", href: "/volunteer/volunteers", icon: UserCheck },
-                    { label: "Staff", href: "/volunteer/staff", icon: Briefcase },
-                    { label: "Departments", href: "/volunteer/departments", icon: Building2 },
-                    { label: "Duties", href: "/volunteer/duties", icon: ClipboardList },
-                    { label: "Shifts", href: "/volunteer/shifts", icon: Clock },
-                    { label: "Attendance", href: "/volunteer/attendance", icon: CalendarDays },
-                    { label: "Tasks", href: "/volunteer/tasks", icon: CheckCircle },
-                    { label: "Checkpoints", href: "/volunteer/checkpoints", icon: MapPin },
-                    { label: "Certificates", href: "/volunteer/certificates", icon: Award },
-                  ].map((item) => {
-                    const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
-                    const isActive = pathname.startsWith(fullHref)
-                    return (
-                      <Link prefetch={true}
-                        key={item.label}
-                        href={fullHref}
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                        }`}
-                        onClick={() => setSidebarOpen(false)}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        {item.label}
-                      </Link>
-                    )
-                  })}
-
-                  {/* ID Card & Pass Management sub-nav */}
-                  <div className="pt-4 pb-2">
-                    <Link prefetch={true}
-                      href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/id-cards`}
-                      className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
-                    >
-                      ID Cards & Passes
-                    </Link>
-                  </div>
-                  {[
-                    { label: "Dashboard", href: "/id-cards", icon: IdCard },
-                    { label: "ID Cards", href: "/id-cards/cards", icon: IdCard },
-                    { label: "Templates", href: "/id-cards/templates", icon: FileText },
-                    { label: "Badges", href: "/id-cards/badges", icon: Award },
-                    { label: "Passes", href: "/id-cards/passes", icon: CreditCard },
-                    { label: "Vehicle Passes", href: "/id-cards/vehicle-passes", icon: Car },
-                    { label: "Guest Passes", href: "/id-cards/guest-passes", icon: Users },
-                    { label: "VIP Passes", href: "/id-cards/vip-passes", icon: Crown },
-                    { label: "Media Passes", href: "/id-cards/media-passes", icon: Camera },
-                    { label: "QR Codes", href: "/id-cards/qr-codes", icon: QrCode },
-                    { label: "Print Queue", href: "/id-cards/print", icon: Printer },
-                    { label: "Verification", href: "/id-cards/verification", icon: Scan },
-                    { label: "Logs", href: "/id-cards/logs", icon: History },
-                  ].map((item) => {
-                    const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
-                    const isActive = pathname.startsWith(fullHref)
-                    return (
-                      <Link prefetch={true}
-                        key={item.label}
-                        href={fullHref}
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                        }`}
-                        onClick={() => setSidebarOpen(false)}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        {item.label}
-                      </Link>
-                    )
-                  })}
-
-                  {/* Sponsor, Donor & CRM sub-nav */}
-                  <div className="pt-4 pb-2">
-                    <Link prefetch={true}
-                      href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/sponsor`}
-                      className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
-                    >
-                      Sponsor & Fund CRM
-                    </Link>
-                  </div>
-                  {[
-                    { label: "Dashboard", href: "/sponsor", icon: Handshake },
-                    { label: "Sponsors", href: "/sponsor/sponsors", icon: Building2 },
-                    { label: "Donors", href: "/sponsor/donors", icon: Users },
-                    { label: "Campaigns", href: "/sponsor/campaigns", icon: Target },
-                    { label: "Collectors", href: "/sponsor/collectors", icon: UserCheck },
-                    { label: "Donations", href: "/sponsor/donations", icon: DollarSign },
-                    { label: "Pledges", href: "/sponsor/pledges", icon: PiggyBank },
-                    { label: "Receipts", href: "/sponsor/receipts", icon: Receipt },
-                    { label: "CRM", href: "/sponsor/crm", icon: Phone },
-                  ].map((item) => {
-                    const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
-                    const isActive = pathname.startsWith(fullHref)
-                    return (
-                      <Link prefetch={true}
-                        key={item.label}
-                        href={fullHref}
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                        }`}
-                        onClick={() => setSidebarOpen(false)}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        {item.label}
-                      </Link>
-                    )
-                  })}
-
-                  {/* Help Desk & Reception sub-nav */}
-                  <div className="pt-4 pb-2">
-                    <Link prefetch={true}
-                      href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/help-desk`}
-                      className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
-                    >
-                      Help Desk & Reception
-                    </Link>
-                  </div>
-                  {[
-                    { label: "Dashboard", href: "/help-desk", icon: Ticket },
-                    { label: "Tickets", href: "/help-desk/tickets", icon: ClipboardListIcon },
-                    { label: "Desks", href: "/help-desk/desks", icon: MapPin },
-                    { label: "Knowledge", href: "/help-desk/knowledge", icon: BookOpen },
-                    { label: "FAQ", href: "/help-desk/faq", icon: HelpCircle },
-                    { label: "Visitors", href: "/help-desk/visitors", icon: Users },
-                    { label: "Passes", href: "/help-desk/passes", icon: QrCode },
-                    { label: "Check-ins", href: "/help-desk/checkins", icon: LogIn },
-                    { label: "Groups", href: "/help-desk/groups", icon: Users },
-                    { label: "Hosts", href: "/help-desk/hosts", icon: PhoneIcon },
-                    { label: "Meetings", href: "/help-desk/meetings", icon: CalendarDays },
-                    { label: "Lost Items", href: "/help-desk/lost", icon: Search },
-                    { label: "Found Items", href: "/help-desk/found", icon: Package },
-                    { label: "Claims", href: "/help-desk/claims", icon: ShieldCheck },
-                    { label: "Feedback", href: "/help-desk/feedback", icon: Star },
-                    { label: "Ratings", href: "/help-desk/ratings", icon: Star },
-                    { label: "Reports", href: "/help-desk/reports", icon: BarChart3 },
-                    { label: "Search", href: "/help-desk/search", icon: Search },
-                  ].map((item) => {
-                    const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
-                    const isActive = pathname.startsWith(fullHref)
-                    return (
-                      <Link prefetch={true}
-                        key={item.label}
-                        href={fullHref}
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                        }`}
-                        onClick={() => setSidebarOpen(false)}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        {item.label}
-                      </Link>
-                    )
-                  })}
-
-                  {/* Inventory & Assets sub-nav */}
-                  <div className="pt-4 pb-2">
-                    <Link prefetch={true}
-                      href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/inventory`}
-                      className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
-                    >
-                      Inventory & Assets
-                    </Link>
-                  </div>
-                  {[
-                    { label: "Dashboard", href: "/inventory", icon: LayoutDashboard },
-                    { label: "Warehouses", href: "/inventory/warehouses", icon: Warehouse },
-                    { label: "Items", href: "/inventory/items", icon: Package },
-                    { label: "Purchase", href: "/inventory/purchase", icon: ShoppingCart },
-                    { label: "Vendors", href: "/inventory/vendors", icon: Truck },
-                    { label: "Assets", href: "/inventory/assets", icon: Building2 },
-                    { label: "Maintenance", href: "/inventory/maintenance", icon: Wrench },
-                    { label: "Transactions", href: "/inventory/transactions", icon: TrendingUp },
-                    { label: "Audits", href: "/inventory/audit", icon: ClipboardCheck },
-                  ].map((item) => {
-                    const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
-                    const isActive = pathname.startsWith(fullHref)
-                    return (
-                      <Link prefetch={true}
-                        key={item.label}
-                        href={fullHref}
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                        }`}
-                        onClick={() => setSidebarOpen(false)}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        {item.label}
-                      </Link>
-                    )
-                  })}
-
-                  {/* Food & Catering sub-nav */}
-                  <div className="pt-4 pb-2">
-                    <Link prefetch={true}
-                      href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/food`}
-                      className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
-                    >
-                      Food & Catering
-                    </Link>
-                  </div>
-                  {[
-                    { label: "Dashboard", href: "/food", icon: Utensils },
-                    { label: "Kitchens", href: "/food/kitchens", icon: ChefHat },
-                    { label: "Sessions", href: "/food/sessions", icon: Clock },
-                    { label: "Menus", href: "/food/menus", icon: ClipboardList },
-                    { label: "Coupons", href: "/food/coupons", icon: QrCode },
-                    { label: "Distribution", href: "/food/distribution", icon: ShoppingCart },
-                    { label: "Dining Halls", href: "/food/dining", icon: Building2 },
-                    { label: "Suppliers", href: "/food/suppliers", icon: Truck },
-                    { label: "Inventory", href: "/food/inventory", icon: Package },
-                    { label: "Waste", href: "/food/waste", icon: Trash2 },
-                  ].map((item) => {
-                    const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
-                    const isActive = pathname.startsWith(fullHref)
-                    return (
-                      <Link prefetch={true}
-                        key={item.label}
-                        href={fullHref}
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                        }`}
-                        onClick={() => setSidebarOpen(false)}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        {item.label}
-                      </Link>
-                    )
-                  })}
-
-                  {/* Accommodation & Transport sub-nav */}
-                  <div className="pt-4 pb-2">
-                    <Link prefetch={true}
-                      href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/accommodation`}
-                      className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
-                    >
-                      Accommodation & Transport
-                    </Link>
-                  </div>
-                  {[
-                    { label: "Accommodation", href: "/accommodation", icon: Building2 },
-                    { label: "Rooms", href: "/accommodation/rooms", icon: LayoutGrid },
-                    { label: "Allocations", href: "/accommodation/allocations", icon: Users },
-                    { label: "Check-in/out", href: "/accommodation/checkins", icon: LogIn },
-                    { label: "Room Maint.", href: "/accommodation/maintenance", icon: Wrench },
-                    { label: "Transport", href: "/transport", icon: Truck },
-                    { label: "Vehicles", href: "/transport/vehicles", icon: Car },
-                    { label: "Drivers", href: "/transport/drivers", icon: Users },
-                    { label: "Trips", href: "/transport/trips", icon: Route },
-                    { label: "Requests", href: "/transport/requests", icon: ClipboardListIcon },
-                  ].map((item) => {
-                    const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
-                    const isActive = pathname.startsWith(fullHref)
-                    return (
-                      <Link prefetch={true}
-                        key={item.label}
-                        href={fullHref}
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                        }`}
-                        onClick={() => setSidebarOpen(false)}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        {item.label}
-                      </Link>
-                    )
-                  })}
-
-                  {/* Medical Desk & Emergency sub-nav */}
-                  <div className="pt-4 pb-2">
-                    <Link prefetch={true}
-                      href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/medical`}
-                      className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
-                    >
-                      Medical & Emergency
-                    </Link>
-                  </div>
-                  {[
-                    { label: "Dashboard", href: "/medical", icon: Activity },
-                    { label: "Centers", href: "/medical/centers", icon: Building2 },
-                    { label: "Staff", href: "/medical/staff", icon: Users },
-                    { label: "Patients", href: "/medical/patients", icon: User },
-                    { label: "Cases", href: "/medical/cases", icon: Stethoscope },
-                    { label: "Medications", href: "/medical/medications", icon: Pill },
-                    { label: "Inventory", href: "/medical/inventory", icon: Package },
-                    { label: "Incidents", href: "/medical/incidents", icon: AlertTriangle },
-                    { label: "Ambulances", href: "/medical/ambulances", icon: Truck },
-                    { label: "Referrals", href: "/medical/referrals", icon: ArrowRight },
-                    { label: "Certificates", href: "/medical/certificates", icon: FileText },
-                  ].map((item) => {
-                    const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
-                    const isActive = pathname.startsWith(fullHref)
-                    return (
-                      <Link prefetch={true}
-                        key={item.label}
-                        href={fullHref}
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                        }`}
-                        onClick={() => setSidebarOpen(false)}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        {item.label}
-                      </Link>
-                    )
-                  })}
-
-                  {/* Mobile Platform sub-nav */}
-                  <div className="pt-4 pb-2">
-                    <Link prefetch={true}
-                      href={`/dashboard/organization/${currentOrgId}/mobile`}
-                      className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
-                    >
-                      Mobile Platform
-                    </Link>
-                  </div>
-                  {[
-                    { label: "Dashboard", href: `/dashboard/organization/${currentOrgId}/mobile`, icon: Smartphone },
-                    { label: "Devices", href: `/dashboard/organization/${currentOrgId}/mobile/devices`, icon: Smartphone },
-                    { label: "Sessions", href: `/dashboard/organization/${currentOrgId}/mobile/sessions`, icon: LogIn },
-                    { label: "Sync Queue", href: `/dashboard/organization/${currentOrgId}/mobile/sync`, icon: CloudSync },
-                    { label: "Push", href: `/dashboard/organization/${currentOrgId}/mobile/push`, icon: Bell },
-                    { label: "Activity", href: `/dashboard/organization/${currentOrgId}/mobile/activity`, icon: Activity },
-                    { label: "Forms", href: `/dashboard/organization/${currentOrgId}/mobile/forms`, icon: FileText },
-                    { label: "Uploads", href: `/dashboard/organization/${currentOrgId}/mobile/uploads`, icon: UploadIcon },
-                    { label: "Reports", href: `/dashboard/organization/${currentOrgId}/mobile/reports`, icon: BarChart3 },
-                    { label: "Analytics", href: `/dashboard/organization/${currentOrgId}/mobile/analytics`, icon: TrendingUpIcon },
-                  ].map((item) => {
-                    const fullHref = item.href
-                    const isActive = pathname === fullHref || pathname.startsWith(fullHref + "/")
-                    return (
-                      <Link prefetch={true}
-                        key={item.label}
-                        href={fullHref}
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                        }`}
-                        onClick={() => setSidebarOpen(false)}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        {item.label}
-                      </Link>
-                    )
-                  })}
-
-                  {/* SaaS & Subscription sub-nav */}
-                  <div className="pt-4 pb-2">
-                    <Link prefetch={true}
-                      href={`/dashboard/organization/${currentOrgId}/saas`}
-                      className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
-                    >
-                      SaaS & Subscription
-                    </Link>
-                  </div>
-                  {[
-                    { label: "Dashboard", href: `/dashboard/organization/${currentOrgId}/saas`, icon: LayoutDashboard },
-                    { label: "Subscription", href: `/dashboard/organization/${currentOrgId}/saas/subscription`, icon: CreditCard },
-                    { label: "Billing", href: `/dashboard/organization/${currentOrgId}/saas/billing`, icon: DollarSign },
-                    { label: "Usage", href: `/dashboard/organization/${currentOrgId}/saas/usage`, icon: BarChart3 },
-                    { label: "White Label", href: `/dashboard/organization/${currentOrgId}/saas/white-label`, icon: Palette },
-                    { label: "Settings", href: `/dashboard/organization/${currentOrgId}/saas/settings`, icon: Settings },
-                  ].map((item) => {
-                    const fullHref = item.href
-                    const isActive = pathname === fullHref || pathname.startsWith(fullHref + "/")
-                    return (
-                      <Link prefetch={true}
-                        key={item.label}
-                        href={fullHref}
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                        }`}
-                        onClick={() => setSidebarOpen(false)}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        {item.label}
-                      </Link>
-                    )
-                  })}
-
-                  {/* Integrations Hub sub-nav */}
-                  <div className="pt-4 pb-2">
-                    <Link prefetch={true}
-                      href={`/dashboard/organization/${currentOrgId}/integrations`}
-                      className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
-                    >
-                      Integrations
-                    </Link>
-                  </div>
-                  {[
-                    { label: "Dashboard", href: `/dashboard/organization/${currentOrgId}/integrations`, icon: Activity },
-                    { label: "API Keys", href: `/dashboard/organization/${currentOrgId}/integrations/api-keys`, icon: Key },
-                    { label: "OAuth Apps", href: `/dashboard/organization/${currentOrgId}/integrations/oauth`, icon: Shield },
-                    { label: "Webhooks", href: `/dashboard/organization/${currentOrgId}/integrations/webhooks`, icon: Activity },
-                    { label: "Connections", href: `/dashboard/organization/${currentOrgId}/integrations/connections`, icon: Globe },
-                    { label: "Imports", href: `/dashboard/organization/${currentOrgId}/integrations/imports`, icon: UploadIcon },
-                    { label: "Exports", href: `/dashboard/organization/${currentOrgId}/integrations/exports`, icon: FileText },
-                    { label: "Jobs", href: `/dashboard/organization/${currentOrgId}/integrations/jobs`, icon: Clock },
-                    { label: "Analytics", href: `/dashboard/organization/${currentOrgId}/integrations/analytics`, icon: BarChart3 },
-                    { label: "Settings", href: `/dashboard/organization/${currentOrgId}/integrations/settings`, icon: Settings },
-                  ].map((item) => {
-                    const fullHref = item.href
-                    const isActive = pathname === fullHref || pathname.startsWith(fullHref + "/")
-                    return (
-                      <Link prefetch={true}
-                        key={item.label}
-                        href={fullHref}
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                        }`}
-                        onClick={() => setSidebarOpen(false)}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        {item.label}
-                      </Link>
-                    )
-                  })}
-
-                  {/* Participant sub-nav */}
-                  {currentParticipantId ? (
-                    <>
-                      <div className="pt-4 pb-2">
-                        <Link prefetch={true}
-                          href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/participants`}
-                          className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 truncate block max-w-full"
-                        >
-                          Participant
-                        </Link>
-                      </div>
-                      {[
-                        { label: "Details", href: "", icon: User },
-                        { label: "Registrations", href: "/registrations", icon: ClipboardList },
-                        { label: "Attendance", href: "/attendance", icon: CalendarDays },
-                        { label: "QR Cards", href: "/qr", icon: QrCode },
-                        { label: "Teams", href: "/teams", icon: Users },
-                        { label: "Import/Export", href: "/import", icon: Upload },
-                      ].map((item) => {
-                        const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/participants${item.href}`
-                        const isActive = item.href === "" ? pathname === fullHref : pathname.startsWith(fullHref)
-                        return (
-                          <Link prefetch={true}
-                            key={item.label}
-                            href={fullHref}
-                            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                              isActive ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                            }`}
-                            onClick={() => setSidebarOpen(false)}
-                          >
-                            <item.icon className="h-4 w-4" />
-                            {item.label}
-                          </Link>
-                        )
-                      })}
-                    </>
-                  ) : (
-                    <Link prefetch={true}
-                      href={`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/participants`}
-                      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                        pathname.startsWith(`/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}/participants`)
-                          ? "text-indigo-700 bg-indigo-50" : "text-gray-600 hover:text-indigo-700 hover:bg-indigo-50"
-                      }`}
-                      onClick={() => setSidebarOpen(false)}
-                    >
-                      <Users className="h-4 w-4" />
-                      Participants
-                    </Link>
-                  )}
+                  <Link prefetch={true}
+                    href={`/dashboard/organization/${currentOrgId}/festivals`}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
+                      pathname === `/dashboard/organization/${currentOrgId}/festivals` ? "text-indigo-700 bg-indigo-50" : "text-slate-600 hover:text-indigo-700 hover:bg-slate-50"
+                    }`}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <CalendarDays className="h-4 w-4" />
+                    All Festivals
+                  </Link>
+                  <Link prefetch={true}
+                    href={`/dashboard/organization/${currentOrgId}/festivals/create`}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors"
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <Plus className="h-4 w-4" />
+                    + New Festival
+                  </Link>
                 </>
               )}
             </>
@@ -1553,27 +578,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </nav>
       </aside>
 
-      {/* Overlay */}
-      {sidebarOpen && <div className="fixed inset-0 z-30 bg-black/20 lg:hidden" onClick={() => setSidebarOpen(false)} />}
+      {/* Mobile Overlay */}
+      {sidebarOpen && <div className="fixed inset-0 z-30 bg-black/30 backdrop-blur-2xs lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <main className="pt-16 lg:pl-64 min-h-screen">
         <div className="p-4 sm:p-6 max-w-7xl mx-auto">
           {pathname !== "/dashboard" && (
-            <div className="mb-4 flex items-center justify-between border-b border-gray-200/80 pb-3">
+            <div className="mb-4 flex items-center justify-between border-b border-slate-200/80 pb-3">
               <button
                 onClick={() => router.back()}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-lg shadow-2xs transition-all hover:text-indigo-600 active:scale-95 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl shadow-2xs transition-all hover:text-indigo-600 active:scale-95 cursor-pointer"
               >
-                <ArrowLeft className="h-4 w-4 text-indigo-600" /> Back to Previous Page
+                <ArrowLeft className="h-3.5 w-3.5 text-indigo-600" /> Back
               </button>
 
               {/* Breadcrumb Path */}
-              <div className="hidden sm:flex items-center gap-1 text-xs text-gray-400 font-medium overflow-x-auto max-w-md">
+              <div className="hidden sm:flex items-center gap-1 text-xs text-slate-400 font-medium overflow-x-auto max-w-md">
                 {pathname.split("/").filter(Boolean).map((part, idx, arr) => (
                   <span key={idx} className="flex items-center gap-1">
-                    {idx > 0 && <span className="text-gray-300">/</span>}
-                    <span className={idx === arr.length - 1 ? "text-indigo-700 font-semibold capitalize" : "capitalize"}>
+                    {idx > 0 && <span className="text-slate-300">/</span>}
+                    <span className={idx === arr.length - 1 ? "text-indigo-700 font-bold capitalize" : "capitalize"}>
                       {part.replace(/-/g, " ")}
                     </span>
                   </span>
@@ -1581,6 +606,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
             </div>
           )}
+
           {/* Account Status Banner (Hold / Block / Payment Due Alerts) */}
           <AccountStatusBanner organizationId={currentOrgId} />
           {children}
@@ -1591,28 +617,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {searchModalOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-black/50 backdrop-blur-xs">
           <div className="fixed inset-0" onClick={() => setSearchModalOpen(false)} />
-          <div className="relative w-full max-w-xl bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden z-10 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center gap-3 px-4 border-b border-gray-100 py-3">
-              <Search className="h-5 w-5 text-indigo-600 shrink-0" />
+          <div className="relative w-full max-w-xl bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden z-10 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 px-4 border-b border-slate-100 py-3">
+              <Search className="h-4 w-4 text-indigo-600 shrink-0" />
               <input
                 type="text"
                 autoFocus
-                placeholder="Type to search any section (e.g. Templates, Domains, Competitions, Billing, Logs)..."
+                placeholder="Type to search any section or page..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-hidden"
+                className="flex-1 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-hidden"
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery("")} className="text-xs text-gray-400 hover:text-gray-600">Clear</button>
+                <button onClick={() => setSearchQuery("")} className="text-xs text-slate-400 hover:text-slate-600">Clear</button>
               )}
-              <button onClick={() => setSearchModalOpen(false)} className="p-1 text-gray-400 hover:text-gray-600 rounded-lg">
+              <button onClick={() => setSearchModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             <div className="max-h-[60vh] overflow-y-auto p-2">
               {filteredSearchSections.length === 0 ? (
-                <div className="py-8 text-center text-sm text-gray-500">
+                <div className="py-8 text-center text-xs text-slate-500">
                   No sections found for &quot;{searchQuery}&quot;
                 </div>
               ) : (
@@ -1627,16 +653,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           setSearchModalOpen(false)
                           setSearchQuery("")
                         }}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm hover:bg-indigo-50/80 transition-colors group"
+                        className="flex items-center gap-3 px-3 py-2 rounded-xl text-xs hover:bg-indigo-50/80 transition-colors group"
                       >
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 group-hover:bg-indigo-600 group-hover:text-white text-gray-600 transition-colors">
-                          <Icon className="h-4 w-4" />
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 group-hover:bg-indigo-600 group-hover:text-white text-slate-600 transition-colors shrink-0">
+                          <Icon className="h-3.5 w-3.5" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 group-hover:text-indigo-900 truncate">{item.title}</p>
-                          <p className="text-xs text-gray-400 truncate">{item.section}</p>
+                          <p className="font-semibold text-slate-900 group-hover:text-indigo-900 truncate">{item.title}</p>
+                          <p className="text-[10px] text-slate-400 truncate">{item.section}</p>
                         </div>
-                        <ArrowRight className="h-4 w-4 text-gray-300 group-hover:text-indigo-600 transition-colors shrink-0" />
+                        <ArrowRight className="h-3.5 w-3.5 text-slate-300 group-hover:text-indigo-600 transition-colors shrink-0" />
                       </Link>
                     )
                   })}
@@ -1644,9 +670,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               )}
             </div>
 
-            <div className="px-4 py-2 bg-gray-50 border-t border-gray-100 text-xs text-gray-400 flex items-center justify-between">
-              <span>Quick Section Search</span>
-              <span>Press <kbd className="font-mono bg-white px-1.5 py-0.5 border border-gray-200 rounded">ESC</kbd> to close</span>
+            <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 text-[11px] text-slate-400 flex items-center justify-between">
+              <span>Quick Search</span>
+              <span>Press <kbd className="font-mono bg-white px-1.5 py-0.5 border border-slate-200 rounded">ESC</kbd> to close</span>
             </div>
           </div>
         </div>
