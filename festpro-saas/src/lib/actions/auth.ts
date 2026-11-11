@@ -147,6 +147,11 @@ export async function signUp(formData: {
       }
 
       if (!matchingLicense) {
+        const defaultLicenses = (await import("@/config/local-licenses.json")).default
+        matchingLicense = (defaultLicenses as any[]).find((l) => l.license_key.toUpperCase() === cleanKey)
+      }
+
+      if (!matchingLicense) {
         return { error: "Invalid Access Key / License Code. Please verify the code provided by administration." }
       }
 

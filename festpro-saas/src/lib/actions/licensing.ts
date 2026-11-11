@@ -6,6 +6,7 @@ import fs from "fs"
 import path from "path"
 import { createAdminClient } from "@/lib/supabase/admin"
 import type { SaasLicense, GenerateLicenseInput, LicenseStatus } from "@/types/licensing"
+import defaultLicensesJson from "@/config/local-licenses.json"
 
 // Fallback local file store to ensure 100% operation even if Supabase table migration hasn't been executed yet
 const LOCAL_STORE_PATH = path.join(process.cwd(), "src", "config", "local-licenses.json")
@@ -14,12 +15,13 @@ function readLocalLicenses(): SaasLicense[] {
   try {
     if (fs.existsSync(LOCAL_STORE_PATH)) {
       const content = fs.readFileSync(LOCAL_STORE_PATH, "utf-8")
-      return JSON.parse(content)
+      const parsed = JSON.parse(content)
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed
     }
   } catch (err) {
     console.error("Failed to read local licenses store:", err)
   }
-  return []
+  return (defaultLicensesJson as unknown as SaasLicense[]) || []
 }
 
 function writeLocalLicenses(licenses: SaasLicense[]) {
