@@ -204,11 +204,32 @@ export async function getVerificationLogs(certificateId: string) {
 // PUBLIC RESULTS
 // ────────────────────────────────────────────
 
+async function resolveFestival(festivalIdOrSlug: string) {
+  const admin = createAdminClient()
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(festivalIdOrSlug)
+  if (isUuid) {
+    const { data: fest } = await admin.from("festivals").select("*").eq("id", festivalIdOrSlug).maybeSingle()
+    return { id: festivalIdOrSlug, festival: fest }
+  }
+  const { data: fest } = await admin
+    .from("festivals")
+    .select("*")
+    .or(`code.eq.${festivalIdOrSlug},short_name.eq.${festivalIdOrSlug}`)
+    .maybeSingle()
+  return { id: fest?.id || festivalIdOrSlug, festival: fest }
+}
+
+export async function getPublicFestivalInfo(festivalId: string) {
+  const { festival } = await resolveFestival(festivalId)
+  return { data: festival }
+}
+
 export async function getPublicResults(festivalId: string, competitionId?: string) {
   const admin = createAdminClient()
+  const { id: resolvedId } = await resolveFestival(festivalId)
   let q = admin.from("result_items")
     .select("*, participant:participants(id, first_name, last_name, participant_id, chest_number, photo_url, unit, division)")
-    .eq("festival_id", festivalId).eq("status", "live").order("rank", { ascending: true, nullsFirst: false })
+    .eq("festival_id", resolvedId).eq("status", "live").order("rank", { ascending: true, nullsFirst: false })
   if (competitionId) q = q.eq("competition_id", competitionId)
   const { data } = await q
   return { data: data as any[] }
@@ -216,14 +237,16 @@ export async function getPublicResults(festivalId: string, competitionId?: strin
 
 export async function getPublicTeamPoints(festivalId: string) {
   const admin = createAdminClient()
+  const { id: resolvedId } = await resolveFestival(festivalId)
   const { data } = await admin.from("team_points").select("*")
-    .eq("festival_id", festivalId).eq("status", "published").order("rank", { ascending: true, nullsFirst: false })
+    .eq("festival_id", resolvedId).eq("status", "published").order("rank", { ascending: true, nullsFirst: false })
   return { data: data as any[] }
 }
 
 export async function getPublicChampionship(festivalId: string) {
   const admin = createAdminClient()
+  const { id: resolvedId } = await resolveFestival(festivalId)
   const { data } = await admin.from("overall_championship").select("*")
-    .eq("festival_id", festivalId).eq("status", "published").order("rank", { ascending: true, nullsFirst: false })
+    .eq("festival_id", resolvedId).eq("status", "published").order("rank", { ascending: true, nullsFirst: false })
   return { data: data as any[] }
 }

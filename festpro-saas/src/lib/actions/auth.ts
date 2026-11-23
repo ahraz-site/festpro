@@ -575,7 +575,7 @@ export async function createFestOrganizerAction(formData: {
       festivalId: fest.id,
       slug: festSlug,
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error("createFestOrganizerAction error:", err)
     return { error: err.message || "Failed to create festival" }
   }

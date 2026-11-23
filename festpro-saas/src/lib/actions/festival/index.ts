@@ -887,9 +887,9 @@ export async function getFestivalDashboardData(festivalId: string): Promise<Fest
     festival_id: festivalId,
     total_competitions: compCountRes.count ?? statistics?.total_competitions ?? 0,
     total_participants: participantCountRes.count ?? statistics?.total_participants ?? 0,
-    total_teams: teamCountRes.count ?? statistics?.total_teams ?? 0,
+    total_teams: teamCountRes.count ?? (statistics as any)?.total_teams ?? 0,
     total_stages: stageCountRes.count ?? statistics?.total_stages ?? 0,
-    total_results_published: statistics?.total_results_published ?? 0,
+    total_results_published: (statistics as any)?.total_results_published ?? 0,
   } as any
 
   const pointsMap = new Map((teamPointsRes.data || []).map((tp: any) => [tp.entity_id, tp]))

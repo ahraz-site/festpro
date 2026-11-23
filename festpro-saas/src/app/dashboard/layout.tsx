@@ -115,7 +115,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle()
-          .then(({ data }) => {
+          .then(({ data }: any) => {
             if (data) setCurrentFestival(data)
           })
       }
@@ -128,7 +128,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .select("id, name, short_name, code, status")
       .eq("id", currentFestivalId)
       .single()
-      .then(({ data }) => {
+      .then(({ data }: any) => {
         if (data) setCurrentFestival(data)
       })
   }, [currentFestivalId, currentOrgId])

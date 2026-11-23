@@ -261,6 +261,8 @@ export interface FestivalStatistics {
   total_competitions: number
   total_judges: number
   total_units: number
+  total_teams?: number
+  total_results_published?: number
   total_stages: number
   total_venues: number
   total_days: number
