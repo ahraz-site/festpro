@@ -384,3 +384,199 @@ export async function resendVerificationEmail() {
   if (error) return { error: error.message }
   return { success: true }
 }
+
+
+export async function createFestOrganizerAction(formData: {
+  fest_name: string
+  fest_slug: string
+  name: string
+  email: string
+  phone?: string
+  password: string
+}) {
+  try {
+    const festName = String(formData.fest_name || "").trim()
+    const rawSlug = String(formData.fest_slug || "").trim().toLowerCase()
+    const festSlug = rawSlug.replace(/[^a-z0-9-]/g, "") || ("fest-" + Math.random().toString(36).substring(2, 6))
+    const fullName = String(formData.name || "Organizer").trim()
+    const email = String(formData.email || "").trim().toLowerCase()
+    const password = String(formData.password || "")
+    const phone = String(formData.phone || "").trim()
+
+    if (!festName) return { error: "Please enter your festival name." }
+    if (!email || !password) return { error: "Email and password are required." }
+    if (password.length < 6) return { error: "Password must be at least 6 characters." }
+
+    const nameParts = fullName.split(" ")
+    const firstName = nameParts[0] || "Organizer"
+    const lastName = nameParts.slice(1).join(" ") || ""
+
+    const supabase = await createServerClient()
+    const adminClient = createAdminClient()
+
+    let userId: string | null = null
+
+    // 1. Try to sign up user
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          phone,
+        },
+      },
+    })
+
+    if (authError) {
+      // If user already exists, attempt to sign in with password
+      const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      if (signInErr) {
+        return { error: authError.message }
+      }
+      userId = signInData.user.id
+    } else if (authData?.user) {
+      userId = authData.user.id
+    }
+
+    if (!userId) {
+      return { error: "Failed to establish organizer user account." }
+    }
+
+    // 2. Create organization
+    const orgSlug = "org-" + festSlug + "-" + Math.random().toString(36).substring(2, 6)
+    const { data: org, error: orgError } = await adminClient
+      .from("organizations")
+      .insert({
+        name: festName,
+        slug: orgSlug,
+      })
+      .select()
+      .single()
+
+    if (orgError) {
+      return { error: "Organization creation failed: " + orgError.message }
+    }
+
+    // 3. Link organization member
+    await adminClient.from("organization_members").upsert({
+      organization_id: org.id,
+      user_id: userId,
+      role: "organization_owner",
+    })
+
+    // 4. Update profile
+    await adminClient.from("profiles").upsert({
+      id: userId,
+      email,
+      first_name: firstName,
+      last_name: lastName,
+      role: "organization_owner",
+      organization_id: org.id,
+      phone: phone || null,
+    })
+
+    // 5. Create Festival
+    const today = new Date().toISOString().split("T")[0]
+    const { data: fest, error: festError } = await adminClient
+      .from("festivals")
+      .insert({
+        organization_id: org.id,
+        name: festName,
+        short_name: festName.length > 50 ? festName.substring(0, 50) : festName,
+        code: festSlug,
+        description: "Official festival workspace for " + festName,
+        start_date: today,
+        status: "draft",
+        visibility: "public",
+      })
+      .select()
+      .single()
+
+    if (festError) {
+      return { error: "Festival workspace creation failed: " + festError.message }
+    }
+
+    // 6. Seed starter data matching Festize template:
+    try {
+      // 2 Teams
+      const { data: teamsData } = await adminClient.from("teams").insert([
+        { festival_id: fest.id, name: "Team A", code: "TA", color: "#3B82F6" },
+        { festival_id: fest.id, name: "Team B", code: "TB", color: "#EF4444" },
+      ]).select()
+
+      // 1 Stage
+      const { data: stageData } = await adminClient.from("festival_stages").insert([
+        { festival_id: fest.id, name: "Stage 1", code: "ST1", venue_name: "Main Ground", is_active: true },
+      ]).select().single()
+
+      // 1 Category
+      const { data: catData } = await adminClient.from("competition_categories").insert([
+        { festival_id: fest.id, name: "Senior", code: "SNR" },
+      ]).select().single()
+
+      // 1 Program / Competition
+      const { data: compData } = await adminClient.from("competitions").insert([
+        {
+          festival_id: fest.id,
+          name: "Madh Song",
+          code: "MS01",
+          category_id: catData?.id,
+          type: "individual",
+          status: "started",
+        },
+      ]).select().single()
+
+      // 8 Participants (4 in Team A, 4 in Team B)
+      if (teamsData && teamsData.length >= 2) {
+        const teamA = teamsData[0]
+        const teamB = teamsData[1]
+        await adminClient.from("participants").insert([
+          { festival_id: fest.id, team_id: teamA.id, first_name: "Ahmed", last_name: "Razi", chest_number: "101", status: "active" },
+          { festival_id: fest.id, team_id: teamA.id, first_name: "Bilal", last_name: "K", chest_number: "102", status: "active" },
+          { festival_id: fest.id, team_id: teamA.id, first_name: "Faris", last_name: "M", chest_number: "103", status: "active" },
+          { festival_id: fest.id, team_id: teamA.id, first_name: "Haneen", last_name: "P", chest_number: "104", status: "active" },
+          { festival_id: fest.id, team_id: teamB.id, first_name: "Zayan", last_name: "T", chest_number: "105", status: "active" },
+          { festival_id: fest.id, team_id: teamB.id, first_name: "Rayyan", last_name: "S", chest_number: "106", status: "active" },
+          { festival_id: fest.id, team_id: teamB.id, first_name: "Nihal", last_name: "V", chest_number: "107", status: "active" },
+          { festival_id: fest.id, team_id: teamB.id, first_name: "Adil", last_name: "C", chest_number: "108", status: "active" },
+        ])
+      }
+
+      // Schedule for the program on Stage 1
+      if (compData && stageData) {
+        await adminClient.from("stage_schedules").insert([
+          {
+            festival_id: fest.id,
+            competition_id: compData.id,
+            stage_id: stageData.id,
+            scheduled_date: today,
+            start_time: "10:00:00",
+            status: "started",
+          },
+        ])
+      }
+    } catch (seedErr) {
+      console.warn("Seeding initial fest data failed non-critically:", seedErr)
+    }
+
+    // Ensure session is set by signing in with password
+    try {
+      await supabase.auth.signInWithPassword({ email, password })
+    } catch (_) {}
+
+    return {
+      success: true,
+      orgId: org.id,
+      festivalId: fest.id,
+      slug: festSlug,
+    }
+  } catch (err) {
+    console.error("createFestOrganizerAction error:", err)
+    return { error: err.message || "Failed to create festival" }
+  }
+}

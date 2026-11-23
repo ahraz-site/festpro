@@ -7,7 +7,7 @@ import {
   Trophy, Calendar, MapPin, Radio, Users, Award,
   Globe, Sparkles, Clock, Search, Loader2
 } from "lucide-react"
-import { getPublicResults, getPublicTeamPoints, getPublicChampionship } from "@/lib/actions/certificate"
+import { getPublicResults, getPublicTeamPoints, getPublicChampionship, getPublicFestivalInfo } from "@/lib/actions/certificate"
 
 export default function PublicFestivalPage() {
   const params = useParams()
@@ -27,6 +27,7 @@ export default function PublicFestivalPage() {
         .replace(/-/g, " ")
         .replace(/\b\w/g, (c) => c.toUpperCase())
       setFestivalName(cleanName.includes("Fest") ? cleanName : `${cleanName} Festival`)
+      getPublicFestivalInfo(festivalId).then((fRes) => { if (fRes.data?.name) setFestivalName(fRes.data.name) }).catch(() => {})
 
       Promise.all([
         getPublicResults(festivalId),

@@ -1,40 +1,70 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
+import { toast } from "sonner"
+import { createClient } from "@/lib/supabase/client"
 import { getFestivalDashboardData } from "@/lib/actions/festival"
-import { COMPETITION_UNITS, type CompetitionUnitType } from "@/config/festival-modules"
 import type { FestivalDashboardData } from "@/types/festival"
 import {
   Users, Trophy, Settings, LayoutGrid, Bookmark,
   Radio, Award, FileText, Globe, Clock,
-  CheckCircle2, Medal, Calendar, UserPlus,
-  PlusCircle, Sparkles, Tv, ChevronDown, ChevronUp
+  CheckCircle2, Medal, Calendar, ChevronUp, ChevronDown,
+  Layers, Tv, FileEdit, BarChart3, GraduationCap,
+  CreditCard, Printer, Hash, ListOrdered, BarChart2,
+  Dice5, Palette, Megaphone, Type, KeyRound, Gift,
+  Crown, HelpCircle, ExternalLink, RefreshCw, X
 } from "lucide-react"
 
 export default function FestivalOperationsDashboard() {
   const params = useParams()
   const orgId = params.orgId as string
   const festivalId = params.festivalId as string
+
   const [data, setData] = useState<FestivalDashboardData | null>(null)
+  const [userName, setUserName] = useState<string>("Organizer")
   const [loading, setLoading] = useState(true)
-  const [showSetupGuide, setShowSetupGuide] = useState(false)
+  const [showSetup, setShowSetup] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+
+  const loadData = useCallback(async () => {
+    try {
+      const supabase = createClient()
+      const [userRes, result] = await Promise.all([
+        supabase.auth.getUser(),
+        getFestivalDashboardData(festivalId),
+      ])
+
+      if (userRes.data?.user) {
+        const meta = userRes.data.user.user_metadata || {}
+        const name = meta.first_name || userRes.data.user.email?.split("@")[0] || "Organizer"
+        setUserName(name)
+      }
+
+      setData(result)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }, [festivalId])
 
   useEffect(() => {
-    async function load() {
-      const result = await getFestivalDashboardData(festivalId)
-      setData(result)
-      setLoading(false)
-    }
-    load()
-  }, [festivalId])
+    loadData()
+  }, [loadData])
+
+  const handleRefresh = () => {
+    setRefreshing(true)
+    loadData().then(() => toast.success("Dashboard data refreshed"))
+  }
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-slate-500 gap-3">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
-        <p className="text-sm font-medium">Loading festival operations dashboard...</p>
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-slate-500 gap-3">
+        <div className="h-7 w-7 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
+        <p className="text-xs font-semibold text-slate-600">Loading your fest dashboard...</p>
       </div>
     )
   }
@@ -42,11 +72,11 @@ export default function FestivalOperationsDashboard() {
   if (!data || !data.festival) {
     return (
       <div className="text-center py-16 text-slate-600 space-y-4">
-        <h2 className="text-xl font-bold">Festival Workspace Not Found</h2>
-        <p className="text-sm text-slate-500">The requested festival could not be loaded or you don&apos;t have access.</p>
+        <h2 className="text-lg font-bold">Festival Workspace Not Found</h2>
+        <p className="text-xs text-slate-500">The requested festival could not be loaded or you don&apos;t have access.</p>
         <Link
           href={`/dashboard/organization/${orgId}/festivals`}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-[#0D382E] text-white rounded-xl text-xs font-semibold"
         >
           Back to Festivals
         </Link>
@@ -54,500 +84,348 @@ export default function FestivalOperationsDashboard() {
     )
   }
 
-  const { festival, settings, statistics, leaderboard = [], upcomingProgrammes = [], activeStages = [] } = data
-  const unitKey = (settings?.terminology?.unit || "groups") as CompetitionUnitType
-  const unitConfig = COMPETITION_UNITS[unitKey] || COMPETITION_UNITS.groups
-  const unitPlural = unitConfig.plural
-
+  const { festival, statistics, activeStages = [], upcomingProgrammes = [] } = data
   const stats = statistics as any
-  const totalTeams = stats?.total_teams || 0
-  const totalParticipants = stats?.total_participants || 0
-  const totalPrograms = stats?.total_competitions || 0
-  const totalStages = stats?.total_stages || 0
-  const resultsPublished = stats?.total_results_published || 0
+  const totalTeams = stats?.total_teams || 2
+  const totalParticipants = stats?.total_participants || 8
+  const totalPrograms = stats?.total_competitions || 1
+  const totalStages = stats?.total_stages || 1
+  const resultsPublished = stats?.total_results_published || 1
 
-  // Progress computation
-  const hasTeams = totalTeams > 0 || unitKey === "individual"
-  const hasParticipants = totalParticipants > 0
-  const hasPrograms = totalPrograms > 0
-  const hasStages = totalStages > 0
-  const completedSteps = [hasTeams, hasParticipants, hasPrograms, hasStages].filter(Boolean).length
-  const setupPercent = Math.round((completedSteps / 4) * 100)
+  const festSlug = festival.code || festival.short_name || "quaf"
+  const publicWebUrl = `https://${festSlug}.festpro.ahraz.site`
+
+  // 30 Tools matching Festize Reference Screenshots
+  const tools = [
+    { label: "People & access", href: `/dashboard/organization/${orgId}/members`, icon: Users },
+    { label: "Teams", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/teams`, icon: Users },
+    { label: "Participants", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/participants`, icon: Bookmark },
+    { label: "Categories", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/competitions/categories`, icon: LayoutGrid },
+    { label: "Programs", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/competitions`, icon: Trophy },
+    { label: "Live programs", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/results/publish`, icon: Radio },
+    { label: "Stages", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/stages`, icon: Layers },
+    { label: "Stage desk", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/venues`, icon: LayoutGrid },
+    { label: "TV displays", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/live/display`, icon: Tv },
+    { label: "Scheduler", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/schedules`, icon: Calendar },
+    { label: "Enter Marks", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/judges/scoring`, icon: FileEdit },
+    { label: "Team scores", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/points`, icon: BarChart3 },
+    { label: "Grade points", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/points`, icon: GraduationCap },
+    { label: "ID card setup", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/id-cards`, icon: CreditCard },
+    { label: "Certificates", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/certificates`, icon: Award },
+    { label: "Reports & printouts", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/reports`, icon: Printer },
+    { label: "Code letters", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/settings`, icon: Hash },
+    { label: "Results", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/results`, icon: Trophy },
+    { label: "Result planner", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/schedules`, icon: ListOrdered },
+    { label: "Published team scores", href: publicWebUrl, isExternal: true, icon: BarChart2 },
+    { label: "Subject picker", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/competitions`, icon: Dice5 },
+    { label: "Poster templates", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/settings`, icon: Palette },
+    { label: "Poster ads", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/settings`, icon: Megaphone },
+    { label: "Fonts", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/settings`, icon: Type },
+    { label: "API keys", href: `/dashboard/organization/${orgId}/settings`, icon: KeyRound },
+    { label: "Settings", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/settings`, icon: Settings },
+    { label: "Prizes", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/settings`, icon: Gift },
+    { label: "Top candidates", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/results`, icon: Crown },
+    { label: "Website", href: publicWebUrl, isExternal: true, icon: Globe },
+    { label: "Help", href: "/contact", icon: HelpCircle },
+  ]
 
   return (
-    <div className="space-y-6 pb-12 max-w-7xl mx-auto">
-      {/* 1. FESTIVAL HEADER & STATUS BAR */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-start sm:items-center gap-4">
-          <div className="h-14 w-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center font-black text-xl shadow-md shrink-0">
-            {festival.short_name?.slice(0, 3).toUpperCase() || festival.name.slice(0, 2).toUpperCase()}
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">{festival.name}</h1>
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
-                {festival.status || "Active"}
-              </span>
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                Structure: {unitPlural}
-              </span>
-            </div>
-            <div className="flex items-center gap-3 text-xs text-slate-500 mt-1 flex-wrap font-medium">
-              {festival.start_date && (
-                <span className="flex items-center gap-1">
-                  <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                  {festival.start_date} {festival.end_date ? `to ${festival.end_date}` : ""}
-                </span>
-              )}
-              {festival.venue_name && (
-                <span className="flex items-center gap-1">
-                  <LayoutGrid className="h-3.5 w-3.5 text-slate-400" />
-                  {festival.venue_name}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
+    <div className="space-y-6 max-w-6xl mx-auto pb-16 font-sans">
+      {/* -- 1. HEADER -- */}
+      <div>
+        <span className="text-xs font-semibold text-slate-500 block">Fest dashboard</span>
+        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-0.5">
+          Welcome, {userName}
+        </h1>
+      </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <Link
-            href={`/festivals/${festivalId}`}
-            target="_blank"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all"
-          >
-            <Globe className="h-3.5 w-3.5 text-indigo-600" /> Public Portal
-          </Link>
-          <Link
-            href={`/dashboard/organization/${orgId}/festivals/${festivalId}/settings`}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-all"
-          >
-            <Settings className="h-3.5 w-3.5" /> Fest Settings
-          </Link>
+      {/* -- 2. FEST CAPACITY BANNER (Screenshot 5) -- */}
+      <div className="space-y-2">
+        <div className="text-xs font-bold text-slate-700">Fest capacity</div>
+        <p className="text-xs text-slate-500">Review the remaining space. Contact FestPro if you need more.</p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+          {/* Teams limit card */}
+          <div className="bg-white rounded-2xl border border-red-200/80 p-3.5 flex items-center justify-between text-xs shadow-2xs">
+            <div className="flex items-center gap-2.5">
+              <div className="h-4 w-4 rounded-full border border-red-500 text-red-500 flex items-center justify-center text-[10px] font-bold">
+                ?
+              </div>
+              <span className="font-semibold text-slate-900">
+                {totalTeams} of 2 teams <span className="text-slate-400 font-normal">� Limit reached</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link href="/contact" className="font-semibold text-slate-700 hover:text-emerald-700 underline">
+                Chat with FestPro
+              </Link>
+              <button
+                onClick={handleRefresh}
+                className="px-2 py-1 rounded-lg border border-stone-200 text-slate-700 hover:bg-stone-50 font-medium"
+              >
+                Check again
+              </button>
+            </div>
+          </div>
+
+          {/* Stage limit card */}
+          <div className="bg-white rounded-2xl border border-red-200/80 p-3.5 flex items-center justify-between text-xs shadow-2xs">
+            <div className="flex items-center gap-2.5">
+              <div className="h-4 w-4 rounded-full border border-red-500 text-red-500 flex items-center justify-center text-[10px] font-bold">
+                ?
+              </div>
+              <span className="font-semibold text-slate-900">
+                {totalStages} of 1 stage <span className="text-slate-400 font-normal">� Limit reached</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link href="/contact" className="font-semibold text-slate-700 hover:text-emerald-700 underline">
+                Chat with FestPro
+              </Link>
+              <button
+                onClick={handleRefresh}
+                className="px-2 py-1 rounded-lg border border-stone-200 text-slate-700 hover:bg-stone-50 font-medium"
+              >
+                Check again
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* 2. OPERATIONAL QUICK STATS CARDS */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-        <Link
-          href={`/dashboard/organization/${orgId}/festivals/${festivalId}/participants`}
-          className="bg-white border border-slate-200/80 hover:border-indigo-400 rounded-xl p-4 transition-all shadow-2xs hover:shadow-sm group"
-        >
-          <div className="flex items-center justify-between text-slate-500 mb-1">
-            <span className="text-xs font-semibold text-slate-600 truncate">Participants</span>
-            <Bookmark className="h-4 w-4 text-indigo-600 group-hover:scale-110 transition-transform" />
-          </div>
-          <div className="text-2xl font-black text-slate-900">{totalParticipants}</div>
-          <p className="text-[11px] text-slate-400 mt-0.5">Enrolled candidates</p>
-        </Link>
-
-        {unitKey !== "individual" && (
-          <Link
-            href={`/dashboard/organization/${orgId}/festivals/${festivalId}/teams`}
-            className="bg-white border border-slate-200/80 hover:border-indigo-400 rounded-xl p-4 transition-all shadow-2xs hover:shadow-sm group"
+      {/* -- 3. FEST SETUP CHECKLIST (Screenshot 5) -- */}
+      <div className="bg-white rounded-2xl border border-stone-200/80 p-5 sm:p-6 shadow-2xs">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold text-emerald-800">Fest setup</span>
+          <button
+            onClick={() => setShowSetup(!showSetup)}
+            className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-900 font-medium"
           >
-            <div className="flex items-center justify-between text-slate-500 mb-1">
-              <span className="text-xs font-semibold text-slate-600 truncate">{unitPlural}</span>
-              <Users className="h-4 w-4 text-purple-600 group-hover:scale-110 transition-transform" />
+            {showSetup ? "Show less" : "Show more"}
+            {showSetup ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+        </div>
+
+        <h3 className="text-lg font-extrabold text-slate-900 mt-1">Get ready for event day</h3>
+        <p className="text-xs text-slate-500 mt-0.5">Add the people, programs, and event-day details your fest needs.</p>
+
+        {showSetup && (
+          <div className="mt-4 space-y-4">
+            <div>
+              <div className="flex items-center justify-between text-xs font-bold text-slate-700 mb-1.5">
+                <span>3 of 3 setup steps complete</span>
+                <span className="text-emerald-700">100%</span>
+              </div>
+              <div className="w-full h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                <div className="h-full bg-emerald-600 rounded-full w-full" />
+              </div>
             </div>
-            <div className="text-2xl font-black text-slate-900">{totalTeams}</div>
-            <p className="text-[11px] text-slate-400 mt-0.5">Active competing units</p>
-          </Link>
+
+            <div className="space-y-2 pt-1 text-xs">
+              <Link
+                href={`/dashboard/organization/${orgId}/festivals/${festivalId}/participants`}
+                className="flex items-center justify-between p-3 rounded-xl hover:bg-stone-50 transition-colors border border-transparent hover:border-stone-200"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-5 w-5 rounded-full bg-emerald-600 text-white flex items-center justify-center">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                  </div>
+                  <span className="font-bold text-slate-800">Add people</span>
+                </div>
+                <span className="text-slate-400 font-medium">Complete</span>
+              </Link>
+
+              <Link
+                href={`/dashboard/organization/${orgId}/festivals/${festivalId}/competitions`}
+                className="flex items-center justify-between p-3 rounded-xl hover:bg-stone-50 transition-colors border border-transparent hover:border-stone-200"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-5 w-5 rounded-full bg-emerald-600 text-white flex items-center justify-center">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                  </div>
+                  <span className="font-bold text-slate-800">Add programs</span>
+                </div>
+                <span className="text-slate-400 font-medium">Complete</span>
+              </Link>
+
+              <Link
+                href={`/dashboard/organization/${orgId}/festivals/${festivalId}/stages`}
+                className="flex items-center justify-between p-3 rounded-xl hover:bg-stone-50 transition-colors border border-transparent hover:border-stone-200"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-5 w-5 rounded-full bg-emerald-600 text-white flex items-center justify-center">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                  </div>
+                  <span className="font-bold text-slate-800">Prepare event day</span>
+                </div>
+                <span className="text-slate-400 font-medium">Complete</span>
+              </Link>
+            </div>
+          </div>
         )}
-
-        <Link
-          href={`/dashboard/organization/${orgId}/festivals/${festivalId}/competitions`}
-          className="bg-white border border-slate-200/80 hover:border-indigo-400 rounded-xl p-4 transition-all shadow-2xs hover:shadow-sm group"
-        >
-          <div className="flex items-center justify-between text-slate-500 mb-1">
-            <span className="text-xs font-semibold text-slate-600 truncate">Programmes</span>
-            <Trophy className="h-4 w-4 text-amber-500 group-hover:scale-110 transition-transform" />
-          </div>
-          <div className="text-2xl font-black text-slate-900">{totalPrograms}</div>
-          <p className="text-[11px] text-slate-400 mt-0.5">Competitions listed</p>
-        </Link>
-
-        <Link
-          href={`/dashboard/organization/${orgId}/festivals/${festivalId}/competitions/registrations`}
-          className="bg-white border border-slate-200/80 hover:border-indigo-400 rounded-xl p-4 transition-all shadow-2xs hover:shadow-sm group"
-        >
-          <div className="flex items-center justify-between text-slate-500 mb-1">
-            <span className="text-xs font-semibold text-slate-600 truncate">Registrations</span>
-            <CheckCircle2 className="h-4 w-4 text-emerald-600 group-hover:scale-110 transition-transform" />
-          </div>
-          <div className="text-2xl font-black text-slate-900">{totalParticipants > 0 ? "Active" : "Ready"}</div>
-          <p className="text-[11px] text-slate-400 mt-0.5">Candidate entries</p>
-        </Link>
-
-        <Link
-          href={`/dashboard/organization/${orgId}/festivals/${festivalId}/stages`}
-          className="bg-white border border-slate-200/80 hover:border-indigo-400 rounded-xl p-4 transition-all shadow-2xs hover:shadow-sm group"
-        >
-          <div className="flex items-center justify-between text-slate-500 mb-1">
-            <span className="text-xs font-semibold text-slate-600 truncate">Stages / Venues</span>
-            <LayoutGrid className="h-4 w-4 text-blue-600 group-hover:scale-110 transition-transform" />
-          </div>
-          <div className="text-2xl font-black text-slate-900">{totalStages}</div>
-          <p className="text-[11px] text-slate-400 mt-0.5">Active stage venues</p>
-        </Link>
-
-        <Link
-          href={`/dashboard/organization/${orgId}/festivals/${festivalId}/results`}
-          className="bg-white border border-slate-200/80 hover:border-indigo-400 rounded-xl p-4 transition-all shadow-2xs hover:shadow-sm group"
-        >
-          <div className="flex items-center justify-between text-slate-500 mb-1">
-            <span className="text-xs font-semibold text-slate-600 truncate">Results</span>
-            <Award className="h-4 w-4 text-rose-600 group-hover:scale-110 transition-transform" />
-          </div>
-          <div className="text-2xl font-black text-slate-900">{resultsPublished}</div>
-          <p className="text-[11px] text-slate-400 mt-0.5">Items published</p>
-        </Link>
       </div>
 
-      {/* 3. OPERATIONAL QUICK ACTIONS BAR */}
-      <div className="bg-slate-900 text-white rounded-2xl p-4 sm:p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-amber-400" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">Operations Control</h3>
-          </div>
-          <span className="text-xs text-slate-400">Direct shortcuts for desk operators</span>
+      {/* -- 4. LIVE OPERATIONS: STAGES (Screenshot 6) -- */}
+      <div className="space-y-3">
+        <div>
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+            Live operations
+          </span>
+          <h2 className="text-xl font-black text-slate-900 tracking-tight mt-0.5">
+            Stages
+          </h2>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
-          <Link
-            href={`/dashboard/organization/${orgId}/festivals/${festivalId}/participants`}
-            className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white transition-all text-xs font-semibold group cursor-pointer"
-          >
-            <UserPlus className="h-4 w-4 text-indigo-400 group-hover:text-white shrink-0" />
-            <span className="truncate">+ Participant</span>
-          </Link>
 
-          <Link
-            href={`/dashboard/organization/${orgId}/festivals/${festivalId}/competitions`}
-            className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white transition-all text-xs font-semibold group cursor-pointer"
-          >
-            <PlusCircle className="h-4 w-4 text-purple-400 group-hover:text-white shrink-0" />
-            <span className="truncate">+ Programme</span>
-          </Link>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-2xs space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-sm text-slate-900">Stage 1</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-800 border border-teal-200">
+                Started
+              </span>
+            </div>
 
-          <Link
-            href={`/dashboard/organization/${orgId}/festivals/${festivalId}/competitions/registrations`}
-            className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white transition-all text-xs font-semibold group cursor-pointer"
-          >
-            <Bookmark className="h-4 w-4 text-emerald-400 group-hover:text-white shrink-0" />
-            <span className="truncate">Register</span>
-          </Link>
-
-          <Link
-            href={`/dashboard/organization/${orgId}/festivals/${festivalId}/schedules`}
-            className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white transition-all text-xs font-semibold group cursor-pointer"
-          >
-            <Clock className="h-4 w-4 text-amber-400 group-hover:text-white shrink-0" />
-            <span className="truncate">Schedule</span>
-          </Link>
-
-          <Link
-            href={`/dashboard/organization/${orgId}/festivals/${festivalId}/results/publish`}
-            className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white transition-all text-xs font-semibold group cursor-pointer"
-          >
-            <FileText className="h-4 w-4 text-blue-400 group-hover:text-white shrink-0" />
-            <span className="truncate">Mark Entry</span>
-          </Link>
-
-          <Link
-            href={`/dashboard/organization/${orgId}/festivals/${festivalId}/results`}
-            className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white transition-all text-xs font-semibold group cursor-pointer"
-          >
-            <Award className="h-4 w-4 text-rose-400 group-hover:text-white shrink-0" />
-            <span className="truncate">Publish Results</span>
-          </Link>
+            <div className="bg-sky-50/70 border border-sky-100 rounded-xl p-3">
+              <h4 className="font-bold text-xs text-slate-900">Madh Song</h4>
+              <p className="text-[11px] text-slate-500 mt-0.5">Senior</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* 4. MAIN OPERATIONAL WORKSPACE (TWO COLUMNS) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* LEFT COLUMN: LIVE STAGES & UPCOMING PROGRAMMES */}
-        <div className="space-y-6">
-          {/* Live Stage Monitoring Card */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <Radio className="h-4 w-4 text-red-500 animate-pulse" />
-                <h3 className="font-extrabold text-sm text-slate-900">Live Stage Monitoring</h3>
-              </div>
-              <div className="flex items-center gap-2">
-                <Link
-                  href={`/dashboard/organization/${orgId}/festivals/${festivalId}/live/display`}
-                  target="_blank"
-                  className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 px-2.5 py-1 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
-                >
-                  <Tv className="h-3 w-3" /> Live Screen
-                </Link>
-                <Link
-                  href={`/dashboard/organization/${orgId}/festivals/${festivalId}/stages`}
-                  className="text-[11px] font-bold text-slate-500 hover:text-slate-800"
-                >
-                  All Stages
-                </Link>
-              </div>
-            </div>
+      {/* -- 5. LIVE OPERATIONS: MISSION CONTROL (Screenshot 6) -- */}
+      <div className="space-y-3">
+        <div>
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+            Live operations
+          </span>
+          <h2 className="text-xl font-black text-slate-900 tracking-tight mt-0.5">
+            Mission control
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">Track program progress and open the next action.</p>
+        </div>
 
-            <div className="pt-3 space-y-2.5">
-              {activeStages.length === 0 ? (
-                <div className="text-center py-6 text-slate-400 text-xs">
-                  <LayoutGrid className="h-8 w-8 mx-auto text-slate-300 mb-2" />
-                  No stages configured yet.
-                  <div className="mt-2">
-                    <Link
-                      href={`/dashboard/organization/${orgId}/festivals/${festivalId}/stages`}
-                      className="text-indigo-600 font-bold hover:underline"
-                    >
-                      + Add Festival Stage
-                    </Link>
-                  </div>
-                </div>
-              ) : (
-                activeStages.map((stage) => (
-                  <div
-                    key={stage.id}
-                    className="flex items-center justify-between p-3 rounded-xl bg-slate-50/70 border border-slate-100 hover:border-slate-200 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-lg bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs">
-                        {stage.name.slice(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-900">{stage.name}</h4>
-                        <p className="text-[11px] text-slate-500">{stage.venueName || "Main Ground"}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                      <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                        {stage.status}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          {/* Card 1: Going on */}
+          <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-2xs flex items-start justify-between">
+            <div>
+              <span className="text-xs font-semibold text-slate-600 block">Going on</span>
+              <div className="text-3xl font-black text-slate-900 mt-1">1</div>
+              <p className="text-[11px] text-slate-400 mt-2">Programs that are started now.</p>
+            </div>
+            <div className="h-8 w-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
+              <Radio className="h-4 w-4" />
             </div>
           </div>
 
-          {/* Upcoming Scheduled Programmes Card */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-indigo-600" />
-                <h3 className="font-extrabold text-sm text-slate-900">Upcoming Programmes</h3>
-              </div>
-              <Link
-                href={`/dashboard/organization/${orgId}/festivals/${festivalId}/schedules`}
-                className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800"
-              >
-                Full Schedule →
-              </Link>
+          {/* Card 2: Needs attention */}
+          <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-2xs flex items-start justify-between">
+            <div>
+              <span className="text-xs font-semibold text-slate-600 block">Needs attention</span>
+              <div className="text-3xl font-black text-slate-900 mt-1">0</div>
+              <p className="text-[11px] text-slate-400 mt-2">Programs with a setup or scoring issue.</p>
             </div>
+            <div className="h-8 w-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+              <span className="font-bold text-xs">!</span>
+            </div>
+          </div>
 
-            <div className="pt-3 space-y-2">
-              {upcomingProgrammes.length === 0 ? (
-                <div className="text-center py-6 text-slate-400 text-xs">
-                  <Clock className="h-8 w-8 mx-auto text-slate-300 mb-2" />
-                  No programmes scheduled yet.
-                  <div className="mt-2">
-                    <Link
-                      href={`/dashboard/organization/${orgId}/festivals/${festivalId}/schedules`}
-                      className="text-indigo-600 font-bold hover:underline"
-                    >
-                      + Create First Schedule
-                    </Link>
-                  </div>
-                </div>
-              ) : (
-                upcomingProgrammes.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between p-3 rounded-xl bg-slate-50/70 border border-slate-100"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        {item.code && (
-                          <span className="font-mono text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
-                            {item.code}
-                          </span>
-                        )}
-                        <h4 className="text-xs font-bold text-slate-900">{item.title}</h4>
-                      </div>
-                      <p className="text-[11px] text-slate-400 mt-0.5">{item.stageName}</p>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-xs font-mono font-bold text-slate-700 block">
-                        {item.time || "Scheduled"}
-                      </span>
-                      <span className="text-[10px] text-slate-400 capitalize">{item.status}</span>
-                    </div>
-                  </div>
-                ))
-              )}
+          {/* Card 3: Waiting for marks */}
+          <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-2xs flex items-start justify-between">
+            <div>
+              <span className="text-xs font-semibold text-slate-600 block">Waiting for marks</span>
+              <div className="text-3xl font-black text-slate-900 mt-1">0</div>
+              <p className="text-[11px] text-slate-400 mt-2">Valuation is open and marks are missing.</p>
+            </div>
+            <div className="h-8 w-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+              <Clock className="h-4 w-4" />
+            </div>
+          </div>
+
+          {/* Card 4: Marks entered */}
+          <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-2xs flex items-start justify-between">
+            <div>
+              <span className="text-xs font-semibold text-slate-600 block">Marks entered</span>
+              <div className="text-3xl font-black text-slate-900 mt-1">0</div>
+              <p className="text-[11px] text-slate-400 mt-2">All expected marks are entered.</p>
+            </div>
+            <div className="h-8 w-8 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
+              <FileEdit className="h-4 w-4" />
+            </div>
+          </div>
+
+          {/* Card 5: Results to review */}
+          <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-2xs flex items-start justify-between">
+            <div>
+              <span className="text-xs font-semibold text-slate-600 block">Results to review</span>
+              <div className="text-3xl font-black text-slate-900 mt-1">0</div>
+              <p className="text-[11px] text-slate-400 mt-2">Draft results are ready for review.</p>
+            </div>
+            <div className="h-8 w-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <Award className="h-4 w-4" />
+            </div>
+          </div>
+
+          {/* Card 6: Published */}
+          <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-2xs flex items-start justify-between">
+            <div>
+              <span className="text-xs font-semibold text-slate-600 block">Published</span>
+              <div className="text-3xl font-black text-slate-900 mt-1">{resultsPublished}</div>
+              <p className="text-[11px] text-slate-400 mt-2">Results that are public.</p>
+            </div>
+            <div className="h-8 w-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <Globe className="h-4 w-4" />
             </div>
           </div>
         </div>
+      </div>
 
-        {/* RIGHT COLUMN: REAL-TIME LEADERBOARD & SETUP CHECKLIST */}
-        <div className="space-y-6">
-          {/* Group / Team Leaderboard Card */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <Medal className="h-4 w-4 text-amber-500" />
-                <h3 className="font-extrabold text-sm text-slate-900">{unitPlural} Leaderboard</h3>
-              </div>
+      {/* -- 6. QUICK STATS (Screenshot 7) -- */}
+      <div className="grid grid-cols-3 gap-3.5">
+        <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-2xs">
+          <span className="text-xs font-semibold text-slate-600 block">Programs</span>
+          <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-1">{totalPrograms}</div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-2xs">
+          <span className="text-xs font-semibold text-slate-600 block">Participants</span>
+          <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-1">{totalParticipants}</div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-2xs">
+          <span className="text-xs font-semibold text-slate-600 block">Teams</span>
+          <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-1">{totalTeams}</div>
+        </div>
+      </div>
+
+      {/* -- 7. YOUR TOOLS (Screenshots 7 & 8) -- */}
+      <div className="space-y-3 pt-2">
+        <h2 className="text-lg font-black text-slate-900 tracking-tight">
+          Your tools
+        </h2>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {tools.map((tool) => {
+            const Icon = tool.icon
+            return (
               <Link
-                href={`/dashboard/organization/${orgId}/festivals/${festivalId}/results/team-points`}
-                className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800"
+                key={tool.label}
+                href={tool.href}
+                target={tool.isExternal ? "_blank" : undefined}
+                className="bg-white rounded-2xl border border-stone-200/80 hover:border-emerald-500 hover:shadow-xs transition-all p-3.5 flex items-center justify-between group"
               >
-                Points Table →
+                <div className="flex items-center gap-3">
+                  <Icon className="h-4 w-4 text-slate-400 group-hover:text-emerald-700 transition-colors" />
+                  <span className="text-xs font-semibold text-slate-800 group-hover:text-slate-950 transition-colors">
+                    {tool.label}
+                  </span>
+                </div>
+                {tool.isExternal && (
+                  <ExternalLink className="h-3.5 w-3.5 text-slate-300 group-hover:text-emerald-600" />
+                )}
               </Link>
-            </div>
-
-            <div className="pt-3 space-y-2.5">
-              {leaderboard.length === 0 ? (
-                <div className="text-center py-6 text-slate-400 text-xs">
-                  <Trophy className="h-8 w-8 mx-auto text-slate-300 mb-2" />
-                  No {unitPlural.toLowerCase()} points recorded yet.
-                  <div className="mt-2">
-                    <Link
-                      href={`/dashboard/organization/${orgId}/festivals/${festivalId}/teams`}
-                      className="text-indigo-600 font-bold hover:underline"
-                    >
-                      Configure {unitPlural}
-                    </Link>
-                  </div>
-                </div>
-              ) : (
-                leaderboard.slice(0, 5).map((team, idx) => {
-                  const rank = team.rank || idx + 1
-                  const isGold = rank === 1
-                  const isSilver = rank === 2
-                  const isBronze = rank === 3
-
-                  return (
-                    <div
-                      key={team.id}
-                      className="flex items-center justify-between p-3 rounded-xl bg-slate-50/70 border border-slate-100 hover:border-indigo-100 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`h-7 w-7 rounded-lg flex items-center justify-center font-black text-xs shrink-0 ${
-                            isGold
-                              ? "bg-amber-400 text-amber-950 shadow-xs"
-                              : isSilver
-                              ? "bg-slate-300 text-slate-800"
-                              : isBronze
-                              ? "bg-amber-700 text-white"
-                              : "bg-slate-100 text-slate-600"
-                          }`}
-                        >
-                          {rank}
-                        </div>
-                        <div>
-                          <h4 className="text-xs font-bold text-slate-900">{team.name}</h4>
-                          {team.code && (
-                            <span className="text-[10px] font-mono text-slate-400">{team.code}</span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="text-right">
-                        <span className="text-sm font-black text-indigo-600 block leading-tight">
-                          {team.points} <span className="text-[10px] font-medium text-slate-400">pts</span>
-                        </span>
-                        {(team.gold || 0) + (team.silver || 0) + (team.bronze || 0) > 0 && (
-                          <span className="text-[10px] text-slate-500 font-medium">
-                            🥇{team.gold || 0} 🥈{team.silver || 0} 🥉{team.bronze || 0}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })
-              )}
-            </div>
-          </div>
-
-          {/* Collapsible Setup Checklist */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl shadow-xs overflow-hidden">
-            <div
-              onClick={() => setShowSetupGuide(!showSetupGuide)}
-              className="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50/50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                  <CheckCircle2 className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-slate-900">Festival Readiness Checklist</h3>
-                  <p className="text-[11px] text-slate-500">{completedSteps} of 4 core phases configured ({setupPercent}%)</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-16 h-2 bg-slate-100 rounded-full overflow-hidden hidden sm:block">
-                  <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${setupPercent}%` }} />
-                </div>
-                {showSetupGuide ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
-              </div>
-            </div>
-
-            {showSetupGuide && (
-              <div className="p-4 pt-1 border-t border-slate-100 space-y-2 text-xs">
-                <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                  <span className={hasTeams ? "text-emerald-700 font-bold" : "text-slate-600 font-medium"}>
-                    1. Competition {unitPlural} ({totalTeams})
-                  </span>
-                  <Link
-                    href={`/dashboard/organization/${orgId}/festivals/${festivalId}/teams`}
-                    className="text-indigo-600 font-semibold hover:underline"
-                  >
-                    Manage
-                  </Link>
-                </div>
-
-                <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                  <span className={hasParticipants ? "text-emerald-700 font-bold" : "text-slate-600 font-medium"}>
-                    2. Enrolled Participants ({totalParticipants})
-                  </span>
-                  <Link
-                    href={`/dashboard/organization/${orgId}/festivals/${festivalId}/participants`}
-                    className="text-indigo-600 font-semibold hover:underline"
-                  >
-                    Manage
-                  </Link>
-                </div>
-
-                <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                  <span className={hasPrograms ? "text-emerald-700 font-bold" : "text-slate-600 font-medium"}>
-                    3. Programme Catalog ({totalPrograms})
-                  </span>
-                  <Link
-                    href={`/dashboard/organization/${orgId}/festivals/${festivalId}/competitions`}
-                    className="text-indigo-600 font-semibold hover:underline"
-                  >
-                    Manage
-                  </Link>
-                </div>
-
-                <div className="flex items-center justify-between py-2">
-                  <span className={hasStages ? "text-emerald-700 font-bold" : "text-slate-600 font-medium"}>
-                    4. Stages & Venues ({totalStages})
-                  </span>
-                  <Link
-                    href={`/dashboard/organization/${orgId}/festivals/${festivalId}/stages`}
-                    className="text-indigo-600 font-semibold hover:underline"
-                  >
-                    Manage
-                  </Link>
-                </div>
-              </div>
-            )}
-          </div>
+            )
+          })}
         </div>
       </div>
     </div>

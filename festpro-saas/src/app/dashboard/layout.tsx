@@ -5,40 +5,15 @@ import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { signOut, ensureUserProfile } from "@/lib/actions/auth"
-import { getFestivalSettings } from "@/lib/actions/festival"
-import { COMPETITION_UNITS, FESTIVAL_MODULES, type CompetitionUnitType } from "@/config/festival-modules"
-import type { FestivalSettings } from "@/types/festival"
-import { AhrazFestProLogo } from "@/components/ui/logo"
 import {
   Bell, LogOut, User, Menu, X, LayoutDashboard, Building2, Settings,
   Users, Activity, ChevronDown, Plus, Check, CalendarDays,
-  LayoutGrid, CreditCard, Image as ImageIcon, FileText, MessageSquare, Shield,
-  Trophy, Calendar, QrCode, Clock, Radio, AlertTriangle, Phone,
-  Award, Medal, Globe, DollarSign, BarChart3, Wallet,
-  Megaphone, Key, UserCheck, Printer, Search,
-  ArrowRight, ArrowLeft, Bookmark, ClipboardCheck, Utensils, Truck
+  CreditCard, FileText, Shield, Trophy, Calendar, Radio, Layers,
+  Tv, HelpCircle, Moon, Sun, ArrowLeft, Bookmark, LayoutGrid, Search
 } from "lucide-react"
 import type { Profile } from "@/types"
 import type { ExtendedOrganization } from "@/types/organization"
 import { AccountStatusBanner } from "@/components/license/account-status-banner"
-
-const MODULE_ICONS: Record<string, any> = {
-  live_stage: Radio,
-  green_room: Clock,
-  attendance: UserCheck,
-  qr_code: QrCode,
-  appeals: AlertTriangle,
-  certificates: Award,
-  reports: FileText,
-  finance: DollarSign,
-  fund_collection: Wallet,
-  food: Utensils,
-  accommodation: Building2,
-  transport: Truck,
-  gallery: ImageIcon,
-  news: Megaphone,
-  notifications: MessageSquare,
-}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -53,8 +28,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [searchQuery, setSearchQuery] = useState("")
 
   // Festival workspace states
-  const [currentFestival, setCurrentFestival] = useState<{ id: string; name: string; short_name?: string; status?: string } | null>(null)
-  const [festivalSettings, setFestivalSettings] = useState<FestivalSettings | null>(null)
+  const [currentFestival, setCurrentFestival] = useState<{ id: string; name: string; short_name?: string; code?: string; status?: string } | null>(null)
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -129,108 +103,66 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     load()
   }, [router])
 
-  // Reactively fetch festival info and settings when inside a festival workspace
+  // Fetch festival info
   useEffect(() => {
     if (!currentFestivalId) {
-      setCurrentFestival(null)
-      setFestivalSettings(null)
+      if (currentOrgId) {
+        const supabase = createClient()
+        supabase
+          .from("festivals")
+          .select("id, name, short_name, code, status")
+          .eq("organization_id", currentOrgId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data) setCurrentFestival(data)
+          })
+      }
       return
     }
 
     const supabase = createClient()
     supabase
       .from("festivals")
-      .select("id, name, short_name, status")
+      .select("id, name, short_name, code, status")
       .eq("id", currentFestivalId)
       .single()
       .then(({ data }) => {
         if (data) setCurrentFestival(data)
       })
-
-    getFestivalSettings(currentFestivalId)
-      .then((settings) => {
-        if (settings) setFestivalSettings(settings)
-      })
-      .catch(() => {})
-  }, [currentFestivalId])
+  }, [currentFestivalId, currentOrgId])
 
   const handleSignOut = useCallback(async () => { await signOut() }, [])
 
   const currentOrg = organizations.find((o) => o.id === currentOrgId)
-  const ADMIN_EMAILS = [
-    "ahrazfestpro@gmail.com",
-    "ahraza272@gmail.com",
-    "admin@festpro.com",
-  ]
-  const isPlatformAdmin =
-    profile?.role === "platform_owner" ||
-    profile?.role === "platform_admin" ||
-    ADMIN_EMAILS.includes(profile?.email?.toLowerCase() || "") ||
-    profile?.email?.toLowerCase().startsWith("admin@")
+  const effectiveFestivalId = currentFestivalId || currentFestival?.id
+  const dashboardHref = effectiveFestivalId && currentOrgId
+    ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}`
+    : currentOrgId ? `/dashboard/organization/${currentOrgId}` : "/dashboard"
+  const isDashboardActive = pathname === dashboardHref
 
-  // Dynamic terminology
-  const unitKey = (festivalSettings?.terminology?.unit || "groups") as CompetitionUnitType
-  const unitConfig = COMPETITION_UNITS[unitKey] || COMPETITION_UNITS.groups
-  const unitPlural = unitConfig.plural
-
-  // Core festival links (QUAF style)
-  const festivalCoreItems = currentFestivalId ? [
-    { label: "Dashboard", href: "", icon: LayoutDashboard },
-    ...(unitKey !== "individual" ? [{ label: unitPlural, href: "/teams", icon: Users }] : []),
-    { label: "Participants", href: "/participants", icon: Bookmark },
-    { label: "Programmes", href: "/competitions", icon: Trophy },
-    { label: "Registrations", href: "/competitions/registrations", icon: ClipboardCheck },
-    { label: "Schedule", href: "/schedules", icon: Calendar },
-    { label: "Stages / Venues", href: "/stages", icon: LayoutGrid },
-    { label: "Judges", href: "/judging", icon: Shield },
-    { label: "Mark Entry", href: "/results/publish", icon: FileText },
-    { label: "Results", href: "/results", icon: Award },
-    { label: "Points Table", href: "/results/team-points", icon: Medal },
-    { label: "Reports & Print", href: "/documents", icon: Printer },
-    { label: "Settings", href: "/settings", icon: Settings },
+  // Navigation Items matching Festize Reference Screenshots
+  const peopleProgramItems = effectiveFestivalId && currentOrgId ? [
+    { label: "People & access", href: `/dashboard/organization/${currentOrgId}/members`, icon: Shield },
+    { label: "Teams", href: `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/teams`, icon: Users },
+    { label: "Participants", href: `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/participants`, icon: Bookmark },
+    { label: "Categories", href: `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/competitions/categories`, icon: LayoutGrid },
+    { label: "Programs", href: `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/competitions`, icon: Trophy },
+    { label: "Scheduler", href: `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/schedules`, icon: Calendar },
   ] : []
 
-  // Active optional modules
-  const enabledOptionalModules = FESTIVAL_MODULES.filter(
-    (m) => !m.isCore && festivalSettings?.modules?.[m.id] === true
-  )
-
-  const orgNavItems = currentOrgId ? [
-    { label: "Overview", href: `/dashboard/organization/${currentOrgId}`, icon: Building2 },
-    { label: "Members", href: `/dashboard/organization/${currentOrgId}/members`, icon: Users },
-    { label: "Subscription", href: `/dashboard/subscription`, icon: CreditCard },
-    { label: "Contact Sales", href: "/contact", icon: Phone },
-    { label: "Settings", href: `/dashboard/organization/${currentOrgId}/settings`, icon: Settings },
-    { label: "Activity", href: `/dashboard/organization/${currentOrgId}/activity`, icon: Activity },
+  const liveOpsItems = effectiveFestivalId && currentOrgId ? [
+    { label: "Live programs", href: `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/results/publish`, icon: Radio },
+    { label: "Stages", href: `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/stages`, icon: Layers },
+    { label: "Stage desk", href: `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/venues`, icon: LayoutGrid },
+    { label: "TV displays", href: `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/live/display`, icon: Tv },
   ] : []
-
-  const navItems = [
-    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    ...(isPlatformAdmin
-      ? [{ label: "👑 License Management", href: "/dashboard/licensing", icon: Key }]
-      : []),
-    { label: "Profile", href: "/profile", icon: User },
-  ]
-
-  const ALL_SEARCHABLE_SECTIONS = [
-    { title: "Main Dashboard", href: "/dashboard", section: "General", icon: LayoutDashboard },
-    { title: "User Profile Settings", href: "/profile", section: "General", icon: User },
-    { title: "Create Organization", href: "/dashboard/organization/create", section: "Organizations", icon: Plus },
-    { title: "License Management", href: "/dashboard/licensing", section: "Platform Administration", icon: Key },
-    { title: "Tenants / Clients", href: "/dashboard/platform/tenants", section: "Platform Administration", icon: Building2 },
-    { title: "Subscription Plans", href: "/dashboard/platform/plans", section: "Platform Administration", icon: CreditCard },
-    { title: "Billing & Invoices", href: "/dashboard/platform/billing", section: "Platform Administration", icon: DollarSign },
-  ]
-
-  const filteredSearchSections = ALL_SEARCHABLE_SECTIONS.filter((s) =>
-    s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.section.toLowerCase().includes(searchQuery.toLowerCase())
-  )
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      {/* Top Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 h-16 border-b border-slate-200 bg-white/95 backdrop-blur-md">
+    <div className="min-h-screen bg-[#FDFCFB] text-slate-900 font-sans selection:bg-emerald-500 selection:text-white">
+      {/* -- TOP HEADER (Festize Look) -- */}
+      <header className="fixed top-0 left-0 right-0 z-50 h-16 border-b border-stone-200/80 bg-white/95 backdrop-blur-md">
         <div className="flex h-full items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-3 sm:gap-4">
             <button
@@ -239,128 +171,97 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             >
               {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
-            <AhrazFestProLogo />
 
-            {/* Organization Selector */}
-            {organizations.length > 0 && (
-              <div className="relative">
-                <button
-                  onClick={() => setOrgDropdownOpen(!orgDropdownOpen)}
-                  className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors"
-                >
-                  <Building2 className="h-3.5 w-3.5 text-indigo-600" />
-                  <span className="hidden md:inline max-w-[120px] truncate">
-                    {currentOrg?.name || "Select Organization"}
-                  </span>
-                  <ChevronDown className="h-3 w-3 text-slate-400" />
-                </button>
-
-                {orgDropdownOpen && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setOrgDropdownOpen(false)} />
-                    <div className="absolute left-0 top-full mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-lg z-20 py-1">
-                      <div className="px-3 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Organizations</div>
-                      {organizations.map((org) => (
-                        <Link prefetch={true}
-                          key={org.id}
-                          href={`/dashboard/organization/${org.id}`}
-                          onClick={() => setOrgDropdownOpen(false)}
-                          className="flex items-center gap-3 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                        >
-                          <div className="flex h-6 w-6 items-center justify-center rounded-lg text-xs font-bold text-white shrink-0" style={{ backgroundColor: org.brand_color || "#4F46E5" }}>
-                            {org.name[0]}
-                          </div>
-                          <span className="flex-1 truncate">{org.name}</span>
-                          {org.id === currentOrgId && <Check className="h-4 w-4 text-indigo-600" />}
-                        </Link>
-                      ))}
-                      <div className="border-t border-slate-100 mt-1 pt-1">
-                        <Link prefetch={true}
-                          href="/dashboard/organization/create"
-                          onClick={() => setOrgDropdownOpen(false)}
-                          className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-indigo-600 hover:bg-indigo-50"
-                        >
-                          <Plus className="h-4 w-4" /> Create Organization
-                        </Link>
-                      </div>
-                    </div>
-                  </>
-                )}
+            {/* Brand Logo */}
+            <Link href="/" className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-xl bg-[#0D382E] text-white flex items-center justify-center font-black text-sm shadow-sm">
+                F
               </div>
-            )}
+              <span className="font-heading font-extrabold text-xl text-[#0D382E]">
+                FestPro
+              </span>
+            </Link>
 
-            {/* Active Festival Indicator */}
+            {/* Fest Name Header */}
             {currentFestival && (
-              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-50 border border-indigo-100 text-xs font-bold text-indigo-900 max-w-[220px] truncate">
-                <Trophy className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-                <span className="truncate">{currentFestival.name}</span>
+              <div className="hidden sm:flex items-center gap-2 pl-4 border-l border-stone-200">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block leading-none">
+                    FEST
+                  </span>
+                  <span className="text-sm font-bold text-slate-900 leading-tight">
+                    {currentFestival.name}
+                  </span>
+                </div>
               </div>
             )}
           </div>
 
-          {/* Quick Search Input */}
-          <div className="relative flex-1 max-w-md mx-4 hidden md:block">
-            <div
-              onClick={() => setSearchModalOpen(true)}
-              className="flex items-center gap-2.5 px-3 py-1.5 text-xs text-slate-400 bg-slate-100 hover:bg-slate-200/80 rounded-xl cursor-pointer transition-all border border-transparent hover:border-slate-300"
-            >
-              <Search className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-              <span className="flex-1 truncate">Search any section or page...</span>
-              <kbd className="hidden lg:inline-block px-1.5 py-0.5 text-[10px] font-mono font-semibold text-slate-500 bg-white border border-slate-200 rounded shadow-2xs">Ctrl+K</kbd>
-            </div>
-          </div>
-
+          {/* Right Header Icons */}
           <div className="flex items-center gap-2 sm:gap-3">
-            <button
-              onClick={() => setSearchModalOpen(true)}
-              className="md:hidden p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
-              title="Search Sections"
+            {/* Help Icon */}
+            <Link
+              href="/contact"
+              className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors"
+              title="Help & Support"
             >
-              <Search className="h-5 w-5" />
-            </button>
-            <button className="relative p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
-              <Bell className="h-5 w-5" />
+              <HelpCircle className="h-5 w-5" />
+            </Link>
+
+            {/* Dark Mode Icon */}
+            <button
+              onClick={() => {}}
+              className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors"
+              title="Toggle theme"
+            >
+              <Moon className="h-5 w-5" />
             </button>
 
-            {/* Profile Dropdown */}
+            {/* Profile Avatar / Dropdown */}
             <div className="relative">
               <button
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="flex items-center gap-2 rounded-lg hover:bg-slate-100 p-1.5 transition-colors"
+                className="flex items-center gap-2 p-1 rounded-full hover:bg-slate-100 transition-colors"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700 text-xs font-bold">
-                  {profile?.first_name?.[0] || "U"}{profile?.last_name?.[0] || ""}
+                <div className="h-8 w-8 rounded-full bg-stone-200 text-stone-700 font-bold flex items-center justify-center text-xs border border-stone-300">
+                  {profile?.first_name ? profile.first_name[0].toUpperCase() : "U"}
                 </div>
-                <div className="hidden md:block text-xs text-left">
-                  <p className="font-bold text-slate-900 leading-tight">{profile ? `${profile.first_name} ${profile.last_name || ""}` : "Account"}</p>
-                  <p className="text-[11px] text-slate-400 capitalize leading-tight">{profile?.role ? profile.role.replace(/_/g, " ") : "Member"}</p>
-                </div>
-                <ChevronDown className="h-3 w-3 text-slate-400 hidden md:block" />
               </button>
 
               {profileDropdownOpen && (
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setProfileDropdownOpen(false)} />
-                  <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-slate-200 rounded-xl shadow-lg z-20 py-1">
-                    <Link prefetch={true}
+                  <div className="fixed inset-0 z-40" onClick={() => setProfileDropdownOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white border border-stone-200 shadow-xl py-2 z-50 text-xs">
+                    <div className="px-4 py-2 border-b border-stone-100">
+                      <p className="font-bold text-slate-900 truncate">
+                        {profile?.first_name} {profile?.last_name}
+                      </p>
+                      <p className="text-slate-500 truncate text-[11px]">{profile?.email}</p>
+                    </div>
+
+                    <Link
                       href="/profile"
+                      className="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-slate-50 font-medium"
                       onClick={() => setProfileDropdownOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
                     >
-                      <User className="h-4 w-4" /> Profile Settings
+                      <User className="h-4 w-4 text-slate-400" /> Profile Settings
                     </Link>
-                    {isPlatformAdmin && (
-                      <Link prefetch={true}
-                        href="/dashboard/licensing"
+
+                    {currentOrgId && (
+                      <Link
+                        href={`/dashboard/organization/${currentOrgId}/settings`}
+                        className="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-slate-50 font-medium"
                         onClick={() => setProfileDropdownOpen(false)}
-                        className="flex items-center gap-3 px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50"
                       >
-                        <Key className="h-4 w-4 text-indigo-600" /> 👑 Super Admin Panel
+                        <Settings className="h-4 w-4 text-slate-400" /> Organization Settings
                       </Link>
                     )}
+
+                    <div className="border-t border-stone-100 my-1" />
+
                     <button
-                      onClick={() => { setProfileDropdownOpen(false); handleSignOut() }}
-                      className="flex items-center gap-3 px-3 py-2 text-sm text-rose-600 hover:bg-rose-50 w-full"
+                      onClick={handleSignOut}
+                      className="flex w-full items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 font-medium"
                     >
                       <LogOut className="h-4 w-4" /> Sign Out
                     </button>
@@ -372,311 +273,116 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </header>
 
-      {/* Sidebar Navigation */}
-      <aside className={`fixed left-0 top-16 z-40 h-[calc(100vh-4rem)] w-64 border-r border-slate-200 bg-white transform transition-transform duration-200 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 overflow-y-auto`}>
+      {/* -- SIDEBAR NAVIGATION (Exact 3 Sections from Festize Screenshots) -- */}
+      <aside className={`fixed left-0 top-16 z-40 h-[calc(100vh-4rem)] w-60 border-r border-stone-200/80 bg-white transform transition-transform duration-200 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 overflow-y-auto flex flex-col justify-between`}>
         <nav className="p-3.5 space-y-1">
-          {/* CASE A: INSIDE A FESTIVAL WORKSPACE (QUAF STYLE) */}
-          {currentFestivalId ? (
-            <>
-              {/* Festival Header Card */}
-              <div className="p-3 mb-3 bg-gradient-to-br from-indigo-50/80 to-purple-50/50 rounded-xl border border-indigo-100">
-                <div className="flex items-center gap-2.5 mb-2">
-                  <div className="h-8 w-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
-                    {currentFestival?.short_name?.slice(0, 3).toUpperCase() || currentFestival?.name?.slice(0, 2).toUpperCase() || "FP"}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-xs font-bold text-slate-900 truncate leading-tight">
-                      {currentFestival?.name || "Festival Workspace"}
-                    </h3>
-                    <span className="inline-flex items-center text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded capitalize mt-0.5 border border-emerald-200">
-                      {currentFestival?.status || "Active"}
-                    </span>
-                  </div>
+          {/* 1. OVERVIEW */}
+          <div className="pt-2 pb-1.5 px-3">
+            <span className="text-[11px] font-bold text-slate-400 tracking-wider uppercase block">
+              OVERVIEW
+            </span>
+          </div>
+
+          <Link
+            prefetch={true}
+            href={dashboardHref}
+            className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold transition-all ${
+              isDashboardActive
+                ? "bg-emerald-50 text-emerald-800 font-bold"
+                : "text-slate-600 hover:text-emerald-800 hover:bg-stone-50"
+            }`}
+            onClick={() => setSidebarOpen(false)}
+          >
+            <div className="flex items-center gap-3">
+              <LayoutDashboard className={`h-4 w-4 ${isDashboardActive ? "text-emerald-700" : "text-slate-400"}`} />
+              <span>Dashboard</span>
+            </div>
+            {isDashboardActive && <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />}
+          </Link>
+
+          {/* 2. PEOPLE & PROGRAM */}
+          <div className="pt-5 pb-1.5 px-3">
+            <span className="text-[11px] font-bold text-slate-400 tracking-wider uppercase block">
+              PEOPLE & PROGRAM
+            </span>
+          </div>
+
+          {peopleProgramItems.map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+            const Icon = item.icon
+            return (
+              <Link
+                prefetch={true}
+                key={item.label}
+                href={item.href}
+                className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
+                  isActive
+                    ? "bg-emerald-50 text-emerald-800 font-bold"
+                    : "text-slate-600 hover:text-emerald-800 hover:bg-stone-50"
+                }`}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className={`h-4 w-4 ${isActive ? "text-emerald-700" : "text-slate-400"}`} />
+                  <span>{item.label}</span>
                 </div>
-                <Link
-                  prefetch={true}
-                  href={`/dashboard/organization/${currentOrgId}/festivals`}
-                  className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
-                >
-                  <ArrowLeft className="h-3 w-3" /> All Festivals
-                </Link>
-              </div>
+                {isActive && <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />}
+              </Link>
+            )
+          })}
 
-              {/* Core Operations Menu */}
-              <div className="pt-1 pb-1">
-                <span className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Core Menu
-                </span>
-              </div>
-              {festivalCoreItems.map((item) => {
-                const fullHref = item.href === ""
-                  ? `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}`
-                  : `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${item.href}`
-                const isActive = item.href === ""
-                  ? pathname === fullHref
-                  : pathname === fullHref || pathname.startsWith(fullHref + "/")
-                const Icon = item.icon
-                return (
-                  <Link
-                    prefetch={true}
-                    key={item.label}
-                    href={fullHref}
-                    className={`flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
-                      isActive
-                        ? "text-indigo-700 bg-indigo-50 font-bold"
-                        : "text-slate-600 hover:text-indigo-700 hover:bg-slate-50"
-                    }`}
-                    onClick={() => setSidebarOpen(false)}
-                  >
-                    <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-indigo-600" : "text-slate-400"}`} />
-                    <span className="truncate">{item.label}</span>
-                  </Link>
-                )
-              })}
+          {/* 3. LIVE OPERATIONS */}
+          <div className="pt-5 pb-1.5 px-3">
+            <span className="text-[11px] font-bold text-slate-400 tracking-wider uppercase block">
+              LIVE OPERATIONS
+            </span>
+          </div>
 
-              {/* Optional Enabled Modules */}
-              {enabledOptionalModules.length > 0 && (
-                <>
-                  <div className="pt-4 pb-1">
-                    <span className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                      Active Modules
-                    </span>
-                  </div>
-                  {enabledOptionalModules.map((mod) => {
-                    const fullHref = `/dashboard/organization/${currentOrgId}/festivals/${currentFestivalId}${mod.href}`
-                    const isActive = pathname === fullHref || pathname.startsWith(fullHref + "/")
-                    const ModIcon = MODULE_ICONS[mod.id] || LayoutGrid
-                    return (
-                      <Link
-                        prefetch={true}
-                        key={mod.id}
-                        href={fullHref}
-                        className={`flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
-                          isActive
-                            ? "text-indigo-700 bg-indigo-50 font-bold"
-                            : "text-slate-600 hover:text-indigo-700 hover:bg-slate-50"
-                        }`}
-                        onClick={() => setSidebarOpen(false)}
-                      >
-                        <ModIcon className={`h-4 w-4 shrink-0 ${isActive ? "text-indigo-600" : "text-slate-400"}`} />
-                        <span className="truncate">{mod.name}</span>
-                      </Link>
-                    )
-                  })}
-                </>
-              )}
-            </>
-          ) : (
-            /* CASE B: PLATFORM & ORGANIZATION GENERAL SIDEBAR */
-            <>
-              {navItems.map((item) => {
-                const Icon = item.icon
-                const isActive = pathname === item.href
-                return (
-                  <Link prefetch={true}
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
-                      isActive ? "text-indigo-700 bg-indigo-50" : "text-slate-600 hover:text-indigo-700 hover:bg-slate-50"
-                    }`}
-                    onClick={() => setSidebarOpen(false)}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
-                  </Link>
-                )
-              })}
-
-              {/* Platform Administration */}
-              {isPlatformAdmin && (
-                <>
-                  <div className="pt-4 pb-1">
-                    <span className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                      Platform Administration
-                    </span>
-                  </div>
-                  {[
-                    { label: "Platform Overview", href: "/dashboard/platform", icon: LayoutDashboard },
-                    { label: "👑 License Management", href: "/dashboard/licensing", icon: Key },
-                    { label: "Tenants / Clients", href: "/dashboard/platform/tenants", icon: Building2 },
-                    { label: "Subscription Plans", href: "/dashboard/platform/plans", icon: CreditCard },
-                    { label: "Billing & Invoices", href: "/dashboard/platform/billing", icon: DollarSign },
-                    { label: "Platform Settings", href: "/dashboard/platform/settings", icon: Settings },
-                  ].map((item) => {
-                    const isActive = pathname === item.href || (item.href !== "/dashboard/platform" && pathname.startsWith(item.href + "/"))
-                    const Icon = item.icon
-                    return (
-                      <Link prefetch={true}
-                        key={item.label}
-                        href={item.href}
-                        className={`flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
-                          isActive ? "text-indigo-700 bg-indigo-50 font-bold" : "text-slate-600 hover:text-indigo-700 hover:bg-slate-50"
-                        }`}
-                        onClick={() => setSidebarOpen(false)}
-                      >
-                        <Icon className="h-4 w-4" />
-                        {item.label}
-                      </Link>
-                    )
-                  })}
-                </>
-              )}
-
-              {/* Organization Section */}
-              {currentOrgId && (
-                <>
-                  <div className="pt-4 pb-1">
-                    <span className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                      {currentOrg?.name || "Organization"}
-                    </span>
-                  </div>
-                  {orgNavItems.map((item) => {
-                    const Icon = item.icon
-                    const isActive = pathname === item.href
-                    return (
-                      <Link prefetch={true}
-                        key={item.href}
-                        href={item.href}
-                        className={`flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
-                          isActive ? "text-indigo-700 bg-indigo-50" : "text-slate-600 hover:text-indigo-700 hover:bg-slate-50"
-                        }`}
-                        onClick={() => setSidebarOpen(false)}
-                      >
-                        <Icon className="h-4 w-4" />
-                        {item.label}
-                      </Link>
-                    )
-                  })}
-
-                  <div className="pt-4 pb-1">
-                    <span className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                      Festivals
-                    </span>
-                  </div>
-                  <Link prefetch={true}
-                    href={`/dashboard/organization/${currentOrgId}/festivals`}
-                    className={`flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
-                      pathname === `/dashboard/organization/${currentOrgId}/festivals` ? "text-indigo-700 bg-indigo-50" : "text-slate-600 hover:text-indigo-700 hover:bg-slate-50"
-                    }`}
-                    onClick={() => setSidebarOpen(false)}
-                  >
-                    <CalendarDays className="h-4 w-4" />
-                    All Festivals
-                  </Link>
-                  <Link prefetch={true}
-                    href={`/dashboard/organization/${currentOrgId}/festivals/create`}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors"
-                    onClick={() => setSidebarOpen(false)}
-                  >
-                    <Plus className="h-4 w-4" />
-                    + New Festival
-                  </Link>
-                </>
-              )}
-            </>
-          )}
+          {liveOpsItems.map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+            const Icon = item.icon
+            return (
+              <Link
+                prefetch={true}
+                key={item.label}
+                href={item.href}
+                className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
+                  isActive
+                    ? "bg-emerald-50 text-emerald-800 font-bold"
+                    : "text-slate-600 hover:text-emerald-800 hover:bg-stone-50"
+                }`}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className={`h-4 w-4 ${isActive ? "text-emerald-700" : "text-slate-400"}`} />
+                  <span>{item.label}</span>
+                </div>
+                {isActive && <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />}
+              </Link>
+            )
+          })}
         </nav>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-stone-200/60 text-[11px] text-slate-400">
+          � 2026 FestPro
+        </div>
       </aside>
 
-      {/* Mobile Overlay */}
-      {sidebarOpen && <div className="fixed inset-0 z-30 bg-black/30 backdrop-blur-2xs lg:hidden" onClick={() => setSidebarOpen(false)} />}
-
-      {/* Main Content Area */}
-      <main className="pt-16 lg:pl-64 min-h-screen">
-        <div className="p-4 sm:p-6 max-w-7xl mx-auto">
-          {pathname !== "/dashboard" && (
-            <div className="mb-4 flex items-center justify-between border-b border-slate-200/80 pb-3">
-              <button
-                onClick={() => router.back()}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl shadow-2xs transition-all hover:text-indigo-600 active:scale-95 cursor-pointer"
-              >
-                <ArrowLeft className="h-3.5 w-3.5 text-indigo-600" /> Back
-              </button>
-
-              {/* Breadcrumb Path */}
-              <div className="hidden sm:flex items-center gap-1 text-xs text-slate-400 font-medium overflow-x-auto max-w-md">
-                {pathname.split("/").filter(Boolean).map((part, idx, arr) => (
-                  <span key={idx} className="flex items-center gap-1">
-                    {idx > 0 && <span className="text-slate-300">/</span>}
-                    <span className={idx === arr.length - 1 ? "text-indigo-700 font-bold capitalize" : "capitalize"}>
-                      {part.replace(/-/g, " ")}
-                    </span>
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Account Status Banner (Hold / Block / Payment Due Alerts) */}
-          <AccountStatusBanner organizationId={currentOrgId} />
-          {children}
-        </div>
-      </main>
-
-      {/* Search Modal (Ctrl+K) */}
-      {searchModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-black/50 backdrop-blur-xs">
-          <div className="fixed inset-0" onClick={() => setSearchModalOpen(false)} />
-          <div className="relative w-full max-w-xl bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden z-10 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center gap-3 px-4 border-b border-slate-100 py-3">
-              <Search className="h-4 w-4 text-indigo-600 shrink-0" />
-              <input
-                type="text"
-                autoFocus
-                placeholder="Type to search any section or page..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-hidden"
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery("")} className="text-xs text-slate-400 hover:text-slate-600">Clear</button>
-              )}
-              <button onClick={() => setSearchModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="max-h-[60vh] overflow-y-auto p-2">
-              {filteredSearchSections.length === 0 ? (
-                <div className="py-8 text-center text-xs text-slate-500">
-                  No sections found for &quot;{searchQuery}&quot;
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {filteredSearchSections.map((item) => {
-                    const Icon = item.icon
-                    return (
-                      <Link prefetch={true}
-                        key={item.href + item.title}
-                        href={item.href}
-                        onClick={() => {
-                          setSearchModalOpen(false)
-                          setSearchQuery("")
-                        }}
-                        className="flex items-center gap-3 px-3 py-2 rounded-xl text-xs hover:bg-indigo-50/80 transition-colors group"
-                      >
-                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 group-hover:bg-indigo-600 group-hover:text-white text-slate-600 transition-colors shrink-0">
-                          <Icon className="h-3.5 w-3.5" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-slate-900 group-hover:text-indigo-900 truncate">{item.title}</p>
-                          <p className="text-[10px] text-slate-400 truncate">{item.section}</p>
-                        </div>
-                        <ArrowRight className="h-3.5 w-3.5 text-slate-300 group-hover:text-indigo-600 transition-colors shrink-0" />
-                      </Link>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-
-            <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 text-[11px] text-slate-400 flex items-center justify-between">
-              <span>Quick Search</span>
-              <span>Press <kbd className="font-mono bg-white px-1.5 py-0.5 border border-slate-200 rounded">ESC</kbd> to close</span>
-            </div>
-          </div>
-        </div>
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/30 backdrop-blur-2xs lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
+
+      {/* -- MAIN CONTENT AREA -- */}
+      <div className="lg:pl-60 pt-16">
+        <AccountStatusBanner organizationId={currentOrgId} />
+        <main className="p-4 sm:p-6 lg:p-8 min-h-[calc(100vh-4rem)]">
+          {children}
+        </main>
+      </div>
     </div>
   )
 }

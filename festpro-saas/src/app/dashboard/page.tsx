@@ -4,8 +4,6 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { ensureUserProfile } from "@/lib/actions/auth"
-import { getDashboardForRole } from "@/config/roles"
-import type { UserRole } from "@/types"
 
 export default function DashboardRoot() {
   const router = useRouter()
@@ -29,40 +27,54 @@ export default function DashboardRoot() {
         profile = await ensureUserProfile()
       }
 
-      if (profile?.organization_id) {
-        router.push(`/dashboard/organization/${profile.organization_id}`)
+      let orgId = profile?.organization_id
+
+      if (!orgId) {
+        // Check organization_members table
+        const { data: mems } = await supabase
+          .from("organization_members")
+          .select("organization_id")
+          .eq("user_id", user.id)
+          .limit(1)
+
+        if (mems && mems.length > 0 && mems[0].organization_id) {
+          orgId = mems[0].organization_id
+        }
+      }
+
+      if (orgId) {
+        // Check for latest festival
+        const { data: fest } = await supabase
+          .from("festivals")
+          .select("id")
+          .eq("organization_id", orgId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (fest?.id) {
+          router.push(`/dashboard/organization/${orgId}/festivals/${fest.id}`)
+          return
+        }
+
+        router.push(`/dashboard/organization/${orgId}`)
         return
       }
 
-      // Check organization_members table
-      const { data: mems } = await supabase
-        .from("organization_members")
-        .select("organization_id")
-        .eq("user_id", user.id)
-        .limit(1)
-
-      if (mems && mems.length > 0 && mems[0].organization_id) {
-        router.push(`/dashboard/organization/${mems[0].organization_id}`)
-        return
-      }
-
-      const dash = profile?.role ? getDashboardForRole(profile.role as UserRole) : "/dashboard/organization"
-      if (dash === "/dashboard" || dash === "/dashboard/organization") {
-        router.push("/dashboard/organization/create")
-      } else {
-        router.push(dash)
-      }
+      router.push("/create-fest")
     }
     redirectUser()
   }, [router])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <div className="flex justify-center mb-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white text-lg font-bold animate-pulse">F</div>
+    <div className="min-h-screen flex items-center justify-center bg-[#FAF9F5]">
+      <div className="text-center space-y-3">
+        <div className="flex justify-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0D382E] text-white text-base font-bold animate-pulse">
+            F
+          </div>
         </div>
-        <p className="text-sm font-medium text-gray-600">Loading your workspace...</p>
+        <p className="text-xs font-semibold text-slate-500">Opening festival workspace...</p>
       </div>
     </div>
   )

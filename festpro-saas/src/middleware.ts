@@ -13,6 +13,7 @@ const publicRoutes = [
   "/",
   "/login",
   "/signup",
+  "/create-fest",
   "/contact",
   "/activate",
   "/pricing",
@@ -28,7 +29,7 @@ const publicRoutes = [
   "/manifest.json",
 ]
 
-const authRoutes = ["/login", "/signup", "/contact", "/activate", "/forgot-password", "/reset-password", "/verify"]
+const authRoutes = ["/login", "/signup", "/create-fest", "/contact", "/activate", "/forgot-password", "/reset-password", "/verify"]
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
