@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Building2, Plus, ArrowRight } from "lucide-react"
 import type { ExtendedOrganization } from "@/types/organization"
+import { getOrCreateOrganizationFestivalAction } from "@/lib/actions/festival"
+import { FestProFavicon } from "@/components/ui/logo"
 
 export default function OrganizationListPage() {
   const router = useRouter()
@@ -36,10 +38,18 @@ export default function OrganizationListPage() {
 
         setOrgs(orgsData as ExtendedOrganization[] || [])
 
-        // If user has a current org set, redirect there
+        // If user has a current org set, route directly to its active festival workspace
         const { data: profile } = await supabase.from("profiles").select("organization_id").eq("id", user.id).single()
-        if (profile?.organization_id && orgsData?.some((o: ExtendedOrganization) => o.id === profile.organization_id)) {
-          router.push(`/dashboard/organization/${profile.organization_id}`)
+        const targetOrgId = profile?.organization_id || orgsData?.[0]?.id
+
+        if (targetOrgId) {
+          const res = await getOrCreateOrganizationFestivalAction(targetOrgId)
+          if (res.success && res.festival?.id) {
+            router.replace(`/dashboard/organization/${targetOrgId}/festivals/${res.festival.id}`)
+            return
+          }
+          router.replace(`/dashboard/organization/${targetOrgId}`)
+          return
         }
       }
 
@@ -48,7 +58,18 @@ export default function OrganizationListPage() {
     load()
   }, [router])
 
-  if (loading) return <div className="text-center py-12 text-gray-500">Loading...</div>
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
+        <div className="animate-pulse">
+          <FestProFavicon size={44} className="shadow-md rounded-full" />
+        </div>
+        <p className="text-xs font-bold text-slate-600 uppercase tracking-wide animate-pulse">
+          Opening festival workspace...
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">

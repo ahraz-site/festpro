@@ -4,6 +4,8 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { ensureUserProfile } from "@/lib/actions/auth"
+import { getOrCreateOrganizationFestivalAction } from "@/lib/actions/festival"
+import { FestProFavicon } from "@/components/ui/logo"
 
 export default function DashboardRoot() {
   const router = useRouter()
@@ -43,38 +45,48 @@ export default function DashboardRoot() {
       }
 
       if (orgId) {
-        // Check for latest festival
+        // Check for latest festival or auto-ensure one
         const { data: fest } = await supabase
           .from("festivals")
           .select("id")
           .eq("organization_id", orgId)
+          .is("deleted_at", null)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle()
 
         if (fest?.id) {
-          router.push(`/dashboard/organization/${orgId}/festivals/${fest.id}`)
+          router.replace(`/dashboard/organization/${orgId}/festivals/${fest.id}`)
           return
         }
 
-        router.push(`/dashboard/organization/${orgId}`)
+        // Auto-ensure starter festival
+        const res = await getOrCreateOrganizationFestivalAction(orgId)
+        if (res.success && res.festival?.id) {
+          router.replace(`/dashboard/organization/${orgId}/festivals/${res.festival.id}`)
+          return
+        }
+
+        router.replace(`/dashboard/organization/${orgId}`)
         return
       }
 
-      router.push("/create-fest")
+      router.replace("/create-fest")
     }
     redirectUser()
   }, [router])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FAF9F5]">
+    <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
       <div className="text-center space-y-3">
         <div className="flex justify-center">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0D382E] text-white text-base font-bold animate-pulse">
-            F
+          <div className="animate-pulse">
+            <FestProFavicon size={48} className="shadow-lg rounded-full" />
           </div>
         </div>
-        <p className="text-xs font-semibold text-slate-500">Opening festival workspace...</p>
+        <p className="text-xs font-bold text-slate-600 tracking-wide uppercase animate-pulse">
+          Opening festival workspace...
+        </p>
       </div>
     </div>
   )

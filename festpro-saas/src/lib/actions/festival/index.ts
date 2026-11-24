@@ -208,6 +208,109 @@ export async function getFestivals(orgId: string): Promise<Festival[]> {
   return (data || []) as Festival[]
 }
 
+/**
+ * Ensures an organization always has at least one active festival workspace.
+ * If 0 festivals exist, auto-provisions a starter festival workspace with standard seed data.
+ */
+export async function getOrCreateOrganizationFestivalAction(orgId: string): Promise<{ success: boolean; festival?: Festival; error?: string }> {
+  try {
+    const admin = createAdminClient()
+
+    // 1. Check if a festival already exists
+    const { data: existing } = await admin
+      .from("festivals")
+      .select("*")
+      .eq("organization_id", orgId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (existing) {
+      return { success: true, festival: existing as Festival }
+    }
+
+    // 2. Fetch Organization details
+    const { data: org } = await admin
+      .from("organizations")
+      .select("id, name, slug")
+      .eq("id", orgId)
+      .maybeSingle()
+
+    const orgName = org?.name || "FestPro Festival"
+    const baseSlug = (org?.slug || orgName).toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 30) || "fest"
+
+    // Check slug collision
+    let festCode = baseSlug
+    const { data: codeCheck } = await admin
+      .from("festivals")
+      .select("id")
+      .eq("code", festCode)
+      .maybeSingle()
+
+    if (codeCheck) {
+      festCode = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`
+    }
+
+    const today = new Date().toISOString().split("T")[0]
+    const { data: newFest, error: festError } = await admin
+      .from("festivals")
+      .insert({
+        organization_id: orgId,
+        name: orgName,
+        short_name: orgName.length > 50 ? orgName.substring(0, 50) : orgName,
+        code: festCode,
+        description: `Official festival workspace for ${orgName}`,
+        start_date: today,
+        status: "draft",
+        visibility: "public",
+      })
+      .select()
+      .single()
+
+    if (festError) {
+      return { success: false, error: festError.message }
+    }
+
+    // 3. Seed starter data matching Festize template:
+    try {
+      // 2 Teams
+      await admin.from("teams").insert([
+        { festival_id: newFest.id, name: "Team A", code: "TA", color: "#3B82F6" },
+        { festival_id: newFest.id, name: "Team B", code: "TB", color: "#EF4444" },
+      ])
+      // 1 Stage
+      await admin.from("festival_stages").insert([
+        { festival_id: newFest.id, name: "Stage 1", code: "ST1", venue_name: "Main Stage / Auditorium", is_active: true },
+      ])
+      // 1 Competition category & 1 competition
+      const { data: cat } = await admin.from("competition_categories").insert({
+        festival_id: newFest.id,
+        name: "General",
+        code: "GEN",
+      }).select().single()
+
+      if (cat) {
+        await admin.from("competitions").insert({
+          festival_id: newFest.id,
+          category_id: cat.id,
+          name: "Inaugural Programme",
+          code: "PRG-01",
+          competition_type: "individual",
+          status: "draft",
+        })
+      }
+    } catch (seedErr) {
+      console.warn("Auto-seed warning:", seedErr)
+    }
+
+    revalidatePath(`/dashboard/organization/${orgId}`, "layout")
+    return { success: true, festival: newFest as Festival }
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Failed to initialize festival workspace" }
+  }
+}
+
 export async function updateFestival(festivalId: string, formData: Partial<FestivalFormData & { status: string }>) {
   const check = await checkFestivalAccess(festivalId, ["organization_owner", "organization_admin", "festival_director", "platform_owner", "platform_admin"])
   if (!check.allowed) return { error: check.error }

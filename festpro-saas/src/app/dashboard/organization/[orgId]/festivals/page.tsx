@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
-import { getFestivals, archiveFestival, duplicateFestival, deleteFestival } from "@/lib/actions/festival"
+import { getFestivals, archiveFestival, duplicateFestival, deleteFestival, getOrCreateOrganizationFestivalAction } from "@/lib/actions/festival"
 import { FESTIVAL_STATUSES, FESTIVAL_STATUS_MAP } from "@/config/festival"
 import type { Festival } from "@/types/festival"
 import { CalendarDays, Plus, Search, Copy, Archive, Trash2, MoreHorizontal, Loader2 } from "lucide-react"
@@ -24,12 +24,23 @@ export default function FestivalsListPage() {
 
   useEffect(() => {
     async function load() {
-      const data = await getFestivals(orgId)
+      let data = await getFestivals(orgId)
+      if (!data || data.length === 0) {
+        const res = await getOrCreateOrganizationFestivalAction(orgId)
+        if (res.success && res.festival) {
+          router.replace(`/dashboard/organization/${orgId}/festivals/${res.festival.id}`)
+          return
+        }
+      } else if (data.length === 1) {
+        // If single festival exists, navigate directly to its workspace
+        router.replace(`/dashboard/organization/${orgId}/festivals/${data[0].id}`)
+        return
+      }
       setFestivals(data as Festival[])
       setLoading(false)
     }
     load()
-  }, [orgId])
+  }, [orgId, router])
 
   const filtered = festivals.filter((f) => {
     if (search && !f.name.toLowerCase().includes(search.toLowerCase())) return false

@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import { toast } from "sonner"
+import { FestProFavicon } from "@/components/ui/logo"
 import { createClient } from "@/lib/supabase/client"
 import { getFestivalDashboardData } from "@/lib/actions/festival"
 import type { FestivalDashboardData } from "@/types/festival"
@@ -63,8 +64,10 @@ export default function FestivalOperationsDashboard() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-slate-500 gap-3">
-        <div className="h-8 w-8 animate-spin rounded-full border-3 border-indigo-600 border-t-transparent" />
-        <p className="text-xs font-semibold text-slate-600">Loading your fest dashboard...</p>
+        <div className="animate-pulse">
+          <FestProFavicon size={44} className="shadow-md rounded-full" />
+        </div>
+        <p className="text-xs font-bold text-slate-600 uppercase tracking-wide animate-pulse">Loading fest dashboard...</p>
       </div>
     )
   }

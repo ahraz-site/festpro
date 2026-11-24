@@ -13,6 +13,13 @@ export const metadata: Metadata = {
   title: "FestPro - Enterprise Festival Management Software",
   description: "The complete enterprise solution for managing festivals, competitions, and youth events. Streamline operations with real-time scoring, live displays, and advanced CRM.",
   keywords: "enterprise festival software, school festival management, live scoring software, youth festival platform, B2B festival SaaS",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
   other: { "mobile-web-app-capable": "yes" },
 }
 
@@ -20,13 +27,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} ${anekMalayalam.variable} ${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <head>
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#6366f1" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="FestPro" />
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <link rel="apple-touch-icon" href="/favicon.svg" />
       </head>
       <body className="min-h-full flex flex-col">
         {children}

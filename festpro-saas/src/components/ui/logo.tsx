@@ -77,6 +77,56 @@ export interface LogoProps {
 }
 
 /**
+ * Official Festpro Favicon SVG Component matching:
+ * E:\Desktop\ahraz_design\SVG\fest pro logo favicon.svg
+ */
+export function FestProFavicon({
+  size = 32,
+  className = "",
+}: {
+  size?: number
+  className?: string
+}) {
+  const rawId = useId()
+  const gradientId = `fp-fav-grad-${rawId.replace(/[^a-zA-Z0-9_-]/g, "")}`
+  return (
+    <svg
+      viewBox="0 0 4239.21 4239.21"
+      width={size}
+      height={size}
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={`shrink-0 ${className}`}
+      aria-label="FestPro Favicon"
+      role="img"
+    >
+      <defs>
+        <linearGradient
+          id={gradientId}
+          x1="423.25"
+          y1="4554.69"
+          x2="3291.78"
+          y2="436.96"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0" stopColor="#2181c5" />
+          <stop offset="0.51" stopColor="#663fae" />
+          <stop offset="1" stopColor="#d14091" />
+        </linearGradient>
+      </defs>
+      <path
+        fill={`url(#${gradientId})`}
+        d="M4239.21,2119.6c0,1170.63-948.98,2119.61-2119.61,2119.61-192.8,0-379.6-25.75-557.15-74-242.63-65.91-467.94-173.85-667.68-315.53C353.32,3465.7,0,2833.91,0,2119.6,0,948.98,948.98,0,2119.6,0S4239.21,948.98,4239.21,2119.6Z"
+      />
+      <path
+        fill="#FFFFFF"
+        d="M3344.44,1628.37v-612.42h-1878.67c-345.36,0-571,230.22-571,575.57v570.97c0,262.49,128.92,442.08,396.02,442.08h27.63l4.57,46.02h-32.2c-267.1-4.61-396.02,179.59-396.02,442.04v757.05c199.74,141.68,425.05,249.62,667.68,315.53v-1233.74h1781.99v-607.82h-1781.99v-695.28H3344.44Z"
+      />
+    </svg>
+  )
+}
+
+/**
  * FestPro Wordmark Logo (Without the Ahraz icon swirl, as requested)
  */
 export function FestProLogo({

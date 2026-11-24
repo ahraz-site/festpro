@@ -14,8 +14,9 @@ import {
 } from "lucide-react"
 import type { Profile } from "@/types"
 import type { ExtendedOrganization } from "@/types/organization"
-import { AhrazFestProLogo } from "@/components/ui/logo"
+import { FestProLogo, AhrazFestProLogo, FestProFavicon } from "@/components/ui/logo"
 import { AccountStatusBanner } from "@/components/license/account-status-banner"
+import { getOrCreateOrganizationFestivalAction } from "@/lib/actions/festival"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -31,9 +32,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [currentFestival, setCurrentFestival] = useState<{
     id: string
     name: string
-    short_name?: string
-    code?: string
-    status?: string
+    short_name?: string | null
+    code?: string | null
+    status?: string | null
   } | null>(null)
 
   const isOrgRoute = pathname.startsWith("/dashboard/organization")
@@ -107,11 +108,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           .from("festivals")
           .select("id, name, short_name, code, status")
           .eq("organization_id", currentOrgId)
+          .is("deleted_at", null)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle()
-          .then(({ data }: any) => {
-            if (data) setCurrentFestival(data)
+          .then(async ({ data }: any) => {
+            if (data) {
+              setCurrentFestival(data)
+            } else {
+              const res = await getOrCreateOrganizationFestivalAction(currentOrgId)
+              if (res.success && res.festival) {
+                setCurrentFestival(res.festival)
+              }
+            }
           })
       }
       return
@@ -140,22 +149,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const publicWebUrl = `https://${festSlug}.festpro.ahraz.site`
 
   // 1. OVERVIEW
-  // 2. PEOPLE & PROGRAM
-  const peopleProgramItems = effectiveFestivalId && currentOrgId ? [
+  // 2. PEOPLE & PROGRAM (Always displayed with active festival route fallback)
+  const peopleProgramItems = currentOrgId ? [
     { label: "People & access", href: `/dashboard/organization/${currentOrgId}/members`, icon: Shield },
-    { label: "Teams", href: `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/teams`, icon: Users },
-    { label: "Participants", href: `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/participants`, icon: Bookmark },
-    { label: "Categories", href: `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/competitions/categories`, icon: LayoutGrid },
-    { label: "Programs", href: `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/competitions`, icon: Trophy },
-    { label: "Scheduler", href: `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/schedules`, icon: Calendar },
+    { label: "Teams", href: effectiveFestivalId ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/teams` : `/dashboard/organization/${currentOrgId}/festivals`, icon: Users },
+    { label: "Participants", href: effectiveFestivalId ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/participants` : `/dashboard/organization/${currentOrgId}/festivals`, icon: Bookmark },
+    { label: "Categories", href: effectiveFestivalId ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/competitions/categories` : `/dashboard/organization/${currentOrgId}/festivals`, icon: LayoutGrid },
+    { label: "Programs", href: effectiveFestivalId ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/competitions` : `/dashboard/organization/${currentOrgId}/festivals`, icon: Trophy },
+    { label: "Scheduler", href: effectiveFestivalId ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/schedules` : `/dashboard/organization/${currentOrgId}/festivals`, icon: Calendar },
   ] : []
 
-  // 3. LIVE OPERATIONS
-  const liveOpsItems = effectiveFestivalId && currentOrgId ? [
-    { label: "Live programs", href: `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/results/publish`, icon: Radio },
-    { label: "Stages", href: `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/stages`, icon: Layers },
-    { label: "Stage desk", href: `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/venues`, icon: LayoutGrid },
-    { label: "TV displays", href: `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/live/display`, icon: Tv },
+  // 3. LIVE OPERATIONS (Always displayed with active festival route fallback)
+  const liveOpsItems = currentOrgId ? [
+    { label: "Live programs", href: effectiveFestivalId ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/results/publish` : `/dashboard/organization/${currentOrgId}/festivals`, icon: Radio },
+    { label: "Stages", href: effectiveFestivalId ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/stages` : `/dashboard/organization/${currentOrgId}/festivals`, icon: Layers },
+    { label: "Stage desk", href: effectiveFestivalId ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/venues` : `/dashboard/organization/${currentOrgId}/festivals`, icon: LayoutGrid },
+    { label: "TV displays", href: effectiveFestivalId ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/live/display` : `/dashboard/organization/${currentOrgId}/festivals`, icon: Tv },
   ] : []
 
   const triggerRefresh = () => {
@@ -182,7 +191,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             {/* Brand Logo */}
             <Link href="/" className="flex items-center shrink-0">
-              <AhrazFestProLogo height={28} showIcon={true} />
+              <FestProLogo height={28} />
             </Link>
 
             {/* Current Fest Badge (Clean FestPro style) */}
