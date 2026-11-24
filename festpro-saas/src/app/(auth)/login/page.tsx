@@ -45,15 +45,15 @@ export default function LoginPage() {
   }
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl">Welcome Back</CardTitle>
-        <CardDescription>Sign in to your FestPro account</CardDescription>
+    <Card className="w-full max-w-md shadow-xl border-slate-200/80">
+      <CardHeader className="text-center pb-4">
+        <CardTitle className="text-2xl font-bold tracking-tight text-slate-900">Welcome Back</CardTitle>
+        <CardDescription className="text-slate-500">Sign in to your FestPro organizer account</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className="text-xs font-semibold text-slate-700">Email</Label>
             <Input
               id="email"
               type="email"
@@ -67,7 +67,7 @@ export default function LoginPage() {
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-xs font-semibold text-slate-700">Password</Label>
               <Link href="/forgot-password" className="text-xs text-indigo-600 hover:text-indigo-700 font-medium">
                 Forgot password?
               </Link>
@@ -92,22 +92,28 @@ export default function LoginPage() {
               </button>
             </div>
           </div>
-          <Button type="submit" className="w-full" size="lg" loading={isLoading}>
+          <Button type="submit" className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-2.5 shadow-md shadow-indigo-500/20" size="lg" loading={isLoading}>
             Sign In <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </form>
       </CardContent>
-      <CardFooter className="justify-center flex-col gap-2">
-        <p className="text-sm text-gray-500">
+      <CardFooter className="justify-center flex-col gap-2.5 pt-2 border-t border-slate-100">
+        <p className="text-sm text-slate-600">
+          New organizer?{" "}
+          <Link href="/create-fest" className="font-bold text-indigo-600 hover:text-indigo-700 hover:underline">
+            Create your fest (Free) →
+          </Link>
+        </p>
+        <p className="text-xs text-slate-500">
           Need an Enterprise License?{" "}
           <Link href="/contact" className="font-medium text-indigo-600 hover:text-indigo-700">
             Contact Sales
           </Link>
         </p>
-        <p className="text-xs text-gray-400">
-          Already have a license key?{" "}
+        <p className="text-xs text-slate-400">
+          Already have an enterprise license key?{" "}
           <Link href="/signup" className="font-semibold text-indigo-600 hover:text-indigo-700">
-            Activate License / Create Account
+            Activate License
           </Link>
         </p>
       </CardFooter>

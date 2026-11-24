@@ -6,6 +6,7 @@ import Link from "next/link"
 import { toast } from "sonner"
 import { createFestOrganizerAction } from "@/lib/actions/auth"
 import { ArrowLeft, Loader2, Eye, EyeOff, Globe, Check, Sparkles, ShieldCheck } from "lucide-react"
+import { AhrazFestProLogo } from "@/components/ui/logo"
 
 export default function CreateFestPage() {
   const router = useRouter()
@@ -88,45 +89,61 @@ export default function CreateFestPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#070E0D] text-white flex flex-col lg:flex-row selection:bg-emerald-500 selection:text-black">
-      {/* LEFT BRAND PANEL */}
-      <div className="lg:w-5/12 bg-[#0A1614] border-b lg:border-b-0 lg:border-r border-white/5 p-8 lg:p-14 flex flex-col justify-between">
+    <div className="min-h-screen bg-[#0B0F19] text-white flex flex-col lg:flex-row selection:bg-indigo-600 selection:text-white">
+      {/* LEFT BRAND PANEL (FestPro signature deep navy / slate) */}
+      <div className="lg:w-5/12 bg-[#0E1424] border-b lg:border-b-0 lg:border-r border-slate-800/80 p-8 lg:p-14 flex flex-col justify-between">
         <div>
           {/* Logo */}
-          <Link href="/" className="inline-flex items-center gap-2.5 group">
-            <div className="h-9 w-9 rounded-xl bg-emerald-500 flex items-center justify-center font-black text-slate-950 text-xl shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-              F
-            </div>
-            <span className="font-heading font-extrabold text-2xl tracking-tight text-white">
-              FestPro
-            </span>
+          <Link href="/" className="inline-flex items-center gap-2.5">
+            <AhrazFestProLogo height={30} showIcon={true} variant="dark" />
           </Link>
 
-          <div className="mt-16 lg:mt-24 max-w-md">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold tracking-wider uppercase mb-4">
+          <div className="mt-12 lg:mt-20 max-w-md">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-bold tracking-wider uppercase mb-4">
               <Sparkles className="h-3 w-3" /> From Entries to Results
             </span>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white leading-[1.15] tracking-tight">
               Keep the whole fest on the same page.
             </h2>
-            <p className="mt-5 text-sm sm:text-base text-slate-400 leading-relaxed">
+            <p className="mt-4 text-sm sm:text-base text-slate-400 leading-relaxed">
               Set up participants and programs, follow each stage, collect judges&apos; marks, and publish approved results in real-time.
             </p>
+
+            <div className="mt-8 space-y-3 text-xs sm:text-sm text-slate-300">
+              <div className="flex items-center gap-2.5">
+                <div className="h-5 w-5 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
+                  ✓
+                </div>
+                <span>Free trial tier: up to 20 participants, 2 teams, 1 stage</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div className="h-5 w-5 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
+                  ✓
+                </div>
+                <span>Dedicated festival portal URL on your own slug</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div className="h-5 w-5 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
+                  ✓
+                </div>
+                <span>Mobile-ready for on-stage coordinators and judges</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="mt-12 pt-6 border-t border-white/5 text-xs text-slate-500 flex items-center justify-between">
-          <span>Built for school arts and cultural fests.</span>
-          <div className="flex items-center gap-3">
-            <Link href="/privacy" className="hover:text-slate-400">Privacy</Link>
-            <Link href="/terms" className="hover:text-slate-400">Terms</Link>
-            <Link href="/contact" className="hover:text-slate-400">Contact</Link>
+        <div className="mt-12 pt-6 border-t border-slate-800/80 text-xs text-slate-500 flex items-center justify-between">
+          <span>Built for arts and cultural fests.</span>
+          <div className="flex items-center gap-4">
+            <Link href="/privacy" className="hover:text-slate-300">Privacy</Link>
+            <Link href="/terms" className="hover:text-slate-300">Terms</Link>
+            <Link href="/contact" className="hover:text-slate-300">Contact</Link>
           </div>
         </div>
       </div>
 
       {/* RIGHT WIZARD PANEL */}
-      <div className="flex-1 bg-[#070E0D] p-6 sm:p-10 lg:p-16 flex flex-col justify-center items-center">
+      <div className="flex-1 bg-[#0B0F19] p-6 sm:p-10 lg:p-16 flex flex-col justify-center items-center">
         <div className="w-full max-w-xl">
           {/* Navigation Bar */}
           <div className="flex items-center justify-between text-xs text-slate-400 mb-4">
@@ -137,9 +154,9 @@ export default function CreateFestPage() {
           </div>
 
           {/* 2-Step Progress Bar */}
-          <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden mb-8">
+          <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden mb-8">
             <div
-              className="h-full bg-emerald-500 transition-all duration-300"
+              className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-300"
               style={{ width: step === 1 ? "50%" : "100%" }}
             />
           </div>
@@ -151,14 +168,14 @@ export default function CreateFestPage() {
             </h1>
             <p className="text-xs sm:text-sm text-slate-400 mt-1.5 leading-relaxed">
               Start with up to 20 participants, 2 teams, 5 programs, and 1 stage at no cost. No card required.{" "}
-              <Link href="/contact" className="text-emerald-400 hover:underline font-medium">
+              <Link href="/contact" className="text-indigo-400 hover:underline font-medium">
                 Chat about a larger fest.
               </Link>
             </p>
           </div>
 
           {/* FORM CONTAINER CARD */}
-          <div className="bg-[#111F1D] border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+          <div className="bg-[#12182B] border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
             {step === 1 ? (
               /* STEP 1: FESTIVAL NAME & WEB ADDRESS */
               <form onSubmit={handleStep1Submit} className="space-y-5">
@@ -176,8 +193,8 @@ export default function CreateFestPage() {
                     required
                     value={festName}
                     onChange={(e) => handleFestNameChange(e.target.value)}
-                    placeholder="e.g. Sahityotsav, Aroz, Arts Fest"
-                    className="w-full px-4 py-3 rounded-xl bg-[#091413] border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                    placeholder="e.g. Sahityotsav, Arts Fest, Kalolsavam"
+                    className="w-full px-4 py-3 rounded-xl bg-[#0B0F19] border border-slate-700/80 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
                   />
                 </div>
 
@@ -189,14 +206,14 @@ export default function CreateFestPage() {
                     <button
                       type="button"
                       onClick={() => setIsEditingSlug(!isEditingSlug)}
-                      className="text-xs font-bold text-emerald-400 hover:text-emerald-300"
+                      className="text-xs font-bold text-indigo-400 hover:text-indigo-300"
                     >
                       {isEditingSlug ? "Done" : "Change"}
                     </button>
                   </div>
 
                   {isEditingSlug ? (
-                    <div className="flex items-center rounded-xl bg-[#091413] border border-emerald-500/50 px-3">
+                    <div className="flex items-center rounded-xl bg-[#0B0F19] border border-indigo-500/60 px-3">
                       <input
                         type="text"
                         value={festSlug}
@@ -207,9 +224,9 @@ export default function CreateFestPage() {
                       <span className="text-xs text-slate-400 font-mono">.festpro.ahraz.site</span>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-[#091413] border border-white/10 text-slate-300 text-sm font-mono">
+                    <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-[#0B0F19] border border-slate-700/80 text-slate-300 text-sm font-mono">
                       <span>{festSlug || "yourfest"}.festpro.ahraz.site</span>
-                      <Globe className="h-4 w-4 text-emerald-400" />
+                      <Globe className="h-4 w-4 text-indigo-400" />
                     </div>
                   )}
                   <p className="text-[11px] text-slate-500 mt-1">
@@ -219,14 +236,14 @@ export default function CreateFestPage() {
 
                 <button
                   type="submit"
-                  className="w-full mt-4 py-3.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98]"
+                  className="w-full mt-4 py-3.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm transition-all shadow-lg shadow-indigo-500/25 active:scale-[0.98]"
                 >
                   Continue
                 </button>
 
                 <p className="text-center text-xs text-slate-400 pt-2">
                   Already have an account?{" "}
-                  <Link href="/login" className="text-white hover:text-emerald-400 underline font-semibold">
+                  <Link href="/login" className="text-indigo-400 hover:underline font-semibold">
                     Sign in.
                   </Link>
                 </p>
@@ -245,7 +262,7 @@ export default function CreateFestPage() {
                 <div>
                   <h3 className="text-base font-bold text-white">Create your organizer account</h3>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    You&apos;ll use this account to set up and run <span className="text-emerald-400 font-medium">{festName}</span>.
+                    You&apos;ll use this account to set up and run <span className="text-indigo-400 font-semibold">{festName}</span>.
                   </p>
                 </div>
 
@@ -259,7 +276,7 @@ export default function CreateFestPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Muhammed Ruhan PK"
-                    className="w-full px-4 py-2.5 rounded-xl bg-[#091413] border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[#0B0F19] border border-slate-700/80 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500"
                   />
                 </div>
 
@@ -273,7 +290,7 @@ export default function CreateFestPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="e.g. organizer@gmail.com"
-                    className="w-full px-4 py-2.5 rounded-xl bg-[#091413] border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[#0B0F19] border border-slate-700/80 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500"
                   />
                   <p className="text-[11px] text-slate-500 mt-1">
                     We&apos;ll use this for your sign-in and account recovery.
@@ -289,7 +306,7 @@ export default function CreateFestPage() {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="+91 70124 50418"
-                    className="w-full px-4 py-2.5 rounded-xl bg-[#091413] border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[#0B0F19] border border-slate-700/80 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500"
                   />
                   <p className="text-[11px] text-slate-500 mt-1">Include the country code.</p>
                 </div>
@@ -304,8 +321,8 @@ export default function CreateFestPage() {
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="��������"
-                      className="w-full px-4 py-2.5 rounded-xl bg-[#091413] border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 pr-16"
+                      placeholder="••••••••"
+                      className="w-full px-4 py-2.5 rounded-xl bg-[#0B0F19] border border-slate-700/80 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500 pr-16"
                     />
                     <button
                       type="button"
@@ -319,10 +336,10 @@ export default function CreateFestPage() {
                 </div>
 
                 {/* Summary Card */}
-                <div className="bg-[#091413] border border-white/5 rounded-xl p-3 flex items-center justify-between">
+                <div className="bg-[#0B0F19] border border-slate-800 rounded-xl p-3 flex items-center justify-between">
                   <div>
                     <h4 className="text-xs font-bold text-white">{festName}</h4>
-                    <p className="text-[11px] text-emerald-400 font-mono mt-0.5">
+                    <p className="text-[11px] text-indigo-400 font-mono mt-0.5">
                       {festSlug}.festpro.ahraz.site
                     </p>
                   </div>
@@ -332,7 +349,7 @@ export default function CreateFestPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full mt-4 py-3.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-60 text-slate-950 font-bold text-sm transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98] flex items-center justify-center gap-2"
+                  className="w-full mt-4 py-3.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-60 text-white font-bold text-sm transition-all shadow-lg shadow-indigo-500/25 active:scale-[0.98] flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <>
@@ -346,7 +363,7 @@ export default function CreateFestPage() {
 
                 <p className="text-center text-xs text-slate-400 pt-2">
                   Already have an account?{" "}
-                  <Link href="/login" className="text-white hover:text-emerald-400 underline font-semibold">
+                  <Link href="/login" className="text-indigo-400 hover:underline font-semibold">
                     Sign in.
                   </Link>
                 </p>
