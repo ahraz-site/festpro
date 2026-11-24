@@ -41,6 +41,14 @@ export default function FestivalsListPage() {
       "code-letters": "/code-letters",
       "subject-picker": "/subject-picker",
       "team-scores": "/team-scores",
+      results: "/results",
+      "result-planner": "/result-planner",
+      "published-team-scores": "/published-team-scores",
+      "top-candidates": "/top-candidates",
+      prizes: "/prizes",
+      "grade-points": "/grade-points",
+      "id-cards": "/id-cards",
+      certificates: "/certificates",
     }
 
     async function load() {

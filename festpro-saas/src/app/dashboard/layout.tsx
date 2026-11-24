@@ -11,7 +11,7 @@ import {
   CreditCard, FileText, Shield, Trophy, Calendar, Radio, Layers,
   Tv, HelpCircle, Moon, Sun, ArrowLeft, Bookmark, LayoutGrid, Search,
   RefreshCw, ExternalLink, Sparkles, Gamepad2, Monitor, ClipboardCheck,
-  Keyboard, Dices, Medal, BarChart2
+  Keyboard, Dices, Medal, BarChart2, Star, Gift, Award, ListFilter
 } from "lucide-react"
 import type { Profile } from "@/types"
 import type { ExtendedOrganization } from "@/types/organization"
@@ -301,6 +301,74 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       icon: Trophy,
       isActive: pathname.includes("/team-scores"),
     },
+    {
+      label: "Results",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/results`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=results`,
+      icon: Award,
+      isActive: pathname.endsWith("/results"),
+    },
+    {
+      label: "Result planner",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/result-planner`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=result-planner`,
+      icon: ListFilter,
+      isActive: pathname.includes("/result-planner"),
+    },
+    {
+      label: "Published team scores",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/published-team-scores`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=published-team-scores`,
+      icon: BarChart2,
+      isActive: pathname.includes("/published-team-scores"),
+    },
+    {
+      label: "Top candidates",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/top-candidates`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=top-candidates`,
+      icon: Star,
+      isActive: pathname.includes("/top-candidates"),
+    },
+    {
+      label: "Prizes",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/prizes`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=prizes`,
+      icon: Gift,
+      isActive: pathname.includes("/prizes"),
+    },
+    {
+      label: "Grade points",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/grade-points`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=grade-points`,
+      icon: Medal,
+      isActive: pathname.includes("/grade-points"),
+    },
+  ] : []
+
+  // 5. DESIGN & OUTPUT
+  const designOutputItems = currentOrgId ? [
+    {
+      label: "ID card setup",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/id-cards`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=id-cards`,
+      icon: CreditCard,
+      isActive: pathname.includes("/id-cards"),
+    },
+    {
+      label: "Certificates",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/certificates`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=certificates`,
+      icon: FileText,
+      isActive: pathname.includes("/certificates"),
+    },
   ] : []
 
   const triggerRefresh = () => {
@@ -532,6 +600,37 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           {resultsItems.map((item) => {
+            const isActive = item.isActive
+            const Icon = item.icon
+            return (
+              <Link
+                prefetch={true}
+                key={item.label}
+                href={item.href}
+                className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition-all min-h-[38px] ${
+                  isActive
+                    ? "bg-indigo-50 text-indigo-700 font-bold"
+                    : "text-slate-600 hover:text-indigo-600 hover:bg-slate-50"
+                }`}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className={`h-4 w-4 ${isActive ? "text-indigo-600" : "text-slate-400"}`} />
+                  <span>{item.label}</span>
+                </div>
+                {isActive && <span className="h-1.5 w-1.5 rounded-full bg-indigo-600" />}
+              </Link>
+            )
+          })}
+
+          {/* 5. DESIGN & OUTPUT */}
+          <div className="pt-5 pb-1.5 px-3">
+            <span className="text-[11px] font-bold text-slate-400 tracking-wider uppercase block">
+              DESIGN & OUTPUT
+            </span>
+          </div>
+
+          {designOutputItems.map((item) => {
             const isActive = item.isActive
             const Icon = item.icon
             return (

@@ -609,15 +609,26 @@ export async function createFestOrganizerAction(formData: {
       phone: phone || null,
     })
 
-    // 5. Create Festival
+    // 5. Create Festival (Guaranteed unique festival code)
     const today = new Date().toISOString().split("T")[0]
-    const { data: fest, error: festError } = await adminClient
+    let finalCode = festSlug
+    const { data: codeCheck } = await adminClient
+      .from("festivals")
+      .select("id")
+      .eq("code", finalCode)
+      .maybeSingle()
+
+    if (codeCheck) {
+      finalCode = `${festSlug}-${Math.random().toString(36).substring(2, 6)}`
+    }
+
+    let { data: fest, error: festError } = await adminClient
       .from("festivals")
       .insert({
         organization_id: orgId,
         name: festName,
         short_name: festName.length > 50 ? festName.substring(0, 50) : festName,
-        code: festSlug,
+        code: finalCode,
         description: "Official festival workspace for " + festName,
         start_date: today,
         status: "draft",
@@ -626,12 +637,27 @@ export async function createFestOrganizerAction(formData: {
       .select()
       .single()
 
+    if (festError && (festError.code === "23505" || festError.message?.includes("festivals_code_key"))) {
+      finalCode = `${festSlug}-${Date.now().toString().slice(-4)}`
+      const retry = await adminClient
+        .from("festivals")
+        .insert({
+          organization_id: orgId,
+          name: festName,
+          short_name: festName.length > 50 ? festName.substring(0, 50) : festName,
+          code: finalCode,
+          description: "Official festival workspace for " + festName,
+          start_date: today,
+          status: "draft",
+          visibility: "public",
+        })
+        .select()
+        .single()
+      fest = retry.data
+      festError = retry.error
+    }
+
     if (festError) {
-      if (festError.code === "23505" || festError.message?.includes("festivals_code_key")) {
-        return {
-          error: `The festival web address "${festSlug}.festpro.ahraz.site" is already registered. Please choose another address in Step 1 (e.g. ${festSlug}-fest).`,
-        }
-      }
       return { error: "Festival workspace creation failed: " + festError.message }
     }
 

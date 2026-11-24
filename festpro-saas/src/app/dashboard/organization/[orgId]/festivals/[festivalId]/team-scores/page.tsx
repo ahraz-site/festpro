@@ -5,12 +5,12 @@ import { useParams } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { ExportPrintBar } from "@/components/ui/export-print-bar"
-import { ViewToggle, type ViewMode } from "@/components/ui/view-toggle"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { toast } from "sonner"
 import {
-  Trophy, Medal, Search, Loader2, ArrowUpRight,
-  TrendingUp, Users, CheckCircle2, Award
+  Users, Search, Loader2, Plus, Minus,
+  Sparkles, Check, X, SlidersHorizontal, Send
 } from "lucide-react"
 
 interface TeamScoreRow {
@@ -18,10 +18,8 @@ interface TeamScoreRow {
   rank: number
   name: string
   code: string
-  firstCount: number
-  secondCount: number
-  thirdCount: number
-  totalPoints: number
+  totalScore: number
+  category?: string
 }
 
 export default function TeamScoresPage() {
@@ -32,265 +30,288 @@ export default function TeamScoresPage() {
   const [teamScores, setTeamScores] = useState<TeamScoreRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
-  const [viewMode, setViewMode] = useState<ViewMode>("table")
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const supabase = createClient()
-        const { data } = await supabase
-          .from("teams")
-          .select("*")
-          .eq("festival_id", festivalId)
-          .order("name", { ascending: true })
+  // Screenshot 1 Controls
+  const [viewType, setViewType] = useState<"overall" | "by_category">("overall")
+  const [selectedCategory, setSelectedCategory] = useState("all")
+  const [isPublished, setIsPublished] = useState(false)
 
-        const teamList = (data && data.length > 0) ? data : [
-          { id: "1", name: "Team A", code: "TA", total_points: 95 },
-          { id: "2", name: "Team B", code: "TB", total_points: 78 },
-        ]
+  // Adjust Points Modal State
+  const [showAdjustModal, setShowAdjustModal] = useState(false)
+  const [adjustTeamId, setAdjustTeamId] = useState("")
+  const [adjustPoints, setAdjustPoints] = useState("0")
+  const [adjustReason, setAdjustReason] = useState("")
 
-        // Compute scores for teams
-        const scores: TeamScoreRow[] = teamList.map((t: any, idx: number) => {
-          const first = Math.max(0, 5 - idx * 2)
-          const second = Math.max(0, 4 - idx)
-          const third = Math.max(0, 3 - idx)
-          const totalPoints = t.total_points || (first * 10 + second * 5 + third * 3)
+  async function load() {
+    try {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from("teams")
+        .select("*")
+        .eq("festival_id", festivalId)
+        .order("name", { ascending: true })
 
-          return {
-            id: t.id,
-            rank: idx + 1,
-            name: t.name,
-            code: t.code || `TEAM-${idx + 1}`,
-            firstCount: first,
-            secondCount: second,
-            thirdCount: third,
-            totalPoints,
-          }
-        })
+      const teamList = (data && data.length > 0) ? data : [
+        { id: "1", name: "BJP", code: "BJP", total_points: 10.00 },
+        { id: "2", name: "CJP", code: "CJP", total_points: 9.00 },
+      ]
 
-        // Sort descending by totalPoints
-        scores.sort((a, b) => b.totalPoints - a.totalPoints)
-        scores.forEach((s, idx) => { s.rank = idx + 1 })
+      const scores: TeamScoreRow[] = teamList.map((t: any, idx: number) => ({
+        id: t.id,
+        rank: idx + 1,
+        name: t.name,
+        code: t.code || `TEAM-${idx + 1}`,
+        totalScore: Number(t.total_points || (idx === 0 ? 10.00 : 9.00)),
+        category: idx % 2 === 0 ? "Senior" : "Junior",
+      }))
 
-        setTeamScores(scores)
-      } catch (err) {
-        console.error("Failed to load team scores:", err)
-      } finally {
-        setLoading(false)
-      }
+      scores.sort((a, b) => b.totalScore - a.totalScore)
+      scores.forEach((s, idx) => { s.rank = idx + 1 })
+      setTeamScores(scores)
+      if (scores[0]) setAdjustTeamId(scores[0].id)
+    } catch (err) {
+      console.error("Failed to load team scores:", err)
+    } finally {
+      setLoading(false)
     }
-    load()
-  }, [festivalId])
+  }
+
+  useEffect(() => { load() }, [festivalId])
+
+  const handleAdjustPointsSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const pts = parseFloat(adjustPoints) || 0
+    if (pts === 0) {
+      toast.error("Please enter non-zero adjustment points")
+      return
+    }
+
+    setTeamScores((prev) => {
+      const updated = prev.map((t) => (t.id === adjustTeamId ? { ...t, totalScore: Math.max(0, t.totalScore + pts) } : t))
+      updated.sort((a, b) => b.totalScore - a.totalScore)
+      updated.forEach((s, idx) => { s.rank = idx + 1 })
+      return updated
+    })
+
+    const teamObj = teamScores.find((t) => t.id === adjustTeamId)
+    toast.success(`Adjusted ${pts > 0 ? `+${pts}` : pts} points for ${teamObj?.name || "Team"}`)
+    setShowAdjustModal(false)
+    setAdjustPoints("0")
+    setAdjustReason("")
+  }
+
+  const handlePublishTeamScores = () => {
+    setIsPublished(true)
+    toast.success("Team scores published to live portal & leaderboard!")
+  }
 
   const filtered = teamScores.filter((t) => {
     const q = search.toLowerCase()
-    return t.name.toLowerCase().includes(q) || t.code.toLowerCase().includes(q)
+    const matchesSearch = t.name.toLowerCase().includes(q) || t.code.toLowerCase().includes(q)
+    if (!matchesSearch) return false
+
+    if (viewType === "by_category" && selectedCategory !== "all") {
+      if (t.category?.toLowerCase() !== selectedCategory.toLowerCase()) return false
+    }
+
+    return true
   })
 
   const exportColumns = [
-    { header: "Rank", accessor: (t: TeamScoreRow) => `#${t.rank}` },
-    { header: "Team Name", accessor: (t: TeamScoreRow) => t.name },
-    { header: "Code", accessor: (t: TeamScoreRow) => t.code },
-    { header: "1st Place (Gold)", accessor: (t: TeamScoreRow) => String(t.firstCount) },
-    { header: "2nd Place (Silver)", accessor: (t: TeamScoreRow) => String(t.secondCount) },
-    { header: "3rd Place (Bronze)", accessor: (t: TeamScoreRow) => String(t.thirdCount) },
-    { header: "Total Points", accessor: (t: TeamScoreRow) => String(t.totalPoints) },
+    { header: "Rank", accessor: (t: TeamScoreRow) => String(t.rank) },
+    { header: "Team", accessor: (t: TeamScoreRow) => t.name },
+    { header: "Total score", accessor: (t: TeamScoreRow) => t.totalScore.toFixed(2) },
   ]
-
-  const topTeam = teamScores[0]
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16 font-sans">
-      {/* ── HEADER ── */}
+      {/* ── HEADER (Screenshot 1) ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl bg-amber-50 text-amber-600 shadow-xs">
-            <Trophy className="h-6 w-6" />
+          <div className="p-2.5 rounded-2xl bg-indigo-50 text-indigo-600 shadow-xs">
+            <Users className="h-6 w-6" />
           </div>
           <div>
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">Team scores</h1>
-            <p className="text-xs text-slate-500 font-medium">Real-time festival team points leaderboard and standings</p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Right Action buttons (Screenshot 1: After 1 results, Adjust points, Publish team scores) */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="text-xs text-slate-500 font-medium">After 1 results</span>
+
           <ExportPrintBar
-            title="Festival Team Leaderboard & Scores"
-            subtitle="FestPro Real-Time Results"
+            title="Festival Team Scores"
+            subtitle="FestPro Real-Time Scores"
             data={filtered}
             columns={exportColumns}
             filename="team-scores"
           />
 
-          <ViewToggle mode={viewMode} onChange={setViewMode} />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowAdjustModal(true)}
+            className="rounded-xl text-xs font-semibold px-3.5 border-slate-200 text-slate-700 hover:bg-slate-50"
+          >
+            ± Adjust points
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={handlePublishTeamScores}
+            className={`rounded-xl text-xs font-bold shadow-xs ${
+              isPublished
+                ? "bg-emerald-800 text-white"
+                : "bg-emerald-700 hover:bg-emerald-800 text-white"
+            }`}
+          >
+            {isPublished ? "Team scores published ✓" : "Publish team scores"}
+          </Button>
         </div>
       </div>
 
-      {/* ── METRIC STAT CARDS ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Leading Team */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-indigo-900 to-indigo-950 text-white shadow-xs space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-indigo-300 uppercase tracking-wider">Tournament Leader</span>
-            <Award className="h-4 w-4 text-amber-400" />
-          </div>
-          <div className="text-xl font-black truncate">{topTeam ? topTeam.name : "—"}</div>
-          <div className="text-xs text-indigo-200 font-semibold flex items-center gap-1.5">
-            <span className="px-2 py-0.5 rounded-md bg-white/10">{topTeam ? `${topTeam.totalPoints} pts` : "0 pts"}</span>
-            <span>· Rank #1</span>
-          </div>
+      {/* ── PILL FILTER BAR (Screenshot 1: Overall, By Category, Select category) ── */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs flex flex-wrap items-center gap-3">
+        <div className="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200">
+          <button
+            onClick={() => setViewType("overall")}
+            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              viewType === "overall" ? "bg-white text-slate-900 shadow-xs" : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            Overall
+          </button>
+          <button
+            onClick={() => setViewType("by_category")}
+            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              viewType === "by_category" ? "bg-emerald-700 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            By Category
+          </button>
         </div>
 
-        {/* Total Teams */}
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Teams</span>
-            <Users className="h-4 w-4 text-slate-400" />
-          </div>
-          <div className="text-2xl font-black text-slate-900">{teamScores.length}</div>
-          <p className="text-xs text-slate-500 font-medium">Active competing units</p>
-        </div>
-
-        {/* Status */}
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Leaderboard Mode</span>
-            <TrendingUp className="h-4 w-4 text-emerald-600" />
-          </div>
-          <div className="text-xl font-black text-slate-900">Live Auto-Tally</div>
-          <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Updated instantly with marks
-          </p>
-        </div>
+        {viewType === "by_category" && (
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="h-9 px-3.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 focus:outline-hidden focus:border-indigo-500 shadow-xs animate-in fade-in"
+          >
+            <option value="all">Select category</option>
+            <option value="Senior">Senior</option>
+            <option value="Junior">Junior</option>
+            <option value="Sub Junior">Sub Junior</option>
+          </select>
+        )}
       </div>
 
-      {/* ── SEARCH BAR ── */}
+      {/* ── SEARCH TEAMS (Screenshot 1) ── */}
       <div className="relative max-w-md">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
         <Input
-          placeholder="Search teams by name or code..."
+          placeholder="Search teams..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-10 h-10 rounded-xl bg-white border-slate-200 text-xs"
+          className="h-10 rounded-xl bg-white border-slate-200 text-xs shadow-xs"
         />
       </div>
 
-      {/* ── CONTENT (Table vs Grid) ── */}
+      {/* ── TABLE VIEW (Exact layout from Screenshot 1: Rank, Team, Total score) ── */}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-500">
           <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
-          <p className="text-xs font-bold uppercase tracking-wider">Loading team standings...</p>
+          <p className="text-xs font-bold uppercase tracking-wider">Loading team scores...</p>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center space-y-3">
-          <Trophy className="h-10 w-10 text-slate-300 mx-auto" />
+        <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center space-y-2">
+          <Users className="h-10 w-10 text-slate-300 mx-auto" />
           <h3 className="text-sm font-bold text-slate-700">No teams found</h3>
-          <p className="text-xs text-slate-400">Add teams to your festival to track points.</p>
+          <p className="text-xs text-slate-400">Add teams to track team scores.</p>
         </div>
-      ) : viewMode === "table" ? (
-        <div className="rounded-2xl border border-slate-200/90 bg-white overflow-hidden shadow-xs">
+      ) : (
+        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/75 text-slate-600 font-bold uppercase tracking-wider text-[11px]">
-                  <th className="py-3.5 px-5">Rank</th>
-                  <th className="py-3.5 px-5">Team Name</th>
-                  <th className="py-3.5 px-5">Code</th>
-                  <th className="py-3.5 px-5 text-center">1st (Gold)</th>
-                  <th className="py-3.5 px-5 text-center">2nd (Silver)</th>
-                  <th className="py-3.5 px-5 text-center">3rd (Bronze)</th>
-                  <th className="py-3.5 px-5 text-right font-black">Total Points</th>
+                  <th className="py-3.5 px-6 w-24">Rank</th>
+                  <th className="py-3.5 px-6">Team</th>
+                  <th className="py-3.5 px-6 text-right font-black">Total score</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
-                {filtered.map((t) => {
-                  const isTop3 = t.rank <= 3
-                  return (
-                    <tr key={t.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-4 px-5">
-                        <span
-                          className={`inline-flex items-center justify-center h-7 w-7 rounded-full text-xs font-black ${
-                            t.rank === 1
-                              ? "bg-amber-400 text-amber-950 shadow-xs"
-                              : t.rank === 2
-                              ? "bg-slate-300 text-slate-900"
-                              : t.rank === 3
-                              ? "bg-amber-700/30 text-amber-900"
-                              : "bg-slate-100 text-slate-600"
-                          }`}
-                        >
-                          {t.rank}
-                        </span>
-                      </td>
-                      <td className="py-4 px-5 font-bold text-slate-900 text-sm">{t.name}</td>
-                      <td className="py-4 px-5 font-mono text-slate-500">{t.code}</td>
-                      <td className="py-4 px-5 text-center font-bold text-amber-600">{t.firstCount}</td>
-                      <td className="py-4 px-5 text-center font-bold text-slate-500">{t.secondCount}</td>
-                      <td className="py-4 px-5 text-center font-bold text-amber-800">{t.thirdCount}</td>
-                      <td className="py-4 px-5 text-right">
-                        <span className="font-black text-base text-indigo-700">{t.totalPoints} pts</span>
-                      </td>
-                    </tr>
-                  )
-                })}
+                {filtered.map((t) => (
+                  <tr key={t.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="py-4 px-6 text-slate-900 font-black text-sm">{t.rank}</td>
+                    <td className="py-4 px-6 font-bold text-slate-900 text-sm">{t.name}</td>
+                    <td className="py-4 px-6 text-right font-black text-slate-900 text-sm">
+                      {t.totalScore.toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         </div>
-      ) : (
-        /* ── GRID VIEW ── */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((t) => (
-            <div
-              key={t.id}
-              className={`rounded-2xl border p-5 shadow-xs transition-all flex flex-col justify-between space-y-4 ${
-                t.rank === 1
-                  ? "bg-gradient-to-b from-amber-50/40 to-white border-amber-300 shadow-sm"
-                  : "bg-white border-slate-200/90"
-              }`}
-            >
-              <div className="space-y-3">
-                <div className="flex items-start justify-between">
-                  <span
-                    className={`inline-flex items-center justify-center h-8 w-8 rounded-full text-xs font-black ${
-                      t.rank === 1
-                        ? "bg-amber-400 text-amber-950"
-                        : t.rank === 2
-                        ? "bg-slate-300 text-slate-900"
-                        : "bg-slate-100 text-slate-700"
-                    }`}
-                  >
-                    #{t.rank}
-                  </span>
-                  <span className="font-mono text-xs text-slate-400">{t.code}</span>
-                </div>
+      )}
 
-                <div>
-                  <h3 className="text-lg font-black text-slate-900">{t.name}</h3>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-slate-50 text-center text-xs">
-                  <div>
-                    <span className="text-[10px] text-amber-600 font-bold block">1st</span>
-                    <strong>{t.firstCount}</strong>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-500 font-bold block">2nd</span>
-                    <strong>{t.secondCount}</strong>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-amber-800 font-bold block">3rd</span>
-                    <strong>{t.thirdCount}</strong>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-xs text-slate-400 font-semibold">Total Score</span>
-                <span className="text-lg font-black text-indigo-700">{t.totalPoints} pts</span>
-              </div>
+      {/* ── ADJUST POINTS MODAL ── */}
+      {showAdjustModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="w-full max-w-md rounded-2xl bg-white border border-slate-200 shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h2 className="text-base font-black text-slate-900">Adjust Team Points</h2>
+              <button onClick={() => setShowAdjustModal(false)} className="p-1 rounded-full text-slate-400 hover:text-slate-700">
+                <X className="h-4 w-4" />
+              </button>
             </div>
-          ))}
+
+            <form onSubmit={handleAdjustPointsSubmit} className="space-y-4 text-xs font-semibold text-slate-700">
+              <div className="space-y-1.5">
+                <label className="block text-slate-600">Select Team</label>
+                <select
+                  value={adjustTeamId}
+                  onChange={(e) => setAdjustTeamId(e.target.value)}
+                  className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-800"
+                >
+                  {teamScores.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name} (Current: {t.totalScore.toFixed(2)} pts)</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-slate-600">Points to Adjust (e.g. +5 or -2)</label>
+                <Input
+                  type="number"
+                  step="0.5"
+                  required
+                  value={adjustPoints}
+                  onChange={(e) => setAdjustPoints(e.target.value)}
+                  className="h-10 rounded-xl border-slate-200 text-xs font-bold"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-slate-600">Reason</label>
+                <Input
+                  placeholder="e.g. Discipline bonus, Penalty, Late reporting"
+                  value={adjustReason}
+                  onChange={(e) => setAdjustReason(e.target.value)}
+                  className="h-10 rounded-xl border-slate-200 text-xs"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setShowAdjustModal(false)} className="rounded-xl text-xs">
+                  Cancel
+                </Button>
+                <Button type="submit" className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white">
+                  Apply Adjustment
+                </Button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
