@@ -201,7 +201,7 @@ export default function CodeLettersPage() {
                 size="sm"
                 onClick={handleSave}
                 disabled={saving}
-                className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs"
+                className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
               >
                 <Save className="h-3.5 w-3.5 mr-1" />
                 {saving ? "Saving..." : "Save Code Letters"}
@@ -247,7 +247,7 @@ export default function CodeLettersPage() {
                           onClick={() => handleToggleReported(c.id)}
                           className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all ${
                             c.isReported
-                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+                              ? "bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-emerald-100"
                               : "bg-slate-100 text-slate-400 border border-slate-200 hover:bg-slate-200"
                           }`}
                         >

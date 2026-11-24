@@ -139,7 +139,7 @@ export default function IdCardDesignerPage() {
             <ChevronDown className="h-3.5 w-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none" />
           </div>
 
-          <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/60">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-200/60">
             <CheckCircle className="h-3.5 w-3.5" />
             <span>Saved</span>
           </div>
@@ -148,7 +148,7 @@ export default function IdCardDesignerPage() {
         <div className="flex items-center gap-2">
           <Button
             onClick={handleSave}
-            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs px-4 h-9"
+            className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-4 h-9"
           >
             Save design
           </Button>
@@ -160,11 +160,11 @@ export default function IdCardDesignerPage() {
         <button
           onClick={() => setCurrentStep(1)}
           className={`flex items-center gap-2 transition-colors ${
-            currentStep === 1 ? "text-emerald-700" : "text-slate-400 hover:text-slate-600"
+            currentStep === 1 ? "text-indigo-700" : "text-slate-400 hover:text-slate-600"
           }`}
         >
           <span className={`h-6 w-6 rounded-full flex items-center justify-center text-[11px] ${
-            currentStep === 1 ? "bg-emerald-700 text-white" : "border border-slate-300 text-slate-500"
+            currentStep === 1 ? "bg-indigo-600 text-white" : "border border-slate-300 text-slate-500"
           }`}>
             1
           </span>
@@ -176,11 +176,11 @@ export default function IdCardDesignerPage() {
         <button
           onClick={() => setCurrentStep(2)}
           className={`flex items-center gap-2 transition-colors ${
-            currentStep === 2 ? "text-emerald-700" : "text-slate-400 hover:text-slate-600"
+            currentStep === 2 ? "text-indigo-700" : "text-slate-400 hover:text-slate-600"
           }`}
         >
           <span className={`h-6 w-6 rounded-full flex items-center justify-center text-[11px] ${
-            currentStep === 2 ? "bg-emerald-700 text-white" : "border border-slate-300 text-slate-500"
+            currentStep === 2 ? "bg-indigo-600 text-white" : "border border-slate-300 text-slate-500"
           }`}>
             2
           </span>
@@ -192,11 +192,11 @@ export default function IdCardDesignerPage() {
         <button
           onClick={() => setCurrentStep(3)}
           className={`flex items-center gap-2 transition-colors ${
-            currentStep === 3 ? "text-emerald-700" : "text-slate-400 hover:text-slate-600"
+            currentStep === 3 ? "text-indigo-700" : "text-slate-400 hover:text-slate-600"
           }`}
         >
           <span className={`h-6 w-6 rounded-full flex items-center justify-center text-[11px] ${
-            currentStep === 3 ? "bg-emerald-700 text-white" : "border border-slate-300 text-slate-500"
+            currentStep === 3 ? "bg-indigo-600 text-white" : "border border-slate-300 text-slate-500"
           }`}>
             3
           </span>
@@ -236,7 +236,7 @@ export default function IdCardDesignerPage() {
                   onClick={() => setOrientation("portrait")}
                   className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${
                     orientation === "portrait"
-                      ? "border-emerald-600 bg-emerald-50/50 text-emerald-800 font-bold"
+                      ? "border-indigo-600 bg-indigo-50/50 text-indigo-800 font-bold"
                       : "border-slate-200 hover:border-slate-300 text-slate-600"
                   }`}
                 >
@@ -248,7 +248,7 @@ export default function IdCardDesignerPage() {
                   onClick={() => setOrientation("landscape")}
                   className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${
                     orientation === "landscape"
-                      ? "border-emerald-600 bg-emerald-50/50 text-emerald-800 font-bold"
+                      ? "border-indigo-600 bg-indigo-50/50 text-indigo-800 font-bold"
                       : "border-slate-200 hover:border-slate-300 text-slate-600"
                   }`}
                 >
@@ -308,7 +308,7 @@ export default function IdCardDesignerPage() {
                       onClick={() => setSelectedFieldId(field.id)}
                       className={`flex items-center justify-between p-2 rounded-xl border text-xs cursor-pointer transition-all ${
                         isSelected
-                          ? "border-emerald-600 bg-emerald-50/40 text-slate-900 font-bold"
+                          ? "border-indigo-600 bg-indigo-50/40 text-slate-900 font-bold"
                           : "border-slate-200 hover:bg-slate-50 text-slate-700"
                       }`}
                     >
@@ -338,9 +338,9 @@ export default function IdCardDesignerPage() {
                 type="button"
                 variant="outline"
                 onClick={handleAddField}
-                className="w-full rounded-xl text-xs font-bold border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/30 text-slate-700 h-9"
+                className="w-full rounded-xl text-xs font-bold border-dashed border-slate-300 hover:border-indigo-500 hover:bg-indigo-50/30 text-slate-700 h-9"
               >
-                <Plus className="h-3.5 w-3.5 mr-1 text-emerald-600" />
+                <Plus className="h-3.5 w-3.5 mr-1 text-indigo-600" />
                 Add field
               </Button>
             </div>
@@ -571,7 +571,7 @@ export default function IdCardDesignerPage() {
                   type="checkbox"
                   checked={cropMarks}
                   onChange={(e) => setCropMarks(e.target.checked)}
-                  className="h-4 w-4 accent-emerald-600 rounded cursor-pointer"
+                  className="h-4 w-4 accent-indigo-600 rounded cursor-pointer"
                 />
               </div>
 
@@ -581,7 +581,7 @@ export default function IdCardDesignerPage() {
                   type="checkbox"
                   checked={startTeamOnNewPage}
                   onChange={(e) => setStartTeamOnNewPage(e.target.checked)}
-                  className="h-4 w-4 accent-emerald-600 rounded cursor-pointer"
+                  className="h-4 w-4 accent-indigo-600 rounded cursor-pointer"
                 />
               </div>
 
@@ -591,7 +591,7 @@ export default function IdCardDesignerPage() {
                   type="checkbox"
                   checked={participantQrCode}
                   onChange={(e) => setParticipantQrCode(e.target.checked)}
-                  className="h-4 w-4 accent-emerald-600 rounded cursor-pointer"
+                  className="h-4 w-4 accent-indigo-600 rounded cursor-pointer"
                 />
               </div>
             </div>
@@ -626,11 +626,11 @@ export default function IdCardDesignerPage() {
 
               <div className="space-y-1 text-[11px] text-slate-500 pt-1">
                 <p className="font-medium text-slate-700">A4 portrait · 9 cards per sheet · 1 page</p>
-                <div className="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                <div className="flex items-center gap-1.5 text-indigo-700 font-semibold">
                   <CheckCircle className="h-3 w-3" />
                   <span>All fields are in the safe area</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                <div className="flex items-center gap-1.5 text-indigo-700 font-semibold">
                   <CheckCircle className="h-3 w-3" />
                   <span>QR code is ready to print</span>
                 </div>
@@ -652,7 +652,7 @@ export default function IdCardDesignerPage() {
               <Button
                 type="button"
                 onClick={handleExportCards}
-                className="w-full rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs h-10"
+                className="w-full rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs h-10"
               >
                 <Printer className="h-4 w-4 mr-2" />
                 Export cards

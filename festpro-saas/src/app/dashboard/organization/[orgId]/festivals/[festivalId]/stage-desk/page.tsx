@@ -138,7 +138,7 @@ export default function StageDeskPage() {
                 onClick={() => setActiveTab(tab)}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                   isActive
-                    ? "bg-emerald-700 text-white shadow-xs"
+                    ? "bg-indigo-600 text-white shadow-xs"
                     : "bg-slate-100/90 hover:bg-slate-200 text-slate-600 border border-slate-200"
                 }`}
               >
@@ -192,7 +192,7 @@ export default function StageDeskPage() {
                       <h3 className="text-lg font-black text-slate-900">{comp.name}</h3>
                       <p className="text-xs text-slate-500 font-medium mt-0.5">{catName} · Duration: {comp.duration_minutes || 30} mins</p>
                     </div>
-                    <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
+                    <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-200">
                       {status}
                     </span>
                   </div>
@@ -204,7 +204,7 @@ export default function StageDeskPage() {
                     </div>
                     <div>
                       <span className="text-[10px] uppercase font-bold text-slate-400 block">Reported</span>
-                      <strong className="text-sm font-black text-emerald-600">6</strong>
+                      <strong className="text-sm font-black text-indigo-600">6</strong>
                     </div>
                     <div>
                       <span className="text-[10px] uppercase font-bold text-slate-400 block">On Stage</span>
@@ -229,7 +229,7 @@ export default function StageDeskPage() {
                       <Button
                         size="sm"
                         onClick={() => handleUpdateStatus(comp.id, "STARTED")}
-                        className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white"
+                        className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"
                       >
                         Start program
                       </Button>

@@ -16,7 +16,7 @@ export default async function IntegrationsDashboardPage(props: { params: Promise
     { label: "Failed Events", value: d.failed_events, icon: AlertTriangle, color: "text-red-600" },
     { label: "Pending Jobs", value: d.pending_jobs, icon: CloudSync, color: "text-cyan-600" },
     { label: "Imports", value: `${d.completed_imports}/${d.total_imports}`, icon: FileText, color: "text-green-600" },
-    { label: "Exports", value: `${d.completed_exports}/${d.total_exports}`, icon: Download, color: "text-emerald-600" },
+    { label: "Exports", value: `${d.completed_exports}/${d.total_exports}`, icon: Download, color: "text-indigo-600" },
     { label: "API Requests Today", value: d.api_requests_today, icon: BarChart3, color: "text-rose-600" },
   ]
 

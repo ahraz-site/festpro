@@ -11,7 +11,8 @@ import { Select } from "@/components/ui/select"
 import { getFestivals, archiveFestival, duplicateFestival, deleteFestival, getOrCreateOrganizationFestivalAction } from "@/lib/actions/festival"
 import { FESTIVAL_STATUSES, FESTIVAL_STATUS_MAP } from "@/config/festival"
 import type { Festival } from "@/types/festival"
-import { CalendarDays, Plus, Search, Copy, Archive, Trash2, MoreHorizontal, Loader2 } from "lucide-react"
+import { FestProFavicon } from "@/components/ui/logo"
+import { CalendarDays, Plus, Search, Copy, Archive, Trash2, MoreHorizontal, Loader2, Sparkles } from "lucide-react"
 
 export default function FestivalsListPage() {
   const params = useParams()
@@ -126,9 +127,19 @@ export default function FestivalsListPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3 text-slate-500 font-sans">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-        <p className="text-xs font-bold uppercase tracking-wider text-slate-600">Loading festival workspace...</p>
+      <div className="flex flex-col items-center justify-center min-h-[55vh] gap-4">
+        <div className="relative flex items-center justify-center">
+          <div className="absolute -inset-4 rounded-full bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 blur-xl animate-pulse" />
+          <div className="animate-pulse">
+            <FestProFavicon size={48} className="shadow-md rounded-full" />
+          </div>
+        </div>
+        <div className="space-y-1 text-center">
+          <p className="text-xs font-bold text-slate-700 uppercase tracking-wider animate-pulse">
+            Connecting to festival workspace...
+          </p>
+          <p className="text-[11px] text-slate-400">Loading festival tools and real-time operations</p>
+        </div>
       </div>
     )
   }

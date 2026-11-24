@@ -440,10 +440,13 @@ export default function CreateFestPage() {
                   <div>
                     <h4 className="text-xs font-bold text-white">{festName}</h4>
                     <p className="text-[11px] text-indigo-400 font-mono mt-0.5">
-                      {festSlug}.festpro.ahraz.site
+                      festpro.ahraz.site/f/{festSlug}
+                    </p>
+                    <p className="text-[10px] text-slate-500 font-mono">
+                      or {festSlug}.festpro.ahraz.site
                     </p>
                   </div>
-                  <Check className="h-4 w-4 text-emerald-400" />
+                  <Check className="h-4 w-4 text-indigo-400" />
                 </div>
 
                 <button

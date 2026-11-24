@@ -92,7 +92,7 @@ export default function FestivalFontsPage() {
 
         <Button
           onClick={() => setShowAddModal(true)}
-          className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs px-4 h-9"
+          className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-4 h-9"
         >
           <Plus className="h-3.5 w-3.5 mr-1.5" />
           Add font
@@ -146,7 +146,7 @@ export default function FestivalFontsPage() {
                 </div>
 
                 <div className="flex items-center justify-between pt-1">
-                  <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+                  <span className="text-[10px] text-indigo-600 font-semibold flex items-center gap-1">
                     <CheckCircle className="h-3 w-3" /> Ready in Canvas
                   </span>
                   <button
@@ -204,7 +204,7 @@ export default function FestivalFontsPage() {
                     key={pf.name}
                     type="button"
                     onClick={() => handleAddPreset(pf.name, pf.category)}
-                    className="p-2.5 rounded-xl border border-slate-200 hover:border-emerald-600 hover:bg-emerald-50/40 text-left transition-all group"
+                    className="p-2.5 rounded-xl border border-slate-200 hover:border-indigo-600 hover:bg-indigo-50/40 text-left transition-all group"
                   >
                     <span className="text-xs font-bold text-slate-800 group-hover:text-emerald-900 block truncate">
                       {pf.name}
@@ -241,7 +241,7 @@ export default function FestivalFontsPage() {
                   <Button type="button" variant="outline" onClick={() => setShowAddModal(false)} className="rounded-xl text-xs">
                     Cancel
                   </Button>
-                  <Button type="submit" className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white">
+                  <Button type="submit" className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white">
                     Register Font
                   </Button>
                 </div>

@@ -202,7 +202,7 @@ export default function GradePointsPage() {
               size="sm"
               onClick={handleSave}
               disabled={saving}
-              className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs px-5"
+              className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-5"
             >
               {saving ? "Saving..." : "Save rules"}
             </Button>

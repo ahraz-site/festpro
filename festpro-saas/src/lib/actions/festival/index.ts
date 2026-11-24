@@ -238,38 +238,66 @@ export async function getOrCreateOrganizationFestivalAction(orgId: string): Prom
       .maybeSingle()
 
     const orgName = org?.name || "FestPro Festival"
-    const baseSlug = (org?.slug || orgName).toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 30) || "fest"
-
-    // Check slug collision
-    let festCode = baseSlug
-    const { data: codeCheck } = await admin
-      .from("festivals")
-      .select("id")
-      .eq("code", festCode)
-      .maybeSingle()
-
-    if (codeCheck) {
-      festCode = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`
-    }
+    const rawSlug = (org?.slug || orgName).toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 24) || "fest"
 
     const today = new Date().toISOString().split("T")[0]
-    const { data: newFest, error: festError } = await admin
-      .from("festivals")
-      .insert({
-        organization_id: orgId,
-        name: orgName,
-        short_name: orgName.length > 50 ? orgName.substring(0, 50) : orgName,
-        code: festCode,
-        description: `Official festival workspace for ${orgName}`,
-        start_date: today,
-        status: "draft",
-        visibility: "public",
-      })
-      .select()
-      .single()
+    let newFest: any = null
+    let festError: any = null
 
-    if (festError) {
-      return { success: false, error: festError.message }
+    // Collision-resilient creation loop (up to 5 attempts)
+    const candidates = [
+      rawSlug,
+      `${rawSlug}-${Math.random().toString(36).substring(2, 6)}`,
+      `${rawSlug}-${Date.now().toString(36).slice(-4)}`,
+      `${rawSlug}-${Math.random().toString(36).substring(2, 7)}`,
+      `fest-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 5)}`,
+    ]
+
+    for (const candidateCode of candidates) {
+      const res = await admin
+        .from("festivals")
+        .insert({
+          organization_id: orgId,
+          name: orgName,
+          short_name: orgName.length > 50 ? orgName.substring(0, 50) : orgName,
+          code: candidateCode,
+          description: `Official festival workspace for ${orgName}`,
+          start_date: today,
+          status: "draft",
+          visibility: "public",
+        })
+        .select()
+        .single()
+
+      if (!res.error && res.data) {
+        newFest = res.data
+        festError = null
+        break
+      }
+
+      festError = res.error
+      if (festError?.code !== "23505" && !festError?.message?.includes("festivals_code_key")) {
+        // Non-collision error (e.g. permission or table schema), stop loop
+        break
+      }
+    }
+
+    // Fallback: If creation still encountered an issue, check if another concurrent request created it
+    if (!newFest) {
+      const { data: fallbackExisting } = await admin
+        .from("festivals")
+        .select("*")
+        .eq("organization_id", orgId)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (fallbackExisting) {
+        return { success: true, festival: fallbackExisting as Festival }
+      }
+
+      return { success: false, error: festError?.message || "Failed to initialize festival workspace" }
     }
 
     // 3. Seed starter data matching Festize template:

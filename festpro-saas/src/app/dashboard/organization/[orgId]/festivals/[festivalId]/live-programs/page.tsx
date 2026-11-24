@@ -262,11 +262,11 @@ export default function LiveProgramsPage() {
                       <td className="py-4 px-5">
                         <div className="space-y-1">
                           <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                            {state.status === "Started" && <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />}
+                            {state.status === "Started" && <span className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse" />}
                             <span>{state.status}</span>
                           </div>
                           <div className="text-[11px] text-slate-500 font-medium">Valuation closed</div>
-                          <div className="text-[11px] text-emerald-600 font-semibold">Result Published</div>
+                          <div className="text-[11px] text-indigo-600 font-semibold">Result Published</div>
                         </div>
                       </td>
 
@@ -278,7 +278,7 @@ export default function LiveProgramsPage() {
                             onClick={() => handleToggleStatus(comp.id)}
                             className={`rounded-xl text-xs font-bold shadow-xs ${
                               state.status === "Started"
-                                ? "bg-emerald-700 hover:bg-emerald-800 text-white"
+                                ? "bg-indigo-600 hover:bg-indigo-700 text-white"
                                 : "bg-indigo-600 hover:bg-indigo-700 text-white"
                             }`}
                           >
@@ -327,7 +327,7 @@ export default function LiveProgramsPage() {
                       <h3 className="text-base font-black text-slate-900">{comp.name}</h3>
                       <p className="text-xs text-slate-500 font-medium mt-0.5">{catName}</p>
                     </div>
-                    <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[11px] font-bold border border-emerald-200">
+                    <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-[11px] font-bold border border-indigo-200">
                       {state.status}
                     </span>
                   </div>
@@ -356,7 +356,7 @@ export default function LiveProgramsPage() {
                   <Button
                     size="sm"
                     onClick={() => handleToggleStatus(comp.id)}
-                    className="flex-1 rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white"
+                    className="flex-1 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"
                   >
                     {state.status === "Started" ? "Finish program" : "Start program"}
                   </Button>

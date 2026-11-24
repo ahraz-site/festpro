@@ -289,7 +289,7 @@ export default function CreateFestivalWizardPage() {
                   }}
                   className={`flex items-center gap-2 cursor-pointer ${
                     isDone
-                      ? "text-emerald-700"
+                      ? "text-indigo-700"
                       : isCurrent
                       ? "text-indigo-600 font-bold"
                       : "text-gray-400"
@@ -298,7 +298,7 @@ export default function CreateFestivalWizardPage() {
                   <div
                     className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                       isDone
-                        ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                        ? "bg-emerald-100 text-indigo-800 border border-indigo-300"
                         : isCurrent
                         ? "bg-indigo-600 text-white shadow-xs"
                         : "bg-gray-100 text-gray-500"
@@ -314,7 +314,7 @@ export default function CreateFestivalWizardPage() {
                 {idx < WIZARD_STEPS.length - 1 && (
                   <div
                     className={`flex-1 h-0.5 mx-3 transition-colors ${
-                      currentStep > s.step ? "bg-emerald-500" : "bg-gray-200"
+                      currentStep > s.step ? "bg-indigo-500" : "bg-gray-200"
                     }`}
                   />
                 )}
@@ -816,8 +816,8 @@ export default function CreateFestivalWizardPage() {
               </div>
 
               {/* Core Modules Info */}
-              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 flex items-center gap-2 font-medium">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+              <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-emerald-900 flex items-center gap-2 font-medium">
+                <CheckCircle2 className="h-4 w-4 text-indigo-600 shrink-0" />
                 <span>
                   <strong>11 Core Modules</strong> (Dashboard, {COMPETITION_UNITS[unitType].plural}, Participants, Programmes, Registrations, Schedule, Stages, Judges, Mark Entry, Results, Points) are always active.
                 </span>
@@ -927,12 +927,12 @@ export default function CreateFestivalWizardPage() {
                 </div>
               </div>
 
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900">
+              <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-emerald-900">
                 <p className="font-bold flex items-center gap-1.5">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  <CheckCircle2 className="h-4 w-4 text-indigo-600" />
                   Ready to deploy your isolated festival workspace
                 </p>
-                <p className="mt-1 text-emerald-800">
+                <p className="mt-1 text-indigo-800">
                   Clicking below will create the database records, set up your initial {COMPETITION_UNITS[unitType].plural.toLowerCase()}, and launch your customized festival dashboard.
                 </p>
               </div>
@@ -964,7 +964,7 @@ export default function CreateFestivalWizardPage() {
                 type="button"
                 onClick={handleFinalSubmit}
                 disabled={saving}
-                className="flex items-center gap-2 text-sm font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 shadow-md"
+                className="flex items-center gap-2 text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 shadow-md"
               >
                 {saving ? (
                   <>

@@ -27,7 +27,7 @@ export default function FestivalWebsiteThemesPage() {
   const festivalId = params.festivalId as string
 
   // State (Screenshot 11)
-  const [selectedThemeId, setSelectedThemeId] = useState("editorial")
+  const [selectedThemeId, setSelectedThemeId] = useState("gazette")
 
   const themes: ThemeOption[] = [
     {
@@ -90,19 +90,75 @@ export default function FestivalWebsiteThemesPage() {
       accentColor: "#38BDF8",
       serif: false,
     },
+    {
+      id: "noor",
+      name: "Noor.",
+      description: "Emerald and gold with geometric patterns and arches.",
+      dots: ["#F59E0B", "#10B981", "#064E3B"],
+      bg: "#062A20",
+      textColor: "#FDF6B2",
+      accentColor: "#F59E0B",
+      serif: true,
+    },
+    {
+      id: "poster",
+      name: "POSTER.",
+      description: "Loud yellow, heavy borders, and hard shadows.",
+      dots: ["#000000", "#EF4444", "#FFFFFF"],
+      bg: "#FACC15",
+      textColor: "#000000",
+      accentColor: "#000000",
+      serif: false,
+    },
+    {
+      id: "bloom",
+      name: "Bloom.",
+      description: "Soft pastels and friendly curves for school fests.",
+      dots: ["#EC4899", "#A855F7", "#FCE7F3"],
+      bg: "#FFF5F7",
+      textColor: "#831843",
+      accentColor: "#EC4899",
+      serif: true,
+    },
+    {
+      id: "arena",
+      name: "ARENA.",
+      description: "Sports scoreboard with lime highlights and bold caps.",
+      dots: ["#EF4444", "#F59E0B", "#84CC16"],
+      bg: "#111827",
+      textColor: "#FFFFFF",
+      accentColor: "#84CC16",
+      serif: false,
+    },
+    {
+      id: "gazette",
+      name: "Gazette.",
+      description: "Newspaper front page with serif headlines and rules.",
+      dots: ["#111827", "#DC2626", "#F3F4F6"],
+      bg: "#F4EFE6",
+      textColor: "#1C1917",
+      accentColor: "#111827",
+      serif: true,
+    },
   ]
+
+  const selectedTheme = themes.find((t) => t.id === selectedThemeId) || themes[0]
 
   const handleSelectTheme = (theme: ThemeOption) => {
     setSelectedThemeId(theme.id)
-    toast.success(`Applied theme "${theme.name}" to festival public portal!`)
+    toast.success(`Selected theme "${theme.name}"`)
+  }
+
+  const handleApplyTheme = () => {
+    toast.success(`Theme "${selectedTheme.name}" activated for festival website!`)
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto font-sans pb-16">
+    <div className="space-y-6 max-w-7xl mx-auto font-sans pb-28">
       {/* ── HEADER ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-200">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl bg-emerald-50 text-emerald-700 shadow-xs">
+          <div className="p-2.5 rounded-2xl bg-indigo-50 text-indigo-700 shadow-xs border border-indigo-100">
             <Globe className="h-6 w-6" />
           </div>
           <div>
@@ -124,10 +180,10 @@ export default function FestivalWebsiteThemesPage() {
             Open Page Builder
           </Link>
           <a
-            href={`/festivals/fest`}
+            href={`/f/${festivalId}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-500/20 transition-all active:scale-[0.98]"
           >
             <ExternalLink className="h-3.5 w-3.5" />
             View Live Site
@@ -135,7 +191,7 @@ export default function FestivalWebsiteThemesPage() {
         </div>
       </div>
 
-      {/* ── THEME SELECTOR INTRO (Screenshot 11) ── */}
+      {/* ── THEME SELECTOR INTRO ── */}
       <div className="space-y-1">
         <h2 className="text-base font-black text-slate-900 tracking-tight">
           Choose a theme
@@ -145,7 +201,7 @@ export default function FestivalWebsiteThemesPage() {
         </p>
       </div>
 
-      {/* ── 6 THEMES GRID (Screenshot 11) ── */}
+      {/* ── 11 THEMES GRID ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {themes.map((theme) => {
           const isSelected = selectedThemeId === theme.id
@@ -155,13 +211,13 @@ export default function FestivalWebsiteThemesPage() {
               onClick={() => handleSelectTheme(theme)}
               className={`rounded-2xl border transition-all cursor-pointer overflow-hidden shadow-xs hover:shadow-md flex flex-col justify-between ${
                 isSelected
-                  ? "border-emerald-600 ring-2 ring-emerald-500/20 bg-white"
+                  ? "border-indigo-600 ring-2 ring-indigo-500/20 bg-white shadow-indigo-100"
                   : "border-slate-200 bg-white hover:border-slate-300"
               }`}
             >
               {/* Theme Mockup Visual Header */}
               <div
-                className="h-44 p-5 flex flex-col justify-between relative border-b border-slate-100"
+                className="h-44 p-5 flex flex-col justify-between relative border-b border-slate-100 transition-transform duration-200"
                 style={{ backgroundColor: theme.bg }}
               >
                 {/* Top dots & selected checkmark */}
@@ -170,14 +226,14 @@ export default function FestivalWebsiteThemesPage() {
                     {theme.dots.map((dot, i) => (
                       <span
                         key={i}
-                        className="h-2.5 w-2.5 rounded-full"
+                        className="h-2.5 w-2.5 rounded-full ring-1 ring-black/10"
                         style={{ backgroundColor: dot }}
                       />
                     ))}
                   </div>
 
                   {isSelected && (
-                    <div className="h-6 w-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                    <div className="h-6 w-6 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-md animate-in fade-in zoom-in-75 duration-150">
                       <Check className="h-3.5 w-3.5 stroke-[3]" />
                     </div>
                   )}
@@ -203,6 +259,17 @@ export default function FestivalWebsiteThemesPage() {
             </div>
           )
         })}
+      </div>
+
+      {/* ── BOTTOM FLOATING ACTION BAR (Screenshot 10) ── */}
+      <div className="fixed bottom-6 right-8 z-40">
+        <button
+          onClick={handleApplyTheme}
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-sm shadow-xl shadow-indigo-500/30 active:scale-[0.98] transition-all"
+        >
+          <Sparkles className="h-4 w-4" />
+          Start with {selectedTheme.name.replace(/\.$/, "")}
+        </button>
       </div>
     </div>
   )

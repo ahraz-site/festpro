@@ -35,7 +35,7 @@ export default function AccommodationDashboardPage() {
     { label: "Occupied Rooms", value: dash?.occupied_rooms || 0, icon: UserCheck, color: "text-amber-600 bg-amber-50", href: "/accommodation/rooms" },
     { label: "Occupancy Rate", value: `${dash?.occupancy_rate || 0}%`, icon: TrendingUp, color: "text-cyan-600 bg-cyan-50", href: "/accommodation/rooms" },
     { label: "Allocations", value: dash?.total_allocations || 0, icon: Users, color: "text-teal-600 bg-teal-50", href: "/accommodation/allocations" },
-    { label: "Check-ins", value: dash?.checked_in || 0, icon: CheckCircle, color: "text-emerald-600 bg-emerald-50", href: "/accommodation/check-in" },
+    { label: "Check-ins", value: dash?.checked_in || 0, icon: CheckCircle, color: "text-indigo-600 bg-indigo-50", href: "/accommodation/check-in" },
     { label: "Check-outs", value: dash?.checked_out || 0, icon: UserX, color: "text-rose-600 bg-rose-50", href: "/accommodation/check-out" },
   ]
 

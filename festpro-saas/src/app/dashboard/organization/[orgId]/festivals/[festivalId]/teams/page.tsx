@@ -175,7 +175,7 @@ export default function FestivalTeamsPage() {
           <Button
             size="sm"
             onClick={handleOpenAdd}
-            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs"
+            className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
           >
             <Plus className="h-4 w-4 mr-1" />
             Add Team
@@ -234,7 +234,7 @@ export default function FestivalTeamsPage() {
           <Users className="h-10 w-10 text-slate-300 mx-auto" />
           <h3 className="text-sm font-bold text-slate-700">No teams found</h3>
           <p className="text-xs text-slate-400">Create house teams for your festival competitions.</p>
-          <Button size="sm" onClick={handleOpenAdd} className="rounded-xl text-xs bg-emerald-700 hover:bg-emerald-800 text-white">
+          <Button size="sm" onClick={handleOpenAdd} className="rounded-xl text-xs bg-indigo-600 hover:bg-indigo-700 text-white">
             <Plus className="h-3.5 w-3.5 mr-1" /> Add Team
           </Button>
         </div>
@@ -400,7 +400,7 @@ export default function FestivalTeamsPage() {
                 <Button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white"
+                  className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"
                 >
                   {submitting ? "Saving..." : editingTeam ? "Update Team" : "Add Team"}
                 </Button>

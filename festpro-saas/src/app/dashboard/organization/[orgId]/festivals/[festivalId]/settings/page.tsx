@@ -93,7 +93,7 @@ export default function FestivalSettingsPage() {
     <div className="space-y-6 max-w-5xl mx-auto font-sans pb-20">
       {/* ── HEADER ── */}
       <div className="flex items-center gap-3 pb-3 border-b border-slate-200">
-        <div className="p-2.5 rounded-2xl bg-emerald-50 text-emerald-700 shadow-xs">
+        <div className="p-2.5 rounded-2xl bg-indigo-50 text-indigo-700 shadow-xs">
           <Settings className="h-6 w-6" />
         </div>
         <div>
@@ -161,7 +161,7 @@ export default function FestivalSettingsPage() {
           <h2 className="text-sm font-black text-slate-900">Program assignment deadline</h2>
           <p className="text-[11px] text-slate-500 font-normal">
             Set the deadline for program assignments.{" "}
-            <span className="text-emerald-700 cursor-pointer font-bold inline-flex items-center gap-0.5">
+            <span className="text-indigo-700 cursor-pointer font-bold inline-flex items-center gap-0.5">
               <HelpCircle className="h-3 w-3 inline" /> What is this?
             </span>
           </p>
@@ -190,7 +190,7 @@ export default function FestivalSettingsPage() {
                 type="checkbox"
                 checked={adminsCanAssignAfterDeadline}
                 onChange={(e) => setAdminsCanAssignAfterDeadline(e.target.checked)}
-                className="h-4 w-4 accent-emerald-600 rounded"
+                className="h-4 w-4 accent-indigo-600 rounded"
               />
               <span className="text-xs text-slate-700">Admins can assign after the deadline</span>
             </label>
@@ -215,7 +215,7 @@ export default function FestivalSettingsPage() {
                 type="checkbox"
                 checked={dobRequired}
                 onChange={(e) => setDobRequired(e.target.checked)}
-                className="h-4 w-4 accent-emerald-600 rounded"
+                className="h-4 w-4 accent-indigo-600 rounded"
               />
               <span className="text-xs text-slate-700">Required for every participant</span>
             </label>
@@ -241,7 +241,7 @@ export default function FestivalSettingsPage() {
           <Button
             type="button"
             onClick={handleSaveParticipantAge}
-            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs px-4 h-9"
+            className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-4 h-9"
           >
             Save participant age
           </Button>
@@ -277,7 +277,7 @@ export default function FestivalSettingsPage() {
           <Button
             type="button"
             onClick={handleSaveLanguage}
-            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs px-4 h-9"
+            className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-4 h-9"
           >
             Save language
           </Button>
@@ -301,7 +301,7 @@ export default function FestivalSettingsPage() {
                 type="checkbox"
                 checked={announcerMayPublish}
                 onChange={(e) => setAnnouncerMayPublish(e.target.checked)}
-                className="h-4 w-4 accent-emerald-600 rounded"
+                className="h-4 w-4 accent-indigo-600 rounded"
               />
               <span className="text-xs text-slate-800 font-bold">Announcer may publish results and team scores</span>
             </label>
@@ -315,7 +315,7 @@ export default function FestivalSettingsPage() {
           <Button
             type="button"
             onClick={handleSaveAnnouncerPublishing}
-            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs px-4 h-9"
+            className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-4 h-9"
           >
             Save announcer publishing
           </Button>
@@ -339,7 +339,7 @@ export default function FestivalSettingsPage() {
                 type="checkbox"
                 checked={allowApiKeys}
                 onChange={(e) => setAllowApiKeys(e.target.checked)}
-                className="h-4 w-4 accent-emerald-600 rounded"
+                className="h-4 w-4 accent-indigo-600 rounded"
               />
               <span className="text-xs text-slate-800 font-bold">Allow API keys for this fest</span>
             </label>
@@ -353,7 +353,7 @@ export default function FestivalSettingsPage() {
           <Button
             type="button"
             onClick={handleSaveApiAccess}
-            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs px-4 h-9"
+            className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-4 h-9"
           >
             Save API access
           </Button>
@@ -387,7 +387,7 @@ export default function FestivalSettingsPage() {
             type="button"
             onClick={handleSaveFestDetails}
             disabled={saving}
-            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs px-6 h-10"
+            className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-6 h-10"
           >
             {saving ? "Saving..." : "Save fest details"}
           </Button>

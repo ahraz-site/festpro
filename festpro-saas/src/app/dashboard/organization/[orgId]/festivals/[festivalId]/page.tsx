@@ -258,7 +258,7 @@ export default function FestivalOperationsDashboard() {
             <div>
               <div className="flex items-center justify-between text-xs font-bold text-slate-700 mb-1.5">
                 <span>3 of 3 setup steps complete</span>
-                <span className="text-emerald-600 font-black">100%</span>
+                <span className="text-indigo-600 font-black">100%</span>
               </div>
               <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                 <div className="h-full bg-gradient-to-r from-indigo-600 to-emerald-500 rounded-full w-full" />
@@ -271,7 +271,7 @@ export default function FestivalOperationsDashboard() {
                 className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200"
               >
                 <div className="flex items-center gap-3">
-                  <div className="h-5 w-5 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold">
+                  <div className="h-5 w-5 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold">
                     <CheckCircle2 className="h-3.5 w-3.5" />
                   </div>
                   <span className="font-bold text-slate-800">Add people</span>
@@ -284,7 +284,7 @@ export default function FestivalOperationsDashboard() {
                 className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200"
               >
                 <div className="flex items-center gap-3">
-                  <div className="h-5 w-5 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold">
+                  <div className="h-5 w-5 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold">
                     <CheckCircle2 className="h-3.5 w-3.5" />
                   </div>
                   <span className="font-bold text-slate-800">Add programs</span>
@@ -297,7 +297,7 @@ export default function FestivalOperationsDashboard() {
                 className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200"
               >
                 <div className="flex items-center gap-3">
-                  <div className="h-5 w-5 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold">
+                  <div className="h-5 w-5 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold">
                     <CheckCircle2 className="h-3.5 w-3.5" />
                   </div>
                   <span className="font-bold text-slate-800">Prepare event day</span>
@@ -414,7 +414,7 @@ export default function FestivalOperationsDashboard() {
           <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 sm:p-4 shadow-2xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-slate-600 block">Published</span>
-              <div className="h-7 w-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <div className="h-7 w-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
                 <Globe className="h-3.5 w-3.5" />
               </div>
             </div>

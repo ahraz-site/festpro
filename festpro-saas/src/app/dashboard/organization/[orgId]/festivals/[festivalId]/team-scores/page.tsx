@@ -162,8 +162,8 @@ export default function TeamScoresPage() {
             onClick={handlePublishTeamScores}
             className={`rounded-xl text-xs font-bold shadow-xs ${
               isPublished
-                ? "bg-emerald-800 text-white"
-                : "bg-emerald-700 hover:bg-emerald-800 text-white"
+                ? "bg-indigo-700 text-white"
+                : "bg-indigo-600 hover:bg-indigo-700 text-white"
             }`}
           >
             {isPublished ? "Team scores published ✓" : "Publish team scores"}
@@ -185,7 +185,7 @@ export default function TeamScoresPage() {
           <button
             onClick={() => setViewType("by_category")}
             className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              viewType === "by_category" ? "bg-emerald-700 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+              viewType === "by_category" ? "bg-indigo-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
             }`}
           >
             By Category
@@ -306,7 +306,7 @@ export default function TeamScoresPage() {
                 <Button type="button" variant="outline" onClick={() => setShowAdjustModal(false)} className="rounded-xl text-xs">
                   Cancel
                 </Button>
-                <Button type="submit" className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white">
+                <Button type="submit" className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white">
                   Apply Adjustment
                 </Button>
               </div>

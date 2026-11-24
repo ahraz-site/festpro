@@ -102,7 +102,7 @@ export default function PublicationsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${p.is_live ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${p.is_live ? "bg-emerald-100 text-indigo-700" : "bg-blue-100 text-blue-700"}`}>
                       {p.is_live ? "Live" : p.status}
                     </span>
                     <Button variant="ghost" size="sm"><ExternalLink className="h-3.5 w-3.5" /></Button>

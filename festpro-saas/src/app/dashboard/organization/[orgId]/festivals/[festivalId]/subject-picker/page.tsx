@@ -89,7 +89,7 @@ export default function SubjectPickerPage() {
             size="lg"
             onClick={handlePickSubject}
             disabled={isRolling}
-            className="w-full h-11 rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs"
+            className="w-full h-11 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
           >
             {isRolling ? (
               <>
@@ -146,7 +146,7 @@ export default function SubjectPickerPage() {
             </div>
 
             {currentPick && !isRolling && (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold animate-in fade-in">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold animate-in fade-in">
                 <Check className="h-3.5 w-3.5" />
                 <span>Subject #{currentPick} officially assigned</span>
               </div>

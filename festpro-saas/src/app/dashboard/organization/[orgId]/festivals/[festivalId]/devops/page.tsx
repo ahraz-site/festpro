@@ -35,7 +35,7 @@ export default function DevOpsDashboardPage() {
     { label: "Builds", value: dash?.total_builds ?? 0, icon: Activity, color: "text-amber-600 bg-amber-50" },
     { label: "Cluster Nodes", value: dash?.total_cluster_nodes ?? 0, icon: Server, color: "text-cyan-600 bg-cyan-50" },
     { label: "Container Images", value: dash?.total_container_images ?? 0, icon: Container, color: "text-rose-600 bg-rose-50" },
-    { label: "Deploy Success", value: `${dash?.deployment_success_rate ?? 0}%`, icon: BarChart3, color: "text-emerald-600 bg-emerald-50" },
+    { label: "Deploy Success", value: `${dash?.deployment_success_rate ?? 0}%`, icon: BarChart3, color: "text-indigo-600 bg-indigo-50" },
   ]
 
   const orgId = params.orgId as string

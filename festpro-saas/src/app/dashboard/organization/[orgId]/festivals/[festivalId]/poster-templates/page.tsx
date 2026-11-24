@@ -82,7 +82,7 @@ export default function FestivalPosterTemplatesPage() {
       {/* ── HEADER (Screenshot 8) ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-200">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl bg-emerald-50 text-emerald-700 shadow-xs">
+          <div className="p-2.5 rounded-2xl bg-indigo-50 text-indigo-700 shadow-xs">
             <LayoutTemplate className="h-6 w-6" />
           </div>
           <div>
@@ -97,7 +97,7 @@ export default function FestivalPosterTemplatesPage() {
 
         <Button
           onClick={() => setShowCreateModal(true)}
-          className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs px-4 h-9"
+          className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-4 h-9"
         >
           <Plus className="h-3.5 w-3.5 mr-1.5" />
           Create Template
@@ -226,7 +226,7 @@ export default function FestivalPosterTemplatesPage() {
                 <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)} className="rounded-xl text-xs">
                   Cancel
                 </Button>
-                <Button type="submit" className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white">
+                <Button type="submit" className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white">
                   Create Template
                 </Button>
               </div>

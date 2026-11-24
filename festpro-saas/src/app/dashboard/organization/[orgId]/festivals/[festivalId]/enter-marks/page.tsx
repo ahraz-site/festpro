@@ -219,8 +219,8 @@ export default function EnterMarksPage() {
                 onClick={handlePublishResults}
                 className={`rounded-xl text-xs font-bold shadow-xs ${
                   isPublished
-                    ? "bg-emerald-700 text-white cursor-default"
-                    : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                    ? "bg-indigo-600 text-white cursor-default"
+                    : "bg-indigo-600 hover:bg-indigo-600 text-white"
                 }`}
               >
                 <Send className="h-3.5 w-3.5 mr-1" />
@@ -282,7 +282,7 @@ export default function EnterMarksPage() {
                       </td>
                       <td className="py-3 px-4 font-black text-base text-indigo-700">{c.total}</td>
                       <td className="py-3 px-4">
-                        <span className="inline-block px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-xs font-black border border-emerald-200">
+                        <span className="inline-block px-2.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-xs font-black border border-indigo-200">
                           {c.grade}
                         </span>
                       </td>

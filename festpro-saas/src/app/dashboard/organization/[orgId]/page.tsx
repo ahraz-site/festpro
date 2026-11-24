@@ -152,8 +152,8 @@ export default function OrganizationDashboardPage() {
               <span className="text-[10px] uppercase font-bold text-indigo-600 tracking-wider">
                 Current Festival
               </span>
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              <span className="text-xs font-semibold text-emerald-700 capitalize">{activeFest.status || "Active"}</span>
+              <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+              <span className="text-xs font-semibold text-indigo-700 capitalize">{activeFest.status || "Active"}</span>
             </div>
             <h2 className="text-lg font-bold text-slate-900">{activeFest.name}</h2>
             <div className="flex items-center gap-3 text-xs text-slate-500">
@@ -212,7 +212,7 @@ export default function OrganizationDashboardPage() {
         <Link href={`/dashboard/organization/${orgId}/members`}>
           <Card className="rounded-2xl border border-slate-200 shadow-xs hover:border-indigo-300 transition-colors cursor-pointer">
             <CardContent className="p-5 flex items-center gap-4">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
                 <Users className="h-5 w-5" />
               </div>
               <div>

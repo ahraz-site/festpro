@@ -149,7 +149,7 @@ export default function FestivalPrizesPage() {
           <Button
             size="sm"
             onClick={() => setShowSetPrizesModal(true)}
-            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs px-4"
+            className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-4"
           >
             Set prizes
           </Button>
@@ -286,7 +286,7 @@ export default function FestivalPrizesPage() {
                       onClick={() => handleToggleGive(row.id)}
                       className={`rounded-xl text-xs font-bold px-4 shadow-xs ${
                         row.isGiven
-                          ? "bg-slate-100 text-emerald-700 hover:bg-slate-200 border border-emerald-200"
+                          ? "bg-slate-100 text-indigo-700 hover:bg-slate-200 border border-indigo-200"
                           : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
                       }`}
                     >
@@ -346,7 +346,7 @@ export default function FestivalPrizesPage() {
                 <Button type="button" variant="outline" onClick={() => setShowSetPrizesModal(false)} className="rounded-xl text-xs">
                   Cancel
                 </Button>
-                <Button type="submit" className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white">
+                <Button type="submit" className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white">
                   Save Prizes
                 </Button>
               </div>

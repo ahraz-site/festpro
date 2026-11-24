@@ -195,7 +195,7 @@ export default function PeopleAndAccessPage() {
           <Button
             size="sm"
             onClick={() => setShowAddModal(true)}
-            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs"
+            className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
           >
             <Plus className="h-4 w-4 mr-1" />
             Add person
@@ -260,7 +260,7 @@ export default function PeopleAndAccessPage() {
           <Users className="h-10 w-10 text-slate-300 mx-auto" />
           <h3 className="text-sm font-bold text-slate-700">No members found</h3>
           <p className="text-xs text-slate-400">Invite judges, admins or media team members.</p>
-          <Button size="sm" onClick={() => setShowAddModal(true)} className="rounded-xl text-xs bg-emerald-700 hover:bg-emerald-800 text-white">
+          <Button size="sm" onClick={() => setShowAddModal(true)} className="rounded-xl text-xs bg-indigo-600 hover:bg-indigo-700 text-white">
             <Plus className="h-3.5 w-3.5 mr-1" /> Add Person
           </Button>
         </div>
@@ -474,7 +474,7 @@ export default function PeopleAndAccessPage() {
                 <Button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white"
+                  className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"
                 >
                   {submitting ? "Adding..." : "Add person"}
                 </Button>

@@ -219,7 +219,7 @@ export default function ParticipantsManagementPage() {
           <Button
             size="sm"
             onClick={() => setShowAddModal(true)}
-            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs"
+            className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
           >
             <Plus className="h-4 w-4 mr-1" />
             Add participant
@@ -229,7 +229,7 @@ export default function ParticipantsManagementPage() {
 
       {/* ── CAPACITY STATUS BAR (Screenshot 4) ── */}
       <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200/90 bg-white text-xs font-semibold text-slate-700 shadow-xs">
-        <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+        <Check className="h-4 w-4 text-indigo-600 shrink-0" />
         <span>
           <strong className="text-slate-900">{count} of {maxLimit} participants</strong> · {remaining} remaining
         </span>
@@ -284,7 +284,7 @@ export default function ParticipantsManagementPage() {
             Get started by adding participants individually or bulk paste a list of participant names.
           </p>
           <div className="flex justify-center gap-2 pt-2">
-            <Button size="sm" onClick={() => setShowAddModal(true)} className="rounded-xl text-xs bg-emerald-700 hover:bg-emerald-800 text-white">
+            <Button size="sm" onClick={() => setShowAddModal(true)} className="rounded-xl text-xs bg-indigo-600 hover:bg-indigo-700 text-white">
               <Plus className="h-3.5 w-3.5 mr-1" /> Add Participant
             </Button>
             <Button size="sm" variant="outline" onClick={() => setShowBulkModal(true)} className="rounded-xl text-xs">
@@ -518,7 +518,7 @@ export default function ParticipantsManagementPage() {
                 <Button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white"
+                  className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"
                 >
                   {submitting ? "Adding..." : "Add participant"}
                 </Button>
@@ -599,7 +599,7 @@ export default function ParticipantsManagementPage() {
                 <Button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white"
+                  className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"
                 >
                   {submitting ? "Adding..." : "Add participants"}
                 </Button>

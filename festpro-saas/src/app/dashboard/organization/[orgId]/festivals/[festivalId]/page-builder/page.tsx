@@ -341,7 +341,7 @@ export default function PageBuilderPage() {
               <button
                 onClick={() => setDeviceMode("mobile")}
                 className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
-                  deviceMode === "mobile" ? "bg-emerald-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                  deviceMode === "mobile" ? "bg-indigo-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 <Smartphone className="h-3.5 w-3.5" /> Mobile (375px)

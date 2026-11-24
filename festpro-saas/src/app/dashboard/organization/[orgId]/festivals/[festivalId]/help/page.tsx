@@ -171,7 +171,7 @@ export default function FestivalHelpPage() {
           <button
             onClick={() => setLang("ml")}
             className={`px-3 py-1 rounded-lg transition-all ${
-              lang === "ml" ? "bg-white text-emerald-800 shadow-2xs" : "text-slate-500 hover:text-slate-800"
+              lang === "ml" ? "bg-white text-indigo-800 shadow-2xs" : "text-slate-500 hover:text-slate-800"
             }`}
           >
             മലയാളം
@@ -179,7 +179,7 @@ export default function FestivalHelpPage() {
           <button
             onClick={() => setLang("en")}
             className={`px-3 py-1 rounded-lg transition-all ${
-              lang === "en" ? "bg-white text-emerald-800 shadow-2xs" : "text-slate-500 hover:text-slate-800"
+              lang === "en" ? "bg-white text-indigo-800 shadow-2xs" : "text-slate-500 hover:text-slate-800"
             }`}
           >
             English
@@ -223,7 +223,7 @@ export default function FestivalHelpPage() {
                         <span className="pr-4">{lang === "ml" ? item.titleMl : item.titleEn}</span>
                         <ChevronRight
                           className={`h-4 w-4 text-slate-400 shrink-0 transition-transform ${
-                            isOpen ? "rotate-90 text-emerald-700" : ""
+                            isOpen ? "rotate-90 text-indigo-700" : ""
                           }`}
                         />
                       </button>

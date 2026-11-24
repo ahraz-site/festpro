@@ -171,7 +171,7 @@ export default function CategoriesPage() {
           <Button
             size="sm"
             onClick={handleOpenAdd}
-            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs"
+            className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
           >
             <Plus className="h-4 w-4 mr-1" />
             Add category
@@ -231,7 +231,7 @@ export default function CategoriesPage() {
           <Layers className="h-10 w-10 text-slate-300 mx-auto" />
           <h3 className="text-sm font-bold text-slate-700">No categories found</h3>
           <p className="text-xs text-slate-400">Add competition categories like Junior, Senior, or General.</p>
-          <Button size="sm" onClick={handleOpenAdd} className="rounded-xl text-xs bg-emerald-700 hover:bg-emerald-800 text-white">
+          <Button size="sm" onClick={handleOpenAdd} className="rounded-xl text-xs bg-indigo-600 hover:bg-indigo-700 text-white">
             <Plus className="h-3.5 w-3.5 mr-1" /> Add Category
           </Button>
         </div>
@@ -250,7 +250,7 @@ export default function CategoriesPage() {
                   <span
                     className={`px-3 py-1 rounded-full text-[11px] font-bold ${
                       isCom
-                        ? "bg-emerald-700 text-white"
+                        ? "bg-indigo-600 text-white"
                         : "bg-slate-100 text-slate-700 border border-slate-200"
                     }`}
                   >
@@ -305,7 +305,7 @@ export default function CategoriesPage() {
                       <td className="py-3.5 px-4">
                         <span
                           className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            isCom ? "bg-emerald-700 text-white" : "bg-slate-100 text-slate-700"
+                            isCom ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-700"
                           }`}
                         >
                           {isCom ? "Common" : "Regular"}
@@ -374,7 +374,7 @@ export default function CategoriesPage() {
                   type="checkbox"
                   checked={isCommon}
                   onChange={(e) => setIsCommon(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                 />
                 <label htmlFor="common-chk" className="text-xs font-bold text-slate-800 flex items-center gap-1.5 cursor-pointer">
                   <span>Common Category</span>
@@ -434,7 +434,7 @@ export default function CategoriesPage() {
                 <Button
                   type="submit"
                   disabled={saving}
-                  className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white"
+                  className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"
                 >
                   {saving ? "Saving..." : editingId ? "Save Changes" : "Add category"}
                 </Button>

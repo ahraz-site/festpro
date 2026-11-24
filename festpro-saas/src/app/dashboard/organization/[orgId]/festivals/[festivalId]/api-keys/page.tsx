@@ -78,7 +78,7 @@ export default function FestivalApiKeysPage() {
 
         <Button
           onClick={() => setShowNewKeyModal(true)}
-          className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs px-4 h-9"
+          className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-4 h-9"
         >
           <Plus className="h-3.5 w-3.5 mr-1.5" />
           New key
@@ -143,7 +143,7 @@ export default function FestivalApiKeysPage() {
           </div>
         ) : (
           <div className="p-12 flex flex-col items-center justify-center text-center space-y-3">
-            <div className="h-12 w-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+            <div className="h-12 w-12 rounded-2xl bg-indigo-50 text-indigo-700 flex items-center justify-center">
               <KeyRound className="h-6 w-6" />
             </div>
             <div>
@@ -154,7 +154,7 @@ export default function FestivalApiKeysPage() {
             </div>
             <Button
               onClick={() => setShowNewKeyModal(true)}
-              className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs px-4 h-9 mt-1"
+              className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-4 h-9 mt-1"
             >
               <Plus className="h-3.5 w-3.5 mr-1.5" />
               New key
@@ -176,9 +176,9 @@ export default function FestivalApiKeysPage() {
 
             {generatedKey ? (
               <div className="space-y-3 text-xs">
-                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 space-y-1">
+                <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-200 text-emerald-900 space-y-1">
                   <span className="font-bold block">Key generated successfully!</span>
-                  <p className="text-[11px] text-emerald-800">
+                  <p className="text-[11px] text-indigo-800">
                     Copy this key now. For security, you will not be able to view it again.
                   </p>
                 </div>
@@ -192,7 +192,7 @@ export default function FestivalApiKeysPage() {
                   <Button
                     type="button"
                     onClick={() => handleCopy(generatedKey)}
-                    className="shrink-0 bg-emerald-700 hover:bg-emerald-800 text-white"
+                    className="shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white"
                   >
                     {copiedKey ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   </Button>
@@ -229,7 +229,7 @@ export default function FestivalApiKeysPage() {
                   <Button type="button" variant="outline" onClick={() => setShowNewKeyModal(false)} className="rounded-xl text-xs">
                     Cancel
                   </Button>
-                  <Button type="submit" className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white">
+                  <Button type="submit" className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white">
                     Generate Key
                   </Button>
                 </div>

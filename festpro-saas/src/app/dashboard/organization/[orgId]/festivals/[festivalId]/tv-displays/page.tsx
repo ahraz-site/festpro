@@ -151,7 +151,7 @@ export default function TvDisplaysPage() {
           <Button
             size="sm"
             onClick={() => setShowAddModal(true)}
-            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs"
+            className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
           >
             <Plus className="h-4 w-4 mr-1" />
             Add screen
@@ -197,7 +197,7 @@ export default function TvDisplaysPage() {
             onClick={() => handleCopy(allStagesUrl)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors"
           >
-            {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-slate-500" />}
+            {copied ? <Check className="h-3.5 w-3.5 text-indigo-600" /> : <Copy className="h-3.5 w-3.5 text-slate-500" />}
             <span>{copied ? "Copied" : "Copy link"}</span>
           </button>
 
@@ -225,7 +225,7 @@ export default function TvDisplaysPage() {
           <Button
             size="sm"
             onClick={() => setShowAddModal(true)}
-            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs"
+            className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
           >
             <Plus className="h-4 w-4 mr-1" />
             Add screen
@@ -348,7 +348,7 @@ export default function TvDisplaysPage() {
                 </Button>
                 <Button
                   type="submit"
-                  className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white"
+                  className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"
                 >
                   Create Screen
                 </Button>

@@ -80,17 +80,17 @@ export default function TopCandidatesPage() {
           </div>
         </div>
 
-        {/* Top Right Button (Screenshot 5: Overall top candidates) */}
+        {/* Top Right Button (FestPro Brand Styling) */}
         <Button
           size="sm"
           onClick={handleOpenOverall}
-          className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs px-4"
+          className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-4"
         >
           Overall top candidates
         </Button>
       </div>
 
-      {/* ── FILTERS CARD (Screenshot 5: 3 Toggle switches) ── */}
+      {/* ── FILTERS CARD (FestPro Brand Toggles) ── */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
         <div>
           <h2 className="text-base font-black text-slate-900">Filters</h2>
@@ -106,7 +106,7 @@ export default function TopCandidatesPage() {
               onChange={(e) => setIncludeCommon(e.target.checked)}
               className="sr-only peer"
             />
-            <div className="w-10 h-6 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-700 relative" />
+            <div className="w-10 h-6 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600 relative" />
             <span>Include common categories</span>
           </label>
 
@@ -118,7 +118,7 @@ export default function TopCandidatesPage() {
               onChange={(e) => setIncludeStage(e.target.checked)}
               className="sr-only peer"
             />
-            <div className="w-10 h-6 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-700 relative" />
+            <div className="w-10 h-6 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600 relative" />
             <span>Include stage programs</span>
           </label>
 
@@ -130,13 +130,13 @@ export default function TopCandidatesPage() {
               onChange={(e) => setIncludeOffStage(e.target.checked)}
               className="sr-only peer"
             />
-            <div className="w-10 h-6 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-700 relative" />
+            <div className="w-10 h-6 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600 relative" />
             <span>Include off-stage programs</span>
           </label>
         </div>
       </div>
 
-      {/* ── SEARCH CATEGORIES (Screenshot 5) ── */}
+      {/* ── SEARCH CATEGORIES ── */}
       <div className="relative max-w-md">
         <Input
           placeholder="Search categories..."
@@ -146,7 +146,7 @@ export default function TopCandidatesPage() {
         />
       </div>
 
-      {/* ── CATEGORIES LIST CARD (Screenshot 5: Category & View ranking button) ── */}
+      {/* ── CATEGORIES LIST CARD ── */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
         <div>
           <h2 className="text-base font-black text-slate-900">Categories</h2>
@@ -169,7 +169,7 @@ export default function TopCandidatesPage() {
                     <Button
                       size="sm"
                       onClick={() => handleOpenRanking(cat)}
-                      className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs px-4"
+                      className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-4"
                     >
                       View ranking
                     </Button>

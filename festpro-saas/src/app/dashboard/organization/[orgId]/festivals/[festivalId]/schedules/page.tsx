@@ -187,7 +187,7 @@ export default function FestivalSchedulerPage() {
               const el = document.getElementById("quick-schedule-box")
               el?.scrollIntoView({ behavior: "smooth" })
             }}
-            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs"
+            className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
           >
             <Plus className="h-4 w-4 mr-1" />
             Add schedule item
@@ -258,7 +258,7 @@ export default function FestivalSchedulerPage() {
               type="button"
               onClick={() => setViewType("timeline")}
               className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                viewType === "timeline" ? "bg-emerald-700 text-white shadow-xs" : "text-slate-600"
+                viewType === "timeline" ? "bg-indigo-600 text-white shadow-xs" : "text-slate-600"
               }`}
             >
               Timeline
@@ -267,7 +267,7 @@ export default function FestivalSchedulerPage() {
               type="button"
               onClick={() => setViewType("list")}
               className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                viewType === "list" ? "bg-emerald-700 text-white shadow-xs" : "text-slate-600"
+                viewType === "list" ? "bg-indigo-600 text-white shadow-xs" : "text-slate-600"
               }`}
             >
               List
@@ -360,7 +360,7 @@ export default function FestivalSchedulerPage() {
             <Button
               type="submit"
               disabled={submitting}
-              className="w-full h-10 rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white"
+              className="w-full h-10 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"
             >
               {submitting ? "Adding..." : "Add to schedule"}
             </Button>
@@ -380,7 +380,7 @@ export default function FestivalSchedulerPage() {
 
             {unscheduledPrograms.length === 0 ? (
               <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-6 text-center space-y-2">
-                <CheckCircle2 className="h-8 w-8 text-emerald-600 mx-auto" />
+                <CheckCircle2 className="h-8 w-8 text-indigo-600 mx-auto" />
                 <p className="text-xs font-bold text-slate-700">All programs are scheduled</p>
               </div>
             ) : (

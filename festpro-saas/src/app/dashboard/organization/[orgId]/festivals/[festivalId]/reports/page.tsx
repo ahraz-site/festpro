@@ -70,7 +70,7 @@ export default function FestivalReportsPrintoutsPage() {
     <div className="space-y-6 max-w-5xl mx-auto font-sans pb-16">
       {/* ── HEADER ── */}
       <div className="flex items-center gap-3 pb-3 border-b border-slate-200">
-        <div className="p-2.5 rounded-2xl bg-emerald-50 text-emerald-700 shadow-xs">
+        <div className="p-2.5 rounded-2xl bg-indigo-50 text-indigo-700 shadow-xs">
           <Printer className="h-6 w-6" />
         </div>
         <div>
@@ -229,8 +229,8 @@ export default function FestivalReportsPrintoutsPage() {
           </div>
 
           {/* Access Policy Callout */}
-          <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/60 flex items-start gap-2.5">
-            <CheckCircle className="h-4 w-4 text-emerald-700 shrink-0 mt-0.5" />
+          <div className="p-3 rounded-xl bg-indigo-50/70 border border-indigo-200/60 flex items-start gap-2.5">
+            <CheckCircle className="h-4 w-4 text-indigo-700 shrink-0 mt-0.5" />
             <p className="text-[11px] text-emerald-900 leading-tight font-medium">
               &quot;All&quot; includes only records that you can access.
             </p>
@@ -269,7 +269,7 @@ export default function FestivalReportsPrintoutsPage() {
             type="button"
             onClick={handleDownload}
             disabled={downloading}
-            className="w-full rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs h-10"
+            className="w-full rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs h-10"
           >
             <Download className="h-4 w-4 mr-2" />
             {downloading ? "Preparing file..." : "Download report"}

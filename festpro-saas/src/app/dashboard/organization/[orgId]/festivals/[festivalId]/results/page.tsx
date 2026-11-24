@@ -188,7 +188,7 @@ export default function FestivalResultsPage() {
                         <Button
                           size="sm"
                           onClick={() => handleOpenResults(comp, idx)}
-                          className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs px-4"
+                          className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-4"
                         >
                           View results
                         </Button>
@@ -242,7 +242,7 @@ export default function FestivalResultsPage() {
 
                   <div className="text-right">
                     <span className="font-black text-indigo-700 text-sm block">{w.score} pts</span>
-                    <span className="inline-block px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold text-[10px]">
+                    <span className="inline-block px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 font-bold text-[10px]">
                       Grade {w.grade}
                     </span>
                   </div>
@@ -251,7 +251,7 @@ export default function FestivalResultsPage() {
             </div>
 
             <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+              <span className="text-xs text-indigo-600 font-semibold flex items-center gap-1">
                 <Check className="h-3.5 w-3.5" /> Published on public portal
               </span>
               <Button

@@ -184,7 +184,7 @@ export default function FestivalCertificatesPage() {
           </Button>
           <Button
             onClick={handleCreateTemplate}
-            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white h-9 shadow-xs"
+            className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white h-9 shadow-xs"
           >
             Create template
           </Button>
@@ -403,7 +403,7 @@ export default function FestivalCertificatesPage() {
                     type="checkbox"
                     checked={activeElement.bold}
                     onChange={(e) => updateActiveElement({ bold: e.target.checked })}
-                    className="h-4 w-4 accent-emerald-600 rounded"
+                    className="h-4 w-4 accent-indigo-600 rounded"
                   />
                   <span>Bold</span>
                 </label>
@@ -413,7 +413,7 @@ export default function FestivalCertificatesPage() {
                     type="checkbox"
                     checked={activeElement.oneLine}
                     onChange={(e) => updateActiveElement({ oneLine: e.target.checked })}
-                    className="h-4 w-4 accent-emerald-600 rounded"
+                    className="h-4 w-4 accent-indigo-600 rounded"
                   />
                   <span>One line</span>
                 </label>
@@ -427,7 +427,7 @@ export default function FestivalCertificatesPage() {
                   type="checkbox"
                   checked={showQrCode}
                   onChange={(e) => setShowQrCode(e.target.checked)}
-                  className="h-4 w-4 accent-emerald-600 rounded"
+                  className="h-4 w-4 accent-indigo-600 rounded"
                 />
                 <span>Show QR code</span>
               </label>
@@ -479,7 +479,7 @@ export default function FestivalCertificatesPage() {
             <Button
               type="button"
               onClick={handleCreateTemplate}
-              className="w-full rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white h-10 shadow-xs"
+              className="w-full rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white h-10 shadow-xs"
             >
               Create template
             </Button>
@@ -539,7 +539,7 @@ export default function FestivalCertificatesPage() {
               disabled={checkingRecipients}
               className="w-full rounded-xl text-xs font-bold border-slate-200 text-slate-800 hover:bg-slate-50 h-9"
             >
-              {checkingRecipients ? <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Check className="h-3.5 w-3.5 mr-1.5 text-emerald-600" />}
+              {checkingRecipients ? <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Check className="h-3.5 w-3.5 mr-1.5 text-indigo-600" />}
               Check recipients
             </Button>
           </div>
@@ -662,7 +662,7 @@ export default function FestivalCertificatesPage() {
                   <Button
                     type="button"
                     onClick={handleIssueCertificates}
-                    className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs px-5 h-10"
+                    className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-5 h-10"
                   >
                     <Award className="h-4 w-4 mr-2" />
                     Issue & Generate Certificates ({checkedRecipients.length})

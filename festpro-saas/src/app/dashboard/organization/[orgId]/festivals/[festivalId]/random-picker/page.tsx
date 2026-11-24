@@ -65,7 +65,7 @@ export default function SubjectPickerPage() {
       <div className="flex items-center justify-between border-b border-slate-200 pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-emerald-100 text-emerald-700">
+            <span className="p-2 rounded-xl bg-emerald-100 text-indigo-700">
               <Dices className="h-6 w-6" />
             </span>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">Subject Picker</h1>
@@ -124,7 +124,7 @@ export default function SubjectPickerPage() {
               <Button
                 onClick={handlePickSubject}
                 disabled={isRolling}
-                className="w-full py-6 text-lg font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md transition-all flex items-center justify-center gap-2 mt-4"
+                className="w-full py-6 text-lg font-bold bg-indigo-600 hover:bg-indigo-600 text-white rounded-xl shadow-md transition-all flex items-center justify-center gap-2 mt-4"
               >
                 {isRolling ? (
                   <>
@@ -199,7 +199,7 @@ export default function SubjectPickerPage() {
                       key={idx}
                       className={`h-12 w-12 rounded-xl flex items-center justify-center font-mono font-bold text-lg border transition-all ${
                         idx === 0
-                          ? "bg-emerald-500 text-white border-emerald-600 shadow-sm scale-105"
+                          ? "bg-indigo-500 text-white border-indigo-600 shadow-sm scale-105"
                           : "bg-slate-50 text-slate-800 border-slate-200"
                       }`}
                     >

@@ -21,7 +21,7 @@ export default function MobilePlatformDashboard() {
 
   const sections = [
     { title: "Devices", href: `/dashboard/organization/${orgId}/mobile/devices`, icon: Smartphone, count: dash?.active_devices, total: dash?.registered_devices, color: "bg-indigo-500" },
-    { title: "Sync Queue", href: `/dashboard/organization/${orgId}/mobile/sync`, icon: CloudSync, count: dash?.pending_syncs, total: dash?.failed_syncs, color: "bg-emerald-500" },
+    { title: "Sync Queue", href: `/dashboard/organization/${orgId}/mobile/sync`, icon: CloudSync, count: dash?.pending_syncs, total: dash?.failed_syncs, color: "bg-indigo-500" },
     { title: "Push Notifications", href: `/dashboard/organization/${orgId}/mobile/push`, icon: Bell, count: dash?.push_delivered, total: dash?.push_sent, color: "bg-rose-500" },
     { title: "Activity Logs", href: `/dashboard/organization/${orgId}/mobile/activity`, icon: Activity, count: dash?.today_activity, color: "bg-amber-500" },
     { title: "Sessions", href: `/dashboard/organization/${orgId}/mobile/sessions`, icon: SmartphoneIcon, count: dash?.active_sessions, color: "bg-cyan-500" },
@@ -37,7 +37,7 @@ export default function MobilePlatformDashboard() {
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card><CardContent className="pt-4"><p className="text-2xl font-bold text-indigo-600">{dash?.active_devices || 0}</p><p className="text-xs text-gray-500">Active Devices</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-2xl font-bold text-emerald-600">{dash?.sync_success_rate || 0}%</p><p className="text-xs text-gray-500">Sync Success Rate</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-2xl font-bold text-indigo-600">{dash?.sync_success_rate || 0}%</p><p className="text-xs text-gray-500">Sync Success Rate</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-2xl font-bold text-rose-600">{dash?.push_delivered || 0}</p><p className="text-xs text-gray-500">Push Delivered</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-2xl font-bold text-amber-600">{dash?.today_activity || 0}</p><p className="text-xs text-gray-500">Today&apos;s Activity</p></CardContent></Card>
       </div>

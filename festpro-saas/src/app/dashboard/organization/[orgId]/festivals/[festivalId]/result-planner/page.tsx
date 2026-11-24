@@ -129,7 +129,7 @@ export default function ResultPlannerPage() {
           <Button
             size="sm"
             onClick={handlePublishTeamScores}
-            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs"
+            className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
           >
             Publish team scores
           </Button>
@@ -164,7 +164,7 @@ export default function ResultPlannerPage() {
             type="checkbox"
             checked={includeReview}
             onChange={(e) => setIncludeReview(e.target.checked)}
-            className="rounded-md border-slate-300 text-emerald-700 h-4 w-4"
+            className="rounded-md border-slate-300 text-indigo-700 h-4 w-4"
           />
           <span>Include results awaiting final review</span>
         </label>
@@ -231,7 +231,7 @@ export default function ResultPlannerPage() {
                     <td className="py-4 px-4 text-right">
                       <Link
                         href={`/dashboard/organization/${orgId}/festivals/${festivalId}/results`}
-                        className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-800"
+                        className="inline-flex items-center gap-1 text-xs font-bold text-indigo-700 hover:text-indigo-800"
                       >
                         Publish <ChevronRight className="h-3.5 w-3.5" />
                       </Link>

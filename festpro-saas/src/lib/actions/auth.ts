@@ -609,43 +609,27 @@ export async function createFestOrganizerAction(formData: {
       phone: phone || null,
     })
 
-    // 5. Create Festival (Guaranteed unique festival code)
+    // 5. Create Festival (Guaranteed unique festival code with retry loop)
     const today = new Date().toISOString().split("T")[0]
-    let finalCode = festSlug
-    const { data: codeCheck } = await adminClient
-      .from("festivals")
-      .select("id")
-      .eq("code", finalCode)
-      .maybeSingle()
+    let fest: any = null
+    let festError: any = null
 
-    if (codeCheck) {
-      finalCode = `${festSlug}-${Math.random().toString(36).substring(2, 6)}`
-    }
+    const candidates = [
+      festSlug,
+      `${festSlug}-${Math.random().toString(36).substring(2, 6)}`,
+      `${festSlug}-${Date.now().toString(36).slice(-4)}`,
+      `${festSlug}-${Math.random().toString(36).substring(2, 7)}`,
+      `fest-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 5)}`,
+    ]
 
-    let { data: fest, error: festError } = await adminClient
-      .from("festivals")
-      .insert({
-        organization_id: orgId,
-        name: festName,
-        short_name: festName.length > 50 ? festName.substring(0, 50) : festName,
-        code: finalCode,
-        description: "Official festival workspace for " + festName,
-        start_date: today,
-        status: "draft",
-        visibility: "public",
-      })
-      .select()
-      .single()
-
-    if (festError && (festError.code === "23505" || festError.message?.includes("festivals_code_key"))) {
-      finalCode = `${festSlug}-${Date.now().toString().slice(-4)}`
-      const retry = await adminClient
+    for (const candidateCode of candidates) {
+      const res = await adminClient
         .from("festivals")
         .insert({
           organization_id: orgId,
           name: festName,
           short_name: festName.length > 50 ? festName.substring(0, 50) : festName,
-          code: finalCode,
+          code: candidateCode,
           description: "Official festival workspace for " + festName,
           start_date: today,
           status: "draft",
@@ -653,12 +637,27 @@ export async function createFestOrganizerAction(formData: {
         })
         .select()
         .single()
-      fest = retry.data
-      festError = retry.error
+
+      if (!res.error && res.data) {
+        fest = res.data
+        festError = null
+        break
+      }
+
+      festError = res.error
+      if (festError?.code !== "23505" && !festError?.message?.includes("festivals_code_key")) {
+        // Non-collision error, break immediately
+        break
+      }
     }
 
-    if (festError) {
-      return { error: "Festival workspace creation failed: " + festError.message }
+    if (festError || !fest) {
+      if (festError?.code === "23505" || festError?.message?.includes("festivals_code_key")) {
+        return {
+          error: `The festival web address "${festSlug}" is already registered. Please pick a variation like "${festSlug}-fest" or "${festSlug}-2026" in Step 1.`,
+        }
+      }
+      return { error: "Festival workspace creation failed: " + (festError?.message || "Unknown error") }
     }
 
     // 6. Seed starter data matching Festize template:

@@ -222,7 +222,7 @@ export default function CompetitionsManagementPage() {
           <Button
             size="sm"
             onClick={handleOpenAdd}
-            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs"
+            className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
           >
             <Plus className="h-4 w-4 mr-1" />
             Add program
@@ -232,7 +232,7 @@ export default function CompetitionsManagementPage() {
 
       {/* ── CAPACITY INDICATOR (Screenshot 9) ── */}
       <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200/90 bg-white text-xs font-semibold text-slate-700 shadow-xs">
-        <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+        <Check className="h-4 w-4 text-indigo-600 shrink-0" />
         <span>
           <strong className="text-slate-900">{count} of {maxLimit} programs</strong> · {remaining} remaining
         </span>
@@ -296,7 +296,7 @@ export default function CompetitionsManagementPage() {
           <Trophy className="h-10 w-10 text-slate-300 mx-auto" />
           <h3 className="text-sm font-bold text-slate-700">No programs found</h3>
           <p className="text-xs text-slate-400">Add competition programs like Solo Song, Group Dance, or Elocution.</p>
-          <Button size="sm" onClick={handleOpenAdd} className="rounded-xl text-xs bg-emerald-700 hover:bg-emerald-800 text-white">
+          <Button size="sm" onClick={handleOpenAdd} className="rounded-xl text-xs bg-indigo-600 hover:bg-indigo-700 text-white">
             <Plus className="h-3.5 w-3.5 mr-1" /> Add Program
           </Button>
         </div>
@@ -340,7 +340,7 @@ export default function CompetitionsManagementPage() {
                   <button
                     type="button"
                     onClick={() => handleOpenEdit(comp)}
-                    className="px-2.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-semibold transition-colors"
+                    className="px-2.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold transition-colors"
                   >
                     Edit
                   </button>
@@ -353,7 +353,7 @@ export default function CompetitionsManagementPage() {
                   </button>
                   <Link
                     href={`/dashboard/organization/${orgId}/festivals/${festivalId}/competitions/${comp.id}/participants`}
-                    className="px-2.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-semibold transition-colors"
+                    className="px-2.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold transition-colors"
                   >
                     Assign participants
                   </Link>
@@ -419,7 +419,7 @@ export default function CompetitionsManagementPage() {
                           </button>
                           <Link
                             href={`/dashboard/organization/${orgId}/festivals/${festivalId}/competitions/${comp.id}/participants`}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-semibold transition-colors"
+                            className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold transition-colors"
                           >
                             Assign
                           </Link>
@@ -522,7 +522,7 @@ export default function CompetitionsManagementPage() {
                 <Button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white"
+                  className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"
                 >
                   {submitting ? "Saving..." : editingComp ? "Save Changes" : "Add Program"}
                 </Button>

@@ -155,7 +155,7 @@ export default function FestivalStagesPage() {
           <Button
             size="sm"
             onClick={handleOpenAdd}
-            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs"
+            className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
           >
             <Plus className="h-4 w-4 mr-1" />
             Add stage
@@ -214,7 +214,7 @@ export default function FestivalStagesPage() {
           <Layers className="h-10 w-10 text-slate-300 mx-auto" />
           <h3 className="text-sm font-bold text-slate-700">No stages found</h3>
           <p className="text-xs text-slate-400">Add a stage to schedule and run your festival programs.</p>
-          <Button size="sm" onClick={handleOpenAdd} className="rounded-xl text-xs bg-emerald-700 hover:bg-emerald-800 text-white">
+          <Button size="sm" onClick={handleOpenAdd} className="rounded-xl text-xs bg-indigo-600 hover:bg-indigo-700 text-white">
             <Plus className="h-3.5 w-3.5 mr-1" /> Add Stage
           </Button>
         </div>
@@ -381,7 +381,7 @@ export default function FestivalStagesPage() {
                 <Button
                   type="submit"
                   disabled={saving}
-                  className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white"
+                  className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"
                 >
                   {saving ? "Saving..." : editingStage ? "Update Stage" : "Create Stage"}
                 </Button>

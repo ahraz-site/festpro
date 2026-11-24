@@ -111,7 +111,7 @@ export default function PublishedTeamScoresPage() {
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
               activeTab === tab
-                ? "bg-emerald-700 text-white shadow-xs"
+                ? "bg-indigo-600 text-white shadow-xs"
                 : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
             }`}
           >

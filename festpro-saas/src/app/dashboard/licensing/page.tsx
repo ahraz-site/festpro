@@ -884,7 +884,7 @@ Please open the link, enter the Access Code, and create your account.`}
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="px-5 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition shadow-xs cursor-pointer"
+                  className="px-5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition shadow-xs cursor-pointer"
                 >
                   Save Payment
                 </button>
