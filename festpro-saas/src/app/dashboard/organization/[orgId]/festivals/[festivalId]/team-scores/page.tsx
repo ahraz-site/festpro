@@ -30,6 +30,7 @@ export default function TeamScoresPage() {
   const [teamScores, setTeamScores] = useState<TeamScoreRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  const [resultsDeclared, setResultsDeclared] = useState(0)
 
   // Screenshot 1 Controls
   const [viewType, setViewType] = useState<"overall" | "by_category">("overall")
@@ -45,25 +46,26 @@ export default function TeamScoresPage() {
   async function load() {
     try {
       const supabase = createClient()
-      const { data } = await supabase
-        .from("teams")
-        .select("*")
-        .eq("festival_id", festivalId)
-        .order("name", { ascending: true })
+      const [{ data: teams }, { data: points }, { count: resCount }] = await Promise.all([
+        supabase.from("teams").select("*").eq("festival_id", festivalId).order("name", { ascending: true }),
+        supabase.from("team_points").select("*").eq("festival_id", festivalId),
+        supabase.from("result_items").select("id", { count: "exact", head: true }).eq("festival_id", festivalId).eq("status", "published"),
+      ])
 
-      const teamList = (data && data.length > 0) ? data : [
-        { id: "1", name: "BJP", code: "BJP", total_points: 10.00 },
-        { id: "2", name: "CJP", code: "CJP", total_points: 9.00 },
-      ]
+      setResultsDeclared(resCount || 0)
 
-      const scores: TeamScoreRow[] = teamList.map((t: any, idx: number) => ({
-        id: t.id,
-        rank: idx + 1,
-        name: t.name,
-        code: t.code || `TEAM-${idx + 1}`,
-        totalScore: Number(t.total_points || (idx === 0 ? 10.00 : 9.00)),
-        category: idx % 2 === 0 ? "Senior" : "Junior",
-      }))
+      const pointsMap = new Map((points || []).map((p: any) => [p.entity_id, p]))
+      const scores: TeamScoreRow[] = (teams || []).map((t: any, idx: number) => {
+        const tp = pointsMap.get(t.id) as any
+        return {
+          id: t.id,
+          rank: tp?.rank || idx + 1,
+          name: t.name,
+          code: t.code || `TEAM-${idx + 1}`,
+          totalScore: Number(tp?.total_points || 0),
+          category: t.category || "General",
+        }
+      })
 
       scores.sort((a, b) => b.totalScore - a.totalScore)
       scores.forEach((s, idx) => { s.rank = idx + 1 })
@@ -138,7 +140,7 @@ export default function TeamScoresPage() {
 
         {/* Right Action buttons (Screenshot 1: After 1 results, Adjust points, Publish team scores) */}
         <div className="flex flex-wrap items-center gap-2.5">
-          <span className="text-xs text-slate-500 font-medium">After 1 results</span>
+          <span className="text-xs text-slate-500 font-medium">After {resultsDeclared} results</span>
 
           <ExportPrintBar
             title="Festival Team Scores"

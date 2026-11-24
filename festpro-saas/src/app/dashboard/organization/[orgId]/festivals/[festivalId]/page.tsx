@@ -11,7 +11,7 @@ import type { FestivalDashboardData } from "@/types/festival"
 import {
   Users, Trophy, Settings, Radio, Layers, RefreshCw,
   Download, ArrowRight, Edit3, Play, Flag, CheckCircle2,
-  Calendar, Clock, ExternalLink, ChevronRight
+  Calendar, Clock, ExternalLink, ChevronRight, Plus
 } from "lucide-react"
 
 export default function FestivalOperationsDashboard() {
@@ -91,73 +91,60 @@ export default function FestivalOperationsDashboard() {
   const { festival, statistics, leaderboard = [], activeStages = [] } = data
   const stats = statistics as any
 
-  // Live database stats
+  // Live database stats directly from Supabase
   const totalStudents = stats?.total_participants || 0
   const totalPrograms = stats?.total_competitions || 0
   const totalTeams = stats?.total_teams || leaderboard.length || 0
   const totalStages = stats?.total_stages || activeStages.length || 0
   const resultsPublished = stats?.total_results_published || 0
 
-  // Fallback defaults for empty festival so it always looks full & operational
-  const displayStudents = totalStudents > 0 ? totalStudents : 1169
-  const displayPrograms = totalPrograms > 0 ? totalPrograms : 143
-  const displayTeamsCount = totalTeams > 0 ? totalTeams : 5
-  const displayVenuesCount = totalStages > 0 ? totalStages : 9
-
-  // Default teams if newly created
-  const palette = ["#EAB308", "#78350F", "#3B82F6", "#EC4899", "#8B5CF6"]
-  const displayTeams = leaderboard.length > 0 ? leaderboard.map((t, idx) => ({
+  // Palette for real teams
+  const palette = ["#EAB308", "#78350F", "#3B82F6", "#EC4899", "#8B5CF6", "#10B981", "#6366F1", "#F97316"]
+  const displayTeams = leaderboard.map((t, idx) => ({
     id: t.id,
     name: t.name,
     code: t.code,
     color: (t as any).color || palette[idx % palette.length],
-    points: t.points,
-  })) : [
-    { id: "1", name: "Conco Majdic", code: "CM", color: "#EAB308", points: 1116 },
-    { id: "2", name: "Unio Hilmic", code: "UH", color: "#78350F", points: 982 },
-    { id: "3", name: "Pacto Hikmic", code: "PH", color: "#3B82F6", points: 819 },
-    { id: "4", name: "Yugo Rushdic", code: "YR", color: "#EC4899", points: 764 },
-    { id: "5", name: "Lumo Fikric", code: "LF", color: "#8B5CF6", points: 712 },
-  ]
+    points: t.points || 0,
+  }))
 
-  // Default stages for live stage monitoring
-  const displayStages = activeStages.length > 0 ? activeStages.map((st, idx) => ({
+  // Real stages for live stage monitoring (strictly from festival_stages)
+  const displayStages = activeStages.map((st, idx) => ({
     id: st.id,
     name: st.name || `Stage ${String(idx + 1).padStart(2, "0")}`,
     code: (st as any).code || `STG-${String(idx + 1).padStart(2, "0")}`,
     status: st.status === "Active" ? "Active" : "Closed",
-    currentProgram: (st as any).currentProgram || "Intermission / Sound Check",
-  })) : [
-    { id: "s1", name: "Stage 01", code: "STG-01", status: "Active", currentProgram: "Intermission / Sound Check" },
-    { id: "s2", name: "Stage 02", code: "STG-02", status: "Active", currentProgram: "Intermission / Sound Check" },
-    { id: "s3", name: "Stage 03", code: "STG-03", status: "Closed", currentProgram: "Intermission / Sound Check" },
-    { id: "s4", name: "Stage 04", code: "STG-04", status: "Closed", currentProgram: "Intermission / Sound Check" },
-    { id: "s5", name: "Stage 05", code: "STG-05", status: "Closed", currentProgram: "Intermission / Sound Check" },
-    { id: "s6", name: "Stage 06", code: "STG-06", status: "Closed", currentProgram: "Intermission / Sound Check" },
-    { id: "s7", name: "Stage 07", code: "STG-07", status: "Closed", currentProgram: "Intermission / Sound Check" },
-    { id: "s8", name: "Stage 08", code: "STG-08", status: "Closed", currentProgram: "Intermission / Sound Check" },
-    { id: "s9", name: "Stage 09", code: "STG-09", status: "Closed", currentProgram: "Intermission / Sound Check" },
-  ]
+    currentProgram: (st as any).currentProgram || "Intermission / Ready",
+  }))
 
   // Progress calculations
-  const declaredCount = resultsPublished > 0 ? resultsPublished : displayPrograms
+  const declaredCount = resultsPublished
   const progressPercent = totalPrograms > 0
     ? Math.min(100, Math.round((resultsPublished / totalPrograms) * 100))
-    : 100
+    : 0
 
-  // Chart calculation data
-  const chartIntervals = [
-    { label: "Start", percent: "0%", fraction: 0 },
-    { label: "R 24", percent: "16.8%", fraction: 0.168 },
-    { label: "R 48", percent: "33.6%", fraction: 0.336 },
-    { label: "R 72", percent: "50.3%", fraction: 0.503 },
-    { label: "R 95", percent: "66.4%", fraction: 0.664 },
-    { label: "R 119", percent: "83.2%", fraction: 0.832 },
-    { label: `R ${displayPrograms} (Now)`, percent: "100%", fraction: 1 },
+  // Dynamic Chart calculations based on real teams & scores
+  const highestScore = Math.max(...displayTeams.map((t) => t.points), 0)
+  const chartMax = highestScore > 0 ? Math.ceil((highestScore * 1.25) / 50) * 50 : 100
+  const yTicks = [
+    0,
+    Math.round(chartMax * 0.25),
+    Math.round(chartMax * 0.5),
+    Math.round(chartMax * 0.75),
+    chartMax,
   ]
 
-  const maxPoints = Math.max(...displayTeams.map((t) => t.points), 1250)
-  const yTicks = [0, 250, 500, 750, 1000, 1250]
+  const chartIntervals = totalPrograms > 0 ? [
+    { label: "Start", percent: "0%" },
+    { label: `P ${Math.max(1, Math.round(totalPrograms * 0.25))}`, percent: "25%" },
+    { label: `P ${Math.max(1, Math.round(totalPrograms * 0.5))}`, percent: "50%" },
+    { label: `P ${Math.max(1, Math.round(totalPrograms * 0.75))}`, percent: "75%" },
+    { label: `P ${totalPrograms} (Now)`, percent: "100%" },
+  ] : [
+    { label: "Start", percent: "0%" },
+    { label: "Mid", percent: "50%" },
+    { label: "Now", percent: "100%" },
+  ]
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto font-sans pb-16">
@@ -205,7 +192,7 @@ export default function FestivalOperationsDashboard() {
         </div>
       </div>
 
-      {/* ── 2. FOUR KPI STAT CARDS (Screenshot 1 Reference) ── */}
+      {/* ── 2. FOUR KPI STAT CARDS (Strictly Real Supabase Data) ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* STUDENTS */}
         <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs flex items-center gap-4 hover:border-slate-300 transition-all">
@@ -214,7 +201,7 @@ export default function FestivalOperationsDashboard() {
           </div>
           <div>
             <div className="text-2xl font-black text-slate-900 tracking-tight">
-              {displayStudents.toLocaleString()}+
+              {totalStudents.toLocaleString()}
             </div>
             <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">
               STUDENTS
@@ -229,7 +216,7 @@ export default function FestivalOperationsDashboard() {
           </div>
           <div>
             <div className="text-2xl font-black text-slate-900 tracking-tight">
-              {displayPrograms}+
+              {totalPrograms.toLocaleString()}
             </div>
             <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">
               PROGRAMS
@@ -244,7 +231,7 @@ export default function FestivalOperationsDashboard() {
           </div>
           <div>
             <div className="text-2xl font-black text-slate-900 tracking-tight">
-              {displayTeamsCount}+
+              {totalTeams.toLocaleString()}
             </div>
             <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">
               TEAMS
@@ -259,7 +246,7 @@ export default function FestivalOperationsDashboard() {
           </div>
           <div>
             <div className="text-2xl font-black text-slate-900 tracking-tight">
-              {displayVenuesCount}+
+              {totalStages.toLocaleString()}
             </div>
             <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">
               VENUES
@@ -284,154 +271,175 @@ export default function FestivalOperationsDashboard() {
               </div>
 
               {/* Team Legend */}
-              <div className="flex items-center flex-wrap gap-3">
-                {displayTeams.map((team) => (
-                  <div key={team.id} className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
-                    <span
-                      className="h-3 w-3 rounded-xs shrink-0"
-                      style={{ backgroundColor: team.color }}
-                    />
-                    <span>{team.name}</span>
-                  </div>
-                ))}
-              </div>
+              {displayTeams.length > 0 && (
+                <div className="flex items-center flex-wrap gap-3">
+                  {displayTeams.map((team) => (
+                    <div key={team.id} className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+                      <span
+                        className="h-3 w-3 rounded-xs shrink-0"
+                        style={{ backgroundColor: team.color }}
+                      />
+                      <span>{team.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Responsive SVG Chart */}
-            <div className="w-full h-72 relative">
-              <svg
-                viewBox="0 0 700 240"
-                className="w-full h-full overflow-visible font-sans select-none"
-              >
-                {/* Horizontal Grid Lines & Y-Axis Labels */}
-                {yTicks.map((tick) => {
-                  const y = 200 - (tick / 1250) * 180
-                  return (
-                    <g key={tick} className="text-slate-400">
-                      <line
-                        x1="45"
-                        y1={y}
-                        x2="685"
-                        y2={y}
-                        stroke="#F1F5F9"
-                        strokeWidth="1"
-                      />
-                      <text
-                        x="35"
-                        y={y + 3.5}
-                        textAnchor="end"
-                        fontSize="9"
-                        className="fill-slate-400 font-medium"
-                      >
-                        {tick.toLocaleString()}
-                      </text>
-                    </g>
-                  )
-                })}
-
-                {/* Y-axis title */}
-                <text
-                  x="12"
-                  y="110"
-                  transform="rotate(-90 12,110)"
-                  fontSize="8"
-                  textAnchor="middle"
-                  className="fill-slate-400 font-bold uppercase tracking-wider"
+            {/* Responsive SVG Chart or Empty State */}
+            {displayTeams.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-64 text-center p-6 border-2 border-dashed border-slate-100 rounded-2xl">
+                <div className="h-12 w-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3">
+                  <Trophy className="h-6 w-6" />
+                </div>
+                <h4 className="text-sm font-bold text-slate-800">No score progression data</h4>
+                <p className="text-xs text-slate-400 max-w-sm mt-1">
+                  Team points progression will chart dynamically as programs conclude and scores are evaluated.
+                </p>
+                <Link
+                  href={`/dashboard/organization/${orgId}/festivals/${festivalId}/teams`}
+                  className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-bold hover:bg-indigo-100 transition-colors"
                 >
-                  Scores
-                </text>
-
-                {/* Team Curves */}
-                {displayTeams.map((team, tIdx) => {
-                  // Generate realistic progressive curve points for each team
-                  const xPositions = [45, 140, 240, 340, 440, 540, 640]
-                  const factor = team.points / 1250
-                  const curveOffsets = [
-                    0,
-                    0.16 * factor * (1 + (tIdx % 2 === 0 ? 0.05 : -0.05)),
-                    0.35 * factor * (1 + (tIdx === 1 ? 0.08 : -0.03)),
-                    0.54 * factor * (1 + (tIdx === 0 ? 0.04 : -0.04)),
-                    0.72 * factor * (1 + (tIdx === 2 ? 0.06 : 0)),
-                    0.86 * factor * (1 + (tIdx === 3 ? -0.05 : 0.02)),
-                    factor,
-                  ]
-
-                  const points = xPositions.map((x, idx) => {
-                    const frac = curveOffsets[idx]
-                    const y = 200 - frac * 180
-                    return { x, y }
-                  })
-
-                  // Path string
-                  const d = points.reduce((acc, curr, idx, arr) => {
-                    if (idx === 0) return `M ${curr.x} ${curr.y}`
-                    const prev = arr[idx - 1]
-                    const cx1 = prev.x + (curr.x - prev.x) / 2
-                    const cy1 = prev.y
-                    const cx2 = prev.x + (curr.x - prev.x) / 2
-                    const cy2 = curr.y
-                    return `${acc} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${curr.x} ${curr.y}`
-                  }, "")
-
-                  return (
-                    <g key={team.id}>
-                      <path
-                        d={d}
-                        fill="none"
-                        stroke={team.color}
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="transition-all duration-300"
-                      />
-                      {/* Dots on line */}
-                      {points.map((pt, pIdx) => (
-                        <circle
-                          key={pIdx}
-                          cx={pt.x}
-                          cy={pt.y}
-                          r="3"
-                          fill="#FFFFFF"
-                          stroke={team.color}
-                          strokeWidth="2"
+                  <Plus className="h-3.5 w-3.5" />
+                  Add or manage teams
+                </Link>
+              </div>
+            ) : (
+              <div className="w-full h-72 relative">
+                <svg
+                  viewBox="0 0 700 240"
+                  className="w-full h-full overflow-visible font-sans select-none"
+                >
+                  {/* Horizontal Grid Lines & Y-Axis Labels */}
+                  {yTicks.map((tick) => {
+                    const y = 200 - (chartMax > 0 ? (tick / chartMax) * 180 : 0)
+                    return (
+                      <g key={tick} className="text-slate-400">
+                        <line
+                          x1="45"
+                          y1={y}
+                          x2="685"
+                          y2={y}
+                          stroke="#F1F5F9"
+                          strokeWidth="1"
                         />
-                      ))}
-                    </g>
-                  )
-                })}
+                        <text
+                          x="35"
+                          y={y + 3.5}
+                          textAnchor="end"
+                          fontSize="9"
+                          className="fill-slate-400 font-medium"
+                        >
+                          {tick.toLocaleString()}
+                        </text>
+                      </g>
+                    )
+                  })}
 
-                {/* X-Axis Baseline */}
-                <line x1="45" y1="200" x2="685" y2="200" stroke="#CBD5E1" strokeWidth="1" />
+                  {/* Y-axis title */}
+                  <text
+                    x="12"
+                    y="110"
+                    transform="rotate(-90 12,110)"
+                    fontSize="8"
+                    textAnchor="middle"
+                    className="fill-slate-400 font-bold uppercase tracking-wider"
+                  >
+                    Scores
+                  </text>
 
-                {/* X-Axis Labels */}
-                {chartIntervals.map((intv, idx) => {
-                  const x = 45 + idx * 99.16
-                  return (
-                    <g key={idx}>
-                      <line x1={x} y1="200" x2={x} y2="205" stroke="#94A3B8" strokeWidth="1" />
-                      <text
-                        x={x}
-                        y="218"
-                        textAnchor="middle"
-                        fontSize="9"
-                        className="fill-slate-700 font-bold"
-                      >
-                        {intv.label}
-                      </text>
-                      <text
-                        x={x}
-                        y="230"
-                        textAnchor="middle"
-                        fontSize="8"
-                        className="fill-slate-400 font-medium"
-                      >
-                        {intv.percent}
-                      </text>
-                    </g>
-                  )
-                })}
-              </svg>
-            </div>
+                  {/* Team Curves */}
+                  {displayTeams.map((team, tIdx) => {
+                    const xPositions = [45, 140, 240, 340, 440, 540, 640]
+                    const factor = chartMax > 0 ? team.points / chartMax : 0
+                    const curveOffsets = highestScore === 0
+                      ? [0, 0, 0, 0, 0, 0, 0]
+                      : [
+                          0,
+                          0.16 * factor * (1 + (tIdx % 2 === 0 ? 0.05 : -0.05)),
+                          0.35 * factor * (1 + (tIdx === 1 ? 0.08 : -0.03)),
+                          0.54 * factor * (1 + (tIdx === 0 ? 0.04 : -0.04)),
+                          0.72 * factor * (1 + (tIdx === 2 ? 0.06 : 0)),
+                          0.86 * factor * (1 + (tIdx === 3 ? -0.05 : 0.02)),
+                          factor,
+                        ]
+
+                    const points = xPositions.map((x, idx) => {
+                      const frac = curveOffsets[idx]
+                      const y = 200 - frac * 180
+                      return { x, y }
+                    })
+
+                    const d = points.reduce((acc, curr, idx, arr) => {
+                      if (idx === 0) return `M ${curr.x} ${curr.y}`
+                      const prev = arr[idx - 1]
+                      const cx1 = prev.x + (curr.x - prev.x) / 2
+                      const cy1 = prev.y
+                      const cx2 = prev.x + (curr.x - prev.x) / 2
+                      const cy2 = curr.y
+                      return `${acc} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${curr.x} ${curr.y}`
+                    }, "")
+
+                    return (
+                      <g key={team.id}>
+                        <path
+                          d={d}
+                          fill="none"
+                          stroke={team.color}
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="transition-all duration-300"
+                        />
+                        {points.map((pt, pIdx) => (
+                          <circle
+                            key={pIdx}
+                            cx={pt.x}
+                            cy={pt.y}
+                            r="3"
+                            fill="#FFFFFF"
+                            stroke={team.color}
+                            strokeWidth="2"
+                          />
+                        ))}
+                      </g>
+                    )
+                  })}
+
+                  {/* X-Axis Baseline */}
+                  <line x1="45" y1="200" x2="685" y2="200" stroke="#CBD5E1" strokeWidth="1" />
+
+                  {/* X-Axis Labels */}
+                  {chartIntervals.map((intv, idx) => {
+                    const step = 640 / Math.max(1, chartIntervals.length - 1)
+                    const x = 45 + idx * ((685 - 45) / Math.max(1, chartIntervals.length - 1))
+                    return (
+                      <g key={idx}>
+                        <line x1={x} y1="200" x2={x} y2="205" stroke="#94A3B8" strokeWidth="1" />
+                        <text
+                          x={x}
+                          y="218"
+                          textAnchor="middle"
+                          fontSize="9"
+                          className="fill-slate-700 font-bold"
+                        >
+                          {intv.label}
+                        </text>
+                        <text
+                          x={x}
+                          y="230"
+                          textAnchor="middle"
+                          fontSize="8"
+                          className="fill-slate-400 font-medium"
+                        >
+                          {intv.percent}
+                        </text>
+                      </g>
+                    )
+                  })}
+                </svg>
+              </div>
+            )}
           </div>
         </div>
 
@@ -450,7 +458,7 @@ export default function FestivalOperationsDashboard() {
             </div>
             <div className="text-center pt-1">
               <div className="text-xs font-bold text-slate-800">
-                Declared {declaredCount} of {displayPrograms} Results
+                Declared {declaredCount} of {totalPrograms} Results
               </div>
               <div className="text-[11px] font-bold text-red-600 tracking-wider uppercase mt-0.5">
                 Progress {progressPercent}%
@@ -458,7 +466,7 @@ export default function FestivalOperationsDashboard() {
             </div>
           </div>
 
-          {/* Score Board Card (Screenshot 1 Reference) */}
+          {/* Score Board Card (Real Leaderboard) */}
           <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-3 flex-1 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between pb-1 border-b border-slate-100 mb-3">
@@ -478,30 +486,46 @@ export default function FestivalOperationsDashboard() {
                 </Link>
               </div>
 
-              <div className="space-y-2.5">
-                {displayTeams.slice(0, 5).map((team, idx) => (
-                  <div
-                    key={team.id}
-                    className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors"
+              {displayTeams.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center border-2 border-dashed border-slate-100 rounded-xl my-2">
+                  <div className="h-9 w-9 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center mb-2">
+                    <Flag className="h-4 w-4" />
+                  </div>
+                  <p className="text-xs font-bold text-slate-700">No teams registered</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Register teams to track live leaderboard.</p>
+                  <Link
+                    href={`/dashboard/organization/${orgId}/festivals/${festivalId}/teams`}
+                    className="mt-2 text-xs font-bold text-indigo-600 hover:text-indigo-700 underline"
                   >
-                    <div className="flex items-center gap-2.5">
-                      <span className="h-6 w-6 rounded-lg bg-slate-100 text-slate-700 font-black text-xs flex items-center justify-center">
-                        {idx + 1}
-                      </span>
-                      <span
-                        className="h-2.5 w-2.5 rounded-full shrink-0"
-                        style={{ backgroundColor: team.color }}
-                      />
-                      <span className="text-xs font-bold text-slate-900">
-                        {team.name}
+                    + Register teams
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {displayTeams.slice(0, 5).map((team, idx) => (
+                    <div
+                      key={team.id}
+                      className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className="h-6 w-6 rounded-lg bg-slate-100 text-slate-700 font-black text-xs flex items-center justify-center">
+                          {idx + 1}
+                        </span>
+                        <span
+                          className="h-2.5 w-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: team.color }}
+                        />
+                        <span className="text-xs font-bold text-slate-900">
+                          {team.name}
+                        </span>
+                      </div>
+                      <span className="font-mono font-black text-xs px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200/80 text-slate-800">
+                        {team.points.toLocaleString()}
                       </span>
                     </div>
-                    <span className="font-mono font-black text-xs px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200/80 text-slate-800">
-                      {team.points.toLocaleString()}
-                    </span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -523,41 +547,60 @@ export default function FestivalOperationsDashboard() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            {displayStages.map((stage, idx) => (
-              <div
-                key={stage.id}
-                className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs font-bold text-slate-400">
-                    {stage.code || `STG-${String(idx + 1).padStart(2, "0")}`}
-                  </span>
-                  <span
-                    className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider uppercase border ${
-                      stage.status === "Active"
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        : "bg-slate-100 text-slate-500 border-slate-200"
-                    }`}
-                  >
-                    {stage.status === "Active" ? "ACTIVE" : "CLOSED"}
-                  </span>
-                </div>
-
-                <div className="mt-2">
-                  <h4 className="font-black text-sm text-slate-900">
-                    {stage.name}
-                  </h4>
-                  <div className="mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    NOW PLAYING:
-                  </div>
-                  <div className="text-xs font-semibold text-slate-700 truncate mt-0.5">
-                    {stage.currentProgram || "Intermission / Sound Check"}
-                  </div>
-                </div>
+          {displayStages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center border-2 border-dashed border-slate-100 rounded-xl">
+              <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2">
+                <Layers className="h-5 w-5" />
               </div>
-            ))}
-          </div>
+              <p className="text-xs font-bold text-slate-800">No stages configured</p>
+              <p className="text-[11px] text-slate-400 mt-0.5 max-w-xs">
+                Add festival venues and stage rooms to manage call sheets and live programs.
+              </p>
+              <Link
+                href={`/dashboard/organization/${orgId}/festivals/${festivalId}/stages`}
+                className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-black transition-colors"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add Festival Stage
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              {displayStages.map((stage, idx) => (
+                <div
+                  key={stage.id}
+                  className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs font-bold text-slate-400">
+                      {stage.code || `STG-${String(idx + 1).padStart(2, "0")}`}
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider uppercase border ${
+                        stage.status === "Active"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          : "bg-slate-100 text-slate-500 border-slate-200"
+                      }`}
+                    >
+                      {stage.status === "Active" ? "ACTIVE" : "CLOSED"}
+                    </span>
+                  </div>
+
+                  <div className="mt-2">
+                    <h4 className="font-black text-sm text-slate-900">
+                      {stage.name}
+                    </h4>
+                    <div className="mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      NOW PLAYING:
+                    </div>
+                    <div className="text-xs font-semibold text-slate-700 truncate mt-0.5">
+                      {stage.currentProgram || "Intermission / Ready"}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* RIGHT (1 Col): Quick Navigation */}

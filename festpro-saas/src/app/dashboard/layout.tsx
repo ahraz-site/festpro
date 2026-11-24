@@ -178,8 +178,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     : currentOrgId ? `/dashboard/organization/${currentOrgId}` : "/dashboard"
   const isDashboardActive = pathname === dashboardHref
 
-  const festSlug = currentFestival?.code || currentFestival?.short_name || "fest"
-  const publicWebUrl = `/festivals/${festSlug}`
+  const festSlug = currentFestival?.code || currentFestival?.short_name || effectiveFestivalId || "fest"
+  const publicWebUrl = `/festivals/${effectiveFestivalId || festSlug}`
 
   // 1. OVERVIEW
   // 2. PEOPLE & PROGRAM (With individual distinct active checks)

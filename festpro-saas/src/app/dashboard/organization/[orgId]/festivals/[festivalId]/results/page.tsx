@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import { getCompetitions } from "@/lib/actions/competition"
+import { getResultItems } from "@/lib/actions/result"
 import type { Competition } from "@/types/competition"
 import { ExportPrintBar } from "@/components/ui/export-print-bar"
 import { Button } from "@/components/ui/button"
@@ -54,14 +55,29 @@ export default function FestivalResultsPage() {
     load()
   }, [festivalId])
 
-  const handleOpenResults = (comp: Competition, idx: number) => {
+  const handleOpenResults = async (comp: Competition, idx?: number) => {
     setViewingComp(comp)
-    const mockWinners: WinnerItem[] = [
-      { place: "1st", name: "Shamil", chestNumber: "BJ003", team: "BJP", score: 92, grade: "A+" },
-      { place: "2nd", name: "Rashid", chestNumber: "CJ001", team: "CJP", score: 87, grade: "A" },
-      { place: "3rd", name: "Ruhaib", chestNumber: "CJ003", team: "CJP", score: 81, grade: "A" },
-    ]
-    setModalWinners(mockWinners)
+    setModalWinners([])
+    try {
+      const res = await getResultItems(comp.id)
+      if (res?.data && res.data.length > 0) {
+        const winners: WinnerItem[] = res.data.map((item: any, idx: number) => {
+          const placeStr = idx === 0 ? "1st" : idx === 1 ? "2nd" : idx === 2 ? "3rd" : `${idx + 1}th`
+          const pName = item.participant ? `${item.participant.first_name || ""} ${item.participant.last_name || ""}`.trim() : "Participant"
+          return {
+            place: placeStr,
+            name: pName,
+            chestNumber: item.participant?.chest_number || item.participant?.participant_id || "-",
+            team: item.participant?.unit || item.participant?.division || "Team",
+            score: item.total_score || item.score || 0,
+            grade: item.grade || (item.total_score >= 90 ? "A+" : item.total_score >= 80 ? "A" : "B"),
+          }
+        })
+        setModalWinners(winners)
+      }
+    } catch (e) {
+      console.error("Error loading winners:", e)
+    }
   }
 
   const filtered = competitions.filter((c) => {
@@ -217,37 +233,43 @@ export default function FestivalResultsPage() {
             </div>
 
             <div className="space-y-3">
-              {modalWinners.map((w) => (
-                <div
-                  key={w.place}
-                  className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 bg-slate-50/70"
-                >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`h-8 w-8 rounded-full flex items-center justify-center font-black text-xs ${
-                        w.place === "1st"
-                          ? "bg-amber-400 text-amber-950 shadow-xs"
-                          : w.place === "2nd"
-                          ? "bg-slate-300 text-slate-900"
-                          : "bg-amber-700/20 text-amber-900"
-                      }`}
-                    >
-                      {w.place}
-                    </span>
-                    <div>
-                      <h4 className="text-sm font-black text-slate-900">{w.name}</h4>
-                      <p className="text-xs text-slate-400 font-mono">Chest #{w.chestNumber} · {w.team}</p>
+              {modalWinners.length === 0 ? (
+                <div className="py-8 text-center text-xs text-slate-500 font-medium">
+                  No evaluated results or published scores yet for this program.
+                </div>
+              ) : (
+                modalWinners.map((w) => (
+                  <div
+                    key={w.place + w.chestNumber}
+                    className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 bg-slate-50/70"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`h-8 w-8 rounded-full flex items-center justify-center font-black text-xs ${
+                          w.place === "1st"
+                            ? "bg-amber-400 text-amber-950 shadow-xs"
+                            : w.place === "2nd"
+                            ? "bg-slate-300 text-slate-900"
+                            : "bg-amber-700/20 text-amber-900"
+                        }`}
+                      >
+                        {w.place}
+                      </span>
+                      <div>
+                        <h4 className="text-sm font-black text-slate-900">{w.name}</h4>
+                        <p className="text-xs text-slate-400 font-mono">Chest #{w.chestNumber} · {w.team}</p>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="font-black text-indigo-700 text-sm block">{w.score} pts</span>
+                      <span className="inline-block px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 font-bold text-[10px]">
+                        Grade {w.grade}
+                      </span>
                     </div>
                   </div>
-
-                  <div className="text-right">
-                    <span className="font-black text-indigo-700 text-sm block">{w.score} pts</span>
-                    <span className="inline-block px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 font-bold text-[10px]">
-                      Grade {w.grade}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
             <div className="pt-3 border-t border-slate-100 flex items-center justify-between">

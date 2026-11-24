@@ -49,12 +49,18 @@ export default function LiveProgramsPage() {
         setCompetitions(compList)
         setStages(stageList)
 
-        // Initialize program states
+        // Initialize program states from real competition records
         const initial: Record<string, { stageId: string; status: string }> = {}
-        compList.forEach((c, idx) => {
+        compList.forEach((c) => {
+          const statusStr = String(c.status || "")
+          let initStatus = "Not started"
+          if (statusStr === "running" || statusStr === "live" || statusStr === "in_progress" || statusStr === "started") initStatus = "Started"
+          else if (statusStr === "completed" || statusStr === "finished") initStatus = "Finished"
+          else if (statusStr === "scheduled" || statusStr === "registration_closed") initStatus = "Reporting"
+
           initial[c.id] = {
-            stageId: stageList[0]?.id || "",
-            status: idx === 0 ? "Started" : idx === 1 ? "Reporting" : "Not started",
+            stageId: (c as any).venue_id || stageList[0]?.id || "",
+            status: initStatus,
           }
         })
         setProgramStates(initial)

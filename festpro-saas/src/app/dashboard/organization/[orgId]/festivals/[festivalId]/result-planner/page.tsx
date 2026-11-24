@@ -44,14 +44,7 @@ export default function ResultPlannerPage() {
           .eq("festival_id", festivalId)
           .order("name", { ascending: true })
 
-        if (data && data.length > 0) {
-          setTeams(data)
-        } else {
-          setTeams([
-            { id: "1", name: "BJP", code: "BJP" },
-            { id: "2", name: "CJP", code: "CJP" },
-          ])
-        }
+        setTeams((data || []) as { id: string; name: string; code: string }[])
       } catch (err) {
         console.error("Failed to load teams:", err)
       }
@@ -65,39 +58,42 @@ export default function ResultPlannerPage() {
       return
     }
 
-    setLoading(true)
-    setTimeout(() => {
-      const teamObj = teams.find((t) => t.id === selectedTeam)
-      const mock: PlannedOpportunity[] = [
-        {
-          programName: "Mime",
-          category: "Senior",
-          candidateName: `${teamObj?.name || "Team"} Troupe`,
-          currentRank: "Projected 1st",
-          potentialPoints: 10,
-          status: "Valuation Complete",
-        },
-        {
-          programName: "Elocution (English)",
-          category: "Senior",
-          candidateName: "Amina Z.",
-          currentRank: "Projected 2nd",
-          potentialPoints: 5,
-          status: "Review Pending",
-        },
-        {
-          programName: "Patriotic Song",
-          category: "General",
-          candidateName: `${teamObj?.name || "Team"} Choir`,
-          currentRank: "Projected 1st",
-          potentialPoints: 10,
-          status: "Draft Ready",
-        },
-      ]
-      setOpportunities(mock)
-      setLoading(false)
-    }, 300)
-  }, [selectedTeam, teams])
+    async function loadOpportunities() {
+      setLoading(true)
+      try {
+        const supabase = createClient()
+        const teamObj = teams.find((t) => t.id === selectedTeam)
+
+        const { data: resItems } = await supabase
+          .from("result_items")
+          .select("*, competition:competitions(name, category_id), participant:participants(first_name, last_name, unit)")
+          .eq("festival_id", festivalId)
+          .neq("status", "published")
+          .limit(20)
+
+        if (resItems && resItems.length > 0) {
+          const mapped: PlannedOpportunity[] = resItems.map((item: any) => ({
+            programName: item.competition?.name || "Program",
+            category: "General",
+            candidateName: item.participant ? `${item.participant.first_name || ""} ${item.participant.last_name || ""}`.trim() : (teamObj?.name || "Candidate"),
+            currentRank: item.rank ? `Rank #${item.rank}` : "Evaluating",
+            potentialPoints: item.total_score || 5,
+            status: item.status === "draft" ? "Draft Ready" : "Review Pending",
+          }))
+          setOpportunities(mapped)
+        } else {
+          setOpportunities([])
+        }
+      } catch (err) {
+        console.error("Failed to load planner opportunities:", err)
+        setOpportunities([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadOpportunities()
+  }, [selectedTeam, teams, festivalId])
 
   const handlePublishTeamScores = () => {
     toast.success("Team scores published to live leaderboard!")
@@ -191,56 +187,66 @@ export default function ResultPlannerPage() {
                 Strategy Sheet for {selectedTeamObj?.name}
               </h3>
               <p className="text-xs text-indigo-700 font-medium">
-                Publishing these {opportunities.length} pending results can add +25.00 points to {selectedTeamObj?.name}.
+                {opportunities.length > 0
+                  ? `There are ${opportunities.length} pending results that can add points to ${selectedTeamObj?.name}.`
+                  : `No pending un-published results found for ${selectedTeamObj?.name}.`}
               </p>
-            </div>
-            <div className="text-right">
-              <span className="text-xs font-bold text-slate-400 block uppercase">Potential Total</span>
-              <span className="text-xl font-black text-indigo-700">35.00 pts (#1 Lead)</span>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-slate-100 text-slate-400 font-semibold text-[11px]">
-                  <th className="py-3 px-4">Program</th>
-                  <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4">Candidate</th>
-                  <th className="py-3 px-4">Projected Rank</th>
-                  <th className="py-3 px-4">Potential Points</th>
-                  <th className="py-3 px-4">Stage Status</th>
-                  <th className="py-3 px-4 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {opportunities.map((opp, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-4 px-4 font-bold text-slate-900">{opp.programName}</td>
-                    <td className="py-4 px-4 text-slate-600">{opp.category}</td>
-                    <td className="py-4 px-4 text-slate-800 font-semibold">{opp.candidateName}</td>
-                    <td className="py-4 px-4">
-                      <span className="inline-block px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 text-[11px] font-bold border border-amber-200">
-                        {opp.currentRank}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 font-black text-indigo-700">+{opp.potentialPoints} pts</td>
-                    <td className="py-4 px-4">
-                      <span className="text-xs font-semibold text-slate-500">{opp.status}</span>
-                    </td>
-                    <td className="py-4 px-4 text-right">
-                      <Link
-                        href={`/dashboard/organization/${orgId}/festivals/${festivalId}/results`}
-                        className="inline-flex items-center gap-1 text-xs font-bold text-indigo-700 hover:text-indigo-800"
-                      >
-                        Publish <ChevronRight className="h-3.5 w-3.5" />
-                      </Link>
-                    </td>
+          {opportunities.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center space-y-2 shadow-xs">
+              <div className="h-10 w-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center mx-auto border border-slate-200">
+                <Check className="h-5 w-5 text-emerald-600" />
+              </div>
+              <h4 className="text-sm font-bold text-slate-800">No pending opportunities for {selectedTeamObj?.name}</h4>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                All results for this team have either already been published or are currently awaiting valuation.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-100 text-slate-400 font-semibold text-[11px]">
+                    <th className="py-3 px-4">Program</th>
+                    <th className="py-3 px-4">Category</th>
+                    <th className="py-3 px-4">Candidate</th>
+                    <th className="py-3 px-4">Projected Rank</th>
+                    <th className="py-3 px-4">Potential Points</th>
+                    <th className="py-3 px-4">Stage Status</th>
+                    <th className="py-3 px-4 text-right">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium">
+                  {opportunities.map((opp, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-4 px-4 font-bold text-slate-900">{opp.programName}</td>
+                      <td className="py-4 px-4 text-slate-600">{opp.category}</td>
+                      <td className="py-4 px-4 text-slate-800 font-semibold">{opp.candidateName}</td>
+                      <td className="py-4 px-4">
+                        <span className="inline-block px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 text-[11px] font-bold border border-amber-200">
+                          {opp.currentRank}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 font-black text-indigo-700">+{opp.potentialPoints} pts</td>
+                      <td className="py-4 px-4">
+                        <span className="text-xs font-semibold text-slate-500">{opp.status}</span>
+                      </td>
+                      <td className="py-4 px-4 text-right">
+                        <Link
+                          href={`/dashboard/organization/${orgId}/festivals/${festivalId}/results`}
+                          className="inline-flex items-center gap-1 text-xs font-bold text-indigo-700 hover:text-indigo-800"
+                        >
+                          Publish <ChevronRight className="h-3.5 w-3.5" />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>
