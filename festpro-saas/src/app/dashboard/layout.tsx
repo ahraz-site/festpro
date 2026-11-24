@@ -10,7 +10,8 @@ import {
   Users, Activity, ChevronDown, Plus, Check, CalendarDays,
   CreditCard, FileText, Shield, Trophy, Calendar, Radio, Layers,
   Tv, HelpCircle, Moon, Sun, ArrowLeft, Bookmark, LayoutGrid, Search,
-  RefreshCw, ExternalLink, Sparkles
+  RefreshCw, ExternalLink, Sparkles, Gamepad2, Monitor, ClipboardCheck,
+  Keyboard, Dices, Medal, BarChart2
 } from "lucide-react"
 import type { Profile } from "@/types"
 import type { ExtendedOrganization } from "@/types/organization"
@@ -230,15 +231,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     },
   ] : []
 
-  // 3. LIVE OPERATIONS (With individual distinct active checks)
+  // 3. LIVE OPERATIONS (Matching Screenshots 1 to 7)
   const liveOpsItems = currentOrgId ? [
     {
       label: "Live programs",
       href: effectiveFestivalId
-        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/results/publish`
-        : `/dashboard/organization/${currentOrgId}/festivals?target=results`,
-      icon: Radio,
-      isActive: pathname.includes("/results"),
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/live-programs`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=live-programs`,
+      icon: Gamepad2,
+      isActive: pathname.includes("/live-programs"),
     },
     {
       label: "Stages",
@@ -251,18 +252,54 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     {
       label: "Stage desk",
       href: effectiveFestivalId
-        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/venues`
-        : `/dashboard/organization/${currentOrgId}/festivals?target=venues`,
-      icon: LayoutGrid,
-      isActive: pathname.includes("/venues"),
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/stage-desk`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=stage-desk`,
+      icon: Monitor,
+      isActive: pathname.includes("/stage-desk"),
     },
     {
       label: "TV displays",
       href: effectiveFestivalId
-        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/live/display`
-        : `/dashboard/organization/${currentOrgId}/festivals?target=display`,
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/tv-displays`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=tv-displays`,
       icon: Tv,
-      isActive: pathname.includes("/live/display"),
+      isActive: pathname.includes("/tv-displays"),
+    },
+    {
+      label: "Enter Marks",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/enter-marks`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=enter-marks`,
+      icon: ClipboardCheck,
+      isActive: pathname.includes("/enter-marks"),
+    },
+    {
+      label: "Code letters",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/code-letters`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=code-letters`,
+      icon: Keyboard,
+      isActive: pathname.includes("/code-letters"),
+    },
+    {
+      label: "Subject picker",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/subject-picker`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=subject-picker`,
+      icon: Dices,
+      isActive: pathname.includes("/subject-picker") || pathname.includes("/random-picker"),
+    },
+  ] : []
+
+  // 4. RESULTS
+  const resultsItems = currentOrgId ? [
+    {
+      label: "Team scores",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/team-scores`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=team-scores`,
+      icon: Trophy,
+      isActive: pathname.includes("/team-scores"),
     },
   ] : []
 
@@ -464,6 +501,37 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           {liveOpsItems.map((item) => {
+            const isActive = item.isActive
+            const Icon = item.icon
+            return (
+              <Link
+                prefetch={true}
+                key={item.label}
+                href={item.href}
+                className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition-all min-h-[38px] ${
+                  isActive
+                    ? "bg-indigo-50 text-indigo-700 font-bold"
+                    : "text-slate-600 hover:text-indigo-600 hover:bg-slate-50"
+                }`}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className={`h-4 w-4 ${isActive ? "text-indigo-600" : "text-slate-400"}`} />
+                  <span>{item.label}</span>
+                </div>
+                {isActive && <span className="h-1.5 w-1.5 rounded-full bg-indigo-600" />}
+              </Link>
+            )
+          })}
+
+          {/* 4. RESULTS (Screenshot Reference) */}
+          <div className="pt-5 pb-1.5 px-3">
+            <span className="text-[11px] font-bold text-slate-400 tracking-wider uppercase block">
+              RESULTS
+            </span>
+          </div>
+
+          {resultsItems.map((item) => {
             const isActive = item.isActive
             const Icon = item.icon
             return (

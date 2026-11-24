@@ -33,10 +33,14 @@ export default function FestivalsListPage() {
       categories: "/competitions/categories",
       competitions: "/competitions",
       schedules: "/schedules",
-      results: "/results/publish",
+      "live-programs": "/live-programs",
       stages: "/stages",
-      venues: "/venues",
-      display: "/live/display",
+      "stage-desk": "/stage-desk",
+      "tv-displays": "/tv-displays",
+      "enter-marks": "/enter-marks",
+      "code-letters": "/code-letters",
+      "subject-picker": "/subject-picker",
+      "team-scores": "/team-scores",
     }
 
     async function load() {
