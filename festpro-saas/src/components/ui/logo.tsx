@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useId } from "react"
-import { AhrazIconLogo } from "./ahraz-icon"
 
 export interface WordmarkProps {
   className?: string
@@ -10,13 +9,13 @@ export interface WordmarkProps {
 }
 
 /**
- * Festpro Wordmark SVG component directly matching:
+ * Official Festpro Wordmark SVG component directly matching:
  * E:\Desktop\ahraz_design\SVG\Festpro logo.svg
  * ViewBox: 0 0 1376.73 267.2 (aspect ratio ~5.152 : 1)
  */
 export function FestProWordmark({
   className = "",
-  height = 24,
+  height = 26,
   variant = "gradient",
 }: WordmarkProps) {
   const rawId = useId()
@@ -31,8 +30,8 @@ export function FestProWordmark({
       width={width}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className={`shrink-0 ${className}`}
-      aria-label="Festpro"
+      className={`shrink-0 block ${className}`}
+      aria-label="FestPro"
       role="img"
     >
       <defs>
@@ -78,34 +77,22 @@ export interface LogoProps {
 }
 
 /**
- * Ahraz FestPro combined Logo with the official Festpro wordmark
+ * FestPro Wordmark Logo (Without the Ahraz icon swirl, as requested)
  */
-export function AhrazFestProLogo({
+export function FestProLogo({
   className = "",
   variant = "light",
-  height = 28,
-  showIcon = true,
-  stackedMobile = false,
+  height = 26,
 }: LogoProps) {
   const isDark = variant === "dark" || variant === "white"
   const wordmarkVariant = isDark ? "white" : "gradient"
 
-  if (stackedMobile) {
-    return (
-      <div className={`flex flex-col items-center sm:flex-row gap-2.5 select-none ${className}`}>
-        {showIcon && <AhrazIconLogo size={height + 8} />}
-        <FestProWordmark height={height} variant={wordmarkVariant} />
-      </div>
-    )
-  }
-
   return (
-    <div className={`inline-flex items-center gap-2.5 select-none ${className}`}>
-      {showIcon && <AhrazIconLogo size={height + 6} />}
+    <div className={`inline-flex items-center select-none ${className}`}>
       <FestProWordmark height={height} variant={wordmarkVariant} />
     </div>
   )
 }
 
-// Standalone alias
-export const FestProLogo = AhrazFestProLogo
+// Backward-compatible alias that renders only the FestPro Wordmark
+export const AhrazFestProLogo = FestProLogo
