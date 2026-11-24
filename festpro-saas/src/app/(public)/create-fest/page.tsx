@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { toast } from "sonner"
-import { createFestOrganizerAction } from "@/lib/actions/auth"
-import { ArrowLeft, Loader2, Eye, EyeOff, Globe, Check, Sparkles, ShieldCheck } from "lucide-react"
+import { createFestOrganizerAction, checkFestSlugAvailabilityAction } from "@/lib/actions/auth"
+import { ArrowLeft, Loader2, Eye, EyeOff, Globe, Check, Sparkles, ShieldCheck, AlertCircle } from "lucide-react"
 import { AhrazFestProLogo } from "@/components/ui/logo"
 
 export default function CreateFestPage() {
@@ -14,6 +14,7 @@ export default function CreateFestPage() {
   const [festName, setFestName] = useState("")
   const [festSlug, setFestSlug] = useState("")
   const [isEditingSlug, setIsEditingSlug] = useState(false)
+  const [slugStatus, setSlugStatus] = useState<{ available?: boolean; checking?: boolean; message?: string }>({})
 
   // Account details
   const [name, setName] = useState("")
@@ -34,6 +35,30 @@ export default function CreateFestPage() {
       setFestSlug(generated)
     }
   }
+
+  // Debounced slug check
+  useEffect(() => {
+    if (!festSlug || festSlug.length < 2) {
+      setSlugStatus({})
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      setSlugStatus({ checking: true })
+      try {
+        const res = await checkFestSlugAvailabilityAction(festSlug)
+        setSlugStatus({
+          checking: false,
+          available: res.available,
+          message: res.available ? undefined : "This address is already registered. If it is yours, proceed to sign in; otherwise pick a variation.",
+        })
+      } catch {
+        setSlugStatus({ checking: false, available: true })
+      }
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [festSlug])
 
   const handleStep1Submit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -77,10 +102,23 @@ export default function CreateFestPage() {
       if (result.error) {
         toast.error(result.error)
         setLoading(false)
+        if (
+          result.error.toLowerCase().includes("taken") ||
+          result.error.toLowerCase().includes("registered") ||
+          result.error.toLowerCase().includes("step 1")
+        ) {
+          setStep(1)
+          setIsEditingSlug(true)
+        }
         return
       }
 
-      toast.success("Festival workspace created successfully!")
+      if (result.alreadyExisted) {
+        toast.success("Welcome back! Loading your existing festival workspace...")
+      } else {
+        toast.success("Festival workspace created successfully!")
+      }
+
       router.push(`/dashboard/organization/${result.orgId}/festivals/${result.festivalId}`)
     } catch (err: any) {
       toast.error(err?.message || "Failed to create festival")
@@ -226,9 +264,25 @@ export default function CreateFestPage() {
                   ) : (
                     <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-[#0B0F19] border border-slate-700/80 text-slate-300 text-sm font-mono">
                       <span>{festSlug || "yourfest"}.festpro.ahraz.site</span>
-                      <Globe className="h-4 w-4 text-indigo-400" />
+                      {slugStatus.checking ? (
+                        <Loader2 className="h-4 w-4 text-indigo-400 animate-spin" />
+                      ) : slugStatus.available === true ? (
+                        <Check className="h-4 w-4 text-emerald-400" />
+                      ) : slugStatus.available === false ? (
+                        <AlertCircle className="h-4 w-4 text-amber-400" />
+                      ) : (
+                        <Globe className="h-4 w-4 text-indigo-400" />
+                      )}
                     </div>
                   )}
+
+                  {slugStatus.available === false && (
+                    <p className="text-[11px] text-amber-400 mt-1 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3 shrink-0" />
+                      <span>{slugStatus.message || "This address is already in use. You can still proceed if it is your account."}</span>
+                    </p>
+                  )}
+
                   <p className="text-[11px] text-slate-500 mt-1">
                     Your public results and leaderboards will be available at this domain.
                   </p>

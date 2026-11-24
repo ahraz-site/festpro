@@ -386,6 +386,35 @@ export async function resendVerificationEmail() {
 }
 
 
+export async function checkFestSlugAvailabilityAction(slug: string) {
+  try {
+    const cleanSlug = String(slug || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, "")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "")
+
+    if (!cleanSlug || cleanSlug.length < 2) {
+      return { available: false, error: "Web address is too short" }
+    }
+
+    const adminClient = createAdminClient()
+    const { data: existing } = await adminClient
+      .from("festivals")
+      .select("id, code")
+      .eq("code", cleanSlug)
+      .maybeSingle()
+
+    return {
+      available: !existing,
+      slug: cleanSlug,
+    }
+  } catch (err: any) {
+    return { available: true, slug }
+  }
+}
+
 export async function createFestOrganizerAction(formData: {
   fest_name: string
   fest_slug: string
@@ -416,7 +445,7 @@ export async function createFestOrganizerAction(formData: {
 
     let userId: string | null = null
 
-    // 1. Try to sign up user
+    // 1. Try to sign up or sign in user
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -447,27 +476,127 @@ export async function createFestOrganizerAction(formData: {
       return { error: "Failed to establish organizer user account." }
     }
 
-    // 2. Create organization
-    const orgSlug = "org-" + festSlug + "-" + Math.random().toString(36).substring(2, 6)
-    const { data: org, error: orgError } = await adminClient
-      .from("organizations")
-      .insert({
-        name: festName,
-        slug: orgSlug,
-      })
-      .select()
-      .single()
+    // 2. CHECK IF FESTIVAL WITH THIS SLUG ALREADY EXISTS
+    const { data: existingFest } = await adminClient
+      .from("festivals")
+      .select("id, name, code, organization_id")
+      .eq("code", festSlug)
+      .maybeSingle()
 
-    if (orgError) {
-      return { error: "Organization creation failed: " + orgError.message }
+    if (existingFest) {
+      // Check if current user is already member/owner of this fest's organization
+      const { data: existingMember } = await adminClient
+        .from("organization_members")
+        .select("id, organization_id, role")
+        .eq("organization_id", existingFest.organization_id)
+        .eq("user_id", userId)
+        .maybeSingle()
+
+      if (existingMember) {
+        // User already owns or belongs to this festival!
+        await adminClient.from("profiles").upsert({
+          id: userId,
+          email,
+          first_name: firstName,
+          last_name: lastName,
+          role: "organization_owner",
+          organization_id: existingFest.organization_id,
+          phone: phone || null,
+        })
+
+        try {
+          await supabase.auth.signInWithPassword({ email, password })
+        } catch (_) {}
+
+        return {
+          success: true,
+          orgId: existingFest.organization_id,
+          festivalId: existingFest.id,
+          slug: festSlug,
+          alreadyExisted: true,
+        }
+      }
+
+      // Check if the organization was created with this exact email earlier
+      const { data: matchingProfile } = await adminClient
+        .from("profiles")
+        .select("id, email")
+        .eq("organization_id", existingFest.organization_id)
+        .eq("email", email)
+        .maybeSingle()
+
+      if (matchingProfile) {
+        await adminClient.from("organization_members").upsert({
+          organization_id: existingFest.organization_id,
+          user_id: userId,
+          role: "organization_owner",
+        })
+
+        await adminClient.from("profiles").upsert({
+          id: userId,
+          email,
+          first_name: firstName,
+          last_name: lastName,
+          role: "organization_owner",
+          organization_id: existingFest.organization_id,
+          phone: phone || null,
+        })
+
+        try {
+          await supabase.auth.signInWithPassword({ email, password })
+        } catch (_) {}
+
+        return {
+          success: true,
+          orgId: existingFest.organization_id,
+          festivalId: existingFest.id,
+          slug: festSlug,
+          alreadyExisted: true,
+        }
+      }
+
+      // Festival is taken by a different account
+      return {
+        error: `The festival web address "${festSlug}.festpro.ahraz.site" is already registered. Please choose another address in Step 1 (e.g. ${festSlug}-fest or ${festSlug}-2026).`,
+      }
     }
 
-    // 3. Link organization member
-    await adminClient.from("organization_members").upsert({
-      organization_id: org.id,
-      user_id: userId,
-      role: "organization_owner",
-    })
+    // 3. Find or Create Organization
+    let orgId: string | null = null
+
+    // Check if user already has an organization created
+    const { data: existingUserOrg } = await adminClient
+      .from("organization_members")
+      .select("organization_id")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (existingUserOrg?.organization_id) {
+      orgId = existingUserOrg.organization_id
+    } else {
+      const orgSlug = "org-" + festSlug + "-" + Math.random().toString(36).substring(2, 6)
+      const { data: newOrg, error: orgError } = await adminClient
+        .from("organizations")
+        .insert({
+          name: festName,
+          slug: orgSlug,
+        })
+        .select()
+        .single()
+
+      if (orgError) {
+        return { error: "Organization creation failed: " + orgError.message }
+      }
+      orgId = newOrg.id
+
+      await adminClient.from("organization_members").upsert({
+        organization_id: orgId,
+        user_id: userId,
+        role: "organization_owner",
+      })
+    }
 
     // 4. Update profile
     await adminClient.from("profiles").upsert({
@@ -476,7 +605,7 @@ export async function createFestOrganizerAction(formData: {
       first_name: firstName,
       last_name: lastName,
       role: "organization_owner",
-      organization_id: org.id,
+      organization_id: orgId,
       phone: phone || null,
     })
 
@@ -485,7 +614,7 @@ export async function createFestOrganizerAction(formData: {
     const { data: fest, error: festError } = await adminClient
       .from("festivals")
       .insert({
-        organization_id: org.id,
+        organization_id: orgId,
         name: festName,
         short_name: festName.length > 50 ? festName.substring(0, 50) : festName,
         code: festSlug,
@@ -498,6 +627,11 @@ export async function createFestOrganizerAction(formData: {
       .single()
 
     if (festError) {
+      if (festError.code === "23505" || festError.message?.includes("festivals_code_key")) {
+        return {
+          error: `The festival web address "${festSlug}.festpro.ahraz.site" is already registered. Please choose another address in Step 1 (e.g. ${festSlug}-fest).`,
+        }
+      }
       return { error: "Festival workspace creation failed: " + festError.message }
     }
 
@@ -571,7 +705,7 @@ export async function createFestOrganizerAction(formData: {
 
     return {
       success: true,
-      orgId: org.id,
+      orgId: orgId,
       festivalId: fest.id,
       slug: festSlug,
     }
