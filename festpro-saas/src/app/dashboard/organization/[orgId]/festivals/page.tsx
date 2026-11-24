@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,7 +16,10 @@ import { CalendarDays, Plus, Search, Copy, Archive, Trash2, MoreHorizontal, Load
 export default function FestivalsListPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const orgId = params.orgId as string
+  const target = searchParams.get("target")
+
   const [festivals, setFestivals] = useState<Festival[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
@@ -23,24 +27,54 @@ export default function FestivalsListPage() {
   const [openMenu, setOpenMenu] = useState<string | null>(null)
 
   useEffect(() => {
+    const targetMap: Record<string, string> = {
+      teams: "/teams",
+      participants: "/participants",
+      categories: "/competitions/categories",
+      competitions: "/competitions",
+      schedules: "/schedules",
+      results: "/results/publish",
+      stages: "/stages",
+      venues: "/venues",
+      display: "/live/display",
+    }
+
     async function load() {
-      let data = await getFestivals(orgId)
-      if (!data || data.length === 0) {
-        const res = await getOrCreateOrganizationFestivalAction(orgId)
-        if (res.success && res.festival) {
-          router.replace(`/dashboard/organization/${orgId}/festivals/${res.festival.id}`)
+      try {
+        const supabase = createClient()
+        let { data, error } = await supabase
+          .from("festivals")
+          .select("*")
+          .eq("organization_id", orgId)
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false })
+
+        if (error || !data || data.length === 0) {
+          data = await getFestivals(orgId)
+        }
+
+        const subPath = target && targetMap[target] ? targetMap[target] : ""
+
+        if (!data || data.length === 0) {
+          const res = await getOrCreateOrganizationFestivalAction(orgId)
+          if (res.success && res.festival) {
+            router.replace(`/dashboard/organization/${orgId}/festivals/${res.festival.id}${subPath}`)
+            return
+          }
+        } else if (data.length === 1) {
+          router.replace(`/dashboard/organization/${orgId}/festivals/${data[0].id}${subPath}`)
           return
         }
-      } else if (data.length === 1) {
-        // If single festival exists, navigate directly to its workspace
-        router.replace(`/dashboard/organization/${orgId}/festivals/${data[0].id}`)
-        return
+
+        setFestivals((data || []) as Festival[])
+      } catch (err) {
+        console.error("Error loading festivals:", err)
+      } finally {
+        setLoading(false)
       }
-      setFestivals(data as Festival[])
-      setLoading(false)
     }
     load()
-  }, [orgId, router])
+  }, [orgId, router, target])
 
   const filtered = festivals.filter((f) => {
     if (search && !f.name.toLowerCase().includes(search.toLowerCase())) return false
@@ -70,7 +104,14 @@ export default function FestivalsListPage() {
     setOpenMenu(null)
   }
 
-  if (loading) return <div className="text-center py-12 text-gray-500">Loading...</div>
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3 text-slate-500 font-sans">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+        <p className="text-xs font-bold uppercase tracking-wider text-slate-600">Loading festival workspace...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">

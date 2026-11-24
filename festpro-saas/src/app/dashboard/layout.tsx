@@ -35,7 +35,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     short_name?: string | null
     code?: string | null
     status?: string | null
-  } | null>(null)
+  } | null>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const parts = window.location.pathname.split("/")
+        const orgIdx = parts.findIndex((p) => p === "organization")
+        const orgId = orgIdx >= 0 ? parts[orgIdx + 1] : null
+        if (orgId) {
+          const cached = sessionStorage.getItem(`festpro_active_fest_${orgId}`)
+          if (cached) return JSON.parse(cached)
+        }
+      } catch {}
+    }
+    return null
+  })
 
   const isOrgRoute = pathname.startsWith("/dashboard/organization")
   const currentOrgId = isOrgRoute ? pathname.split("/")[3] : profile?.organization_id
@@ -103,6 +116,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     if (!currentFestivalId) {
       if (currentOrgId) {
+        // Try session cache first
+        try {
+          const cached = sessionStorage.getItem(`festpro_active_fest_${currentOrgId}`)
+          if (cached) {
+            const parsed = JSON.parse(cached)
+            if (parsed?.id) setCurrentFestival(parsed)
+          }
+        } catch {}
+
         const supabase = createClient()
         supabase
           .from("festivals")
@@ -115,13 +137,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           .then(async ({ data }: any) => {
             if (data) {
               setCurrentFestival(data)
+              try { sessionStorage.setItem(`festpro_active_fest_${currentOrgId}`, JSON.stringify(data)) } catch {}
             } else {
               const res = await getOrCreateOrganizationFestivalAction(currentOrgId)
               if (res.success && res.festival) {
                 setCurrentFestival(res.festival)
+                try { sessionStorage.setItem(`festpro_active_fest_${currentOrgId}`, JSON.stringify(res.festival)) } catch {}
               }
             }
           })
+          .catch(() => {})
       }
       return
     }
@@ -133,8 +158,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .eq("id", currentFestivalId)
       .single()
       .then(({ data }: any) => {
-        if (data) setCurrentFestival(data)
+        if (data) {
+          setCurrentFestival(data)
+          if (currentOrgId) {
+            try { sessionStorage.setItem(`festpro_active_fest_${currentOrgId}`, JSON.stringify(data)) } catch {}
+          }
+        }
       })
+      .catch(() => {})
   }, [currentFestivalId, currentOrgId])
 
   const handleSignOut = useCallback(async () => { await signOut() }, [])
@@ -149,22 +180,90 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const publicWebUrl = `/festivals/${festSlug}`
 
   // 1. OVERVIEW
-  // 2. PEOPLE & PROGRAM (Always displayed with active festival route fallback)
+  // 2. PEOPLE & PROGRAM (With individual distinct active checks)
   const peopleProgramItems = currentOrgId ? [
-    { label: "People & access", href: `/dashboard/organization/${currentOrgId}/members`, icon: Shield },
-    { label: "Teams", href: effectiveFestivalId ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/teams` : `/dashboard/organization/${currentOrgId}/festivals`, icon: Users },
-    { label: "Participants", href: effectiveFestivalId ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/participants` : `/dashboard/organization/${currentOrgId}/festivals`, icon: Bookmark },
-    { label: "Categories", href: effectiveFestivalId ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/competitions/categories` : `/dashboard/organization/${currentOrgId}/festivals`, icon: LayoutGrid },
-    { label: "Programs", href: effectiveFestivalId ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/competitions` : `/dashboard/organization/${currentOrgId}/festivals`, icon: Trophy },
-    { label: "Scheduler", href: effectiveFestivalId ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/schedules` : `/dashboard/organization/${currentOrgId}/festivals`, icon: Calendar },
+    {
+      label: "People & access",
+      href: `/dashboard/organization/${currentOrgId}/members`,
+      icon: Shield,
+      isActive: pathname.includes("/members"),
+    },
+    {
+      label: "Teams",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/teams`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=teams`,
+      icon: Users,
+      isActive: pathname.includes("/teams"),
+    },
+    {
+      label: "Participants",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/participants`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=participants`,
+      icon: Bookmark,
+      isActive: pathname.includes("/participants"),
+    },
+    {
+      label: "Categories",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/competitions/categories`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=categories`,
+      icon: LayoutGrid,
+      isActive: pathname.includes("/competitions/categories"),
+    },
+    {
+      label: "Programs",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/competitions`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=competitions`,
+      icon: Trophy,
+      isActive: pathname.includes("/competitions") && !pathname.includes("/competitions/categories"),
+    },
+    {
+      label: "Scheduler",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/schedules`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=schedules`,
+      icon: Calendar,
+      isActive: pathname.includes("/schedules"),
+    },
   ] : []
 
-  // 3. LIVE OPERATIONS (Always displayed with active festival route fallback)
+  // 3. LIVE OPERATIONS (With individual distinct active checks)
   const liveOpsItems = currentOrgId ? [
-    { label: "Live programs", href: effectiveFestivalId ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/results/publish` : `/dashboard/organization/${currentOrgId}/festivals`, icon: Radio },
-    { label: "Stages", href: effectiveFestivalId ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/stages` : `/dashboard/organization/${currentOrgId}/festivals`, icon: Layers },
-    { label: "Stage desk", href: effectiveFestivalId ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/venues` : `/dashboard/organization/${currentOrgId}/festivals`, icon: LayoutGrid },
-    { label: "TV displays", href: effectiveFestivalId ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/live/display` : `/dashboard/organization/${currentOrgId}/festivals`, icon: Tv },
+    {
+      label: "Live programs",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/results/publish`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=results`,
+      icon: Radio,
+      isActive: pathname.includes("/results"),
+    },
+    {
+      label: "Stages",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/stages`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=stages`,
+      icon: Layers,
+      isActive: pathname.includes("/stages"),
+    },
+    {
+      label: "Stage desk",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/venues`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=venues`,
+      icon: LayoutGrid,
+      isActive: pathname.includes("/venues"),
+    },
+    {
+      label: "TV displays",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/live/display`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=display`,
+      icon: Tv,
+      isActive: pathname.includes("/live/display"),
+    },
   ] : []
 
   const triggerRefresh = () => {
@@ -334,7 +433,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           {peopleProgramItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+            const isActive = item.isActive
             const Icon = item.icon
             return (
               <Link
@@ -365,7 +464,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           {liveOpsItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+            const isActive = item.isActive
             const Icon = item.icon
             return (
               <Link
@@ -434,7 +533,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Link
             href={effectiveFestivalId && currentOrgId ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/competitions` : dashboardHref}
             className={`flex flex-col items-center justify-center py-1 rounded-xl transition-colors ${
-              pathname.includes("/competitions") ? "text-indigo-600 font-bold" : "text-slate-500 hover:text-slate-800"
+              pathname.includes("/competitions") && !pathname.includes("/competitions/categories") ? "text-indigo-600 font-bold" : "text-slate-500 hover:text-slate-800"
             }`}
           >
             <Trophy className="h-4 w-4 mb-0.5" />
