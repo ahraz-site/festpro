@@ -11,7 +11,8 @@ import {
   CreditCard, FileText, Shield, Trophy, Calendar, Radio, Layers,
   Tv, HelpCircle, Moon, Sun, ArrowLeft, Bookmark, LayoutGrid, Search,
   RefreshCw, ExternalLink, Sparkles, Gamepad2, Monitor, ClipboardCheck,
-  Keyboard, Dices, Medal, BarChart2, Star, Gift, Award, ListFilter
+  Keyboard, Dices, Medal, BarChart2, Star, Gift, Award, ListFilter,
+  Printer, LayoutTemplate, Megaphone, Type, Globe
 } from "lucide-react"
 import type { Profile } from "@/types"
 import type { ExtendedOrganization } from "@/types/organization"
@@ -351,7 +352,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     },
   ] : []
 
-  // 5. DESIGN & OUTPUT
+  // 5. DESIGN & OUTPUT (Screenshots 1-11)
   const designOutputItems = currentOrgId ? [
     {
       label: "ID card setup",
@@ -366,8 +367,48 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       href: effectiveFestivalId
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/certificates`
         : `/dashboard/organization/${currentOrgId}/festivals?target=certificates`,
-      icon: FileText,
+      icon: Award,
       isActive: pathname.includes("/certificates"),
+    },
+    {
+      label: "Reports & printouts",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/reports`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=reports`,
+      icon: Printer,
+      isActive: pathname.includes("/reports") || pathname.includes("/printouts"),
+    },
+    {
+      label: "Poster templates",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/poster-templates`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=poster-templates`,
+      icon: LayoutTemplate,
+      isActive: pathname.includes("/poster-templates"),
+    },
+    {
+      label: "Poster ads",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/poster-ads`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=poster-ads`,
+      icon: Megaphone,
+      isActive: pathname.includes("/poster-ads"),
+    },
+    {
+      label: "Fonts",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/fonts`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=fonts`,
+      icon: Type,
+      isActive: pathname.includes("/fonts"),
+    },
+    {
+      label: "Website",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/website`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=website`,
+      icon: Globe,
+      isActive: pathname.includes("/website") || pathname.includes("/page-builder"),
     },
   ] : []
 

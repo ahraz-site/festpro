@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Building2, CalendarDays, Users, Settings, Activity, ArrowRight,
   Trophy, Bookmark, LayoutGrid, Radio, Layers, Tv, Calendar,
-  FileEdit, BarChart3, Award, Globe, ExternalLink, Sparkles
+  FileEdit, BarChart3, Award, Globe, ExternalLink, Sparkles,
+  Printer, CreditCard
 } from "lucide-react"
 import type { OrganizationDashboardData } from "@/types/organization"
 import type { Festival } from "@/types/festival"
@@ -72,8 +73,15 @@ export default function OrganizationDashboardPage() {
   const festivalHref = (path: string) =>
     festId ? `/dashboard/organization/${orgId}/festivals/${festId}/${path}` : `/dashboard/organization/${orgId}/festivals`
 
+  interface OrgToolItem {
+    label: string
+    href: string
+    icon: any
+    isExternal?: boolean
+  }
+
   // Complete festival tools grid matching user specifications
-  const allTools = [
+  const allTools: OrgToolItem[] = [
     { label: "People & access", href: `/dashboard/organization/${orgId}/members`, icon: Users },
     { label: "Teams", href: festivalHref("teams"), icon: Users },
     { label: "Participants", href: festivalHref("participants"), icon: Bookmark },
@@ -86,9 +94,11 @@ export default function OrganizationDashboardPage() {
     { label: "Scheduler", href: festivalHref("schedules"), icon: Calendar },
     { label: "Enter Marks", href: festivalHref("enter-marks"), icon: FileEdit },
     { label: "Team scores", href: festivalHref("team-scores"), icon: BarChart3 },
+    { label: "ID card setup", href: festivalHref("id-cards"), icon: CreditCard },
     { label: "Certificates", href: festivalHref("certificates"), icon: Award },
+    { label: "Reports & printouts", href: festivalHref("reports"), icon: Printer },
     { label: "Results", href: festivalHref("results"), icon: Trophy },
-    { label: "Public Website", href: publicWebUrl, isExternal: true, icon: Globe },
+    { label: "Public Website", href: festivalHref("website"), icon: Globe },
     { label: "Settings", href: festivalHref("settings"), icon: Settings },
   ]
 

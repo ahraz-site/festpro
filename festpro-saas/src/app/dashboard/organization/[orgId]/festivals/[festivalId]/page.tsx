@@ -99,8 +99,15 @@ export default function FestivalOperationsDashboard() {
   const publicWebUrl = `/festivals/${festSlug}`
   const subdomainWebUrl = `https://${festSlug}.festpro.ahraz.site`
 
+  interface ToolItem {
+    label: string
+    href: string
+    icon: any
+    isExternal?: boolean
+  }
+
   // 30 Tools matching Festize Reference Screenshots with FestPro styling
-  const tools = [
+  const tools: ToolItem[] = [
     { label: "People & access", href: `/dashboard/organization/${orgId}/members`, icon: Users },
     { label: "Teams", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/teams`, icon: Users },
     { label: "Participants", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/participants`, icon: Bookmark },
@@ -122,14 +129,14 @@ export default function FestivalOperationsDashboard() {
     { label: "Result planner", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/result-planner`, icon: ListOrdered },
     { label: "Published team scores", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/published-team-scores`, icon: BarChart2 },
     { label: "Subject picker", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/subject-picker`, icon: Dice5 },
-    { label: "Poster templates", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/settings`, icon: Palette },
-    { label: "Poster ads", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/settings`, icon: Megaphone },
-    { label: "Fonts", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/settings`, icon: Type },
+    { label: "Poster templates", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/poster-templates`, icon: Palette },
+    { label: "Poster ads", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/poster-ads`, icon: Megaphone },
+    { label: "Fonts", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/fonts`, icon: Type },
     { label: "API keys", href: `/dashboard/organization/${orgId}/settings`, icon: KeyRound },
     { label: "Settings", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/settings`, icon: Settings },
     { label: "Prizes", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/prizes`, icon: Gift },
     { label: "Top candidates", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/top-candidates`, icon: Crown },
-    { label: "Website", href: publicWebUrl, isExternal: true, icon: Globe },
+    { label: "Website", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/website`, icon: Globe },
     { label: "Help", href: "/contact", icon: HelpCircle },
   ]
 

@@ -49,6 +49,11 @@ export default function FestivalsListPage() {
       "grade-points": "/grade-points",
       "id-cards": "/id-cards",
       certificates: "/certificates",
+      reports: "/reports",
+      "poster-templates": "/poster-templates",
+      "poster-ads": "/poster-ads",
+      fonts: "/fonts",
+      website: "/website",
     }
 
     async function load() {
