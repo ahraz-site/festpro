@@ -73,6 +73,111 @@ export async function createParticipant(festivalId: string, formData: Participan
   return { data }
 }
 
+/**
+ * Add a participant directly from FestPro Participant Console matching Festize reference
+ */
+export async function addFestParticipantAction(
+  festivalId: string,
+  params: {
+    name: string
+    name_ml?: string
+    date_of_birth?: string
+    team: string
+    category: string
+  }
+) {
+  const check = await checkOrgAccess(festivalId)
+  if (!check.allowed) return { error: check.error }
+
+  const admin = createAdminClient()
+  const parts = params.name.trim().split(" ")
+  const firstName = parts[0]
+  const lastName = parts.slice(1).join(" ") || ""
+
+  const { count } = await admin
+    .from("participants")
+    .select("id", { count: "exact", head: true })
+    .eq("festival_id", festivalId)
+
+  const prefix = (params.team || "P").slice(0, 2).toUpperCase()
+  const numStr = String((count || 0) + 1).padStart(3, "0")
+  const chestNo = `${prefix}${numStr}`
+
+  const { data: inserted, error } = await admin.from("participants").insert({
+    festival_id: festivalId,
+    organization_id: check.festival.organization_id,
+    first_name: firstName,
+    last_name: lastName,
+    chest_number: chestNo,
+    unit: params.team,
+    division: params.category,
+    date_of_birth: params.date_of_birth || null,
+    notes: params.name_ml || null,
+    status: "confirmed",
+    created_by: check.user.id,
+  }).select().single()
+
+  if (error) return { error: error.message }
+  revalidatePath(`/dashboard/organization/${check.festival.organization_id}/festivals/${festivalId}/participants`)
+  return { success: true, participant: inserted }
+}
+
+/**
+ * Bulk add participants line-by-line matching Festize reference
+ */
+export async function bulkAddParticipantsAction(
+  festivalId: string,
+  teamCode: string,
+  categoryName: string,
+  namesText: string
+) {
+  const check = await checkOrgAccess(festivalId)
+  if (!check.allowed) return { error: check.error }
+
+  const lines = namesText
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+
+  if (lines.length === 0) return { error: "No participant names entered" }
+
+  const admin = createAdminClient()
+
+  const { count } = await admin
+    .from("participants")
+    .select("id", { count: "exact", head: true })
+    .eq("festival_id", festivalId)
+
+  const startNum = (count || 0) + 1
+  const prefix = (teamCode || "P").slice(0, 2).toUpperCase()
+
+  const inserts = lines.map((line, idx) => {
+    const parts = line.split(" ")
+    const firstName = parts[0]
+    const lastName = parts.slice(1).join(" ") || ""
+    const numStr = String(startNum + idx).padStart(3, "0")
+    const chestNo = `${prefix}${numStr}`
+
+    return {
+      festival_id: festivalId,
+      organization_id: check.festival.organization_id,
+      first_name: firstName,
+      last_name: lastName,
+      chest_number: chestNo,
+      unit: teamCode,
+      division: categoryName,
+      status: "confirmed",
+      created_by: check.user.id,
+    }
+  })
+
+  const { data, error } = await admin.from("participants").insert(inserts).select()
+  if (error) return { error: error.message }
+
+  revalidatePath(`/dashboard/organization/${check.festival.organization_id}/festivals/${festivalId}/participants`)
+  return { success: true, count: data.length }
+}
+
 export async function updateParticipant(participantId: string, formData: Partial<ParticipantFormData>) {
   const user = await getAuth()
   if (!user) return { error: "Not authenticated" }

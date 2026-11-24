@@ -146,7 +146,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isDashboardActive = pathname === dashboardHref
 
   const festSlug = currentFestival?.code || currentFestival?.short_name || "fest"
-  const publicWebUrl = `https://${festSlug}.festpro.ahraz.site`
+  const publicWebUrl = `/festivals/${festSlug}`
 
   // 1. OVERVIEW
   // 2. PEOPLE & PROGRAM (Always displayed with active festival route fallback)

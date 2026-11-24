@@ -66,7 +66,8 @@ export default function OrganizationDashboardPage() {
 
   const festId = activeFest?.id
   const festSlug = activeFest?.code || activeFest?.short_name || "fest"
-  const publicWebUrl = `https://${festSlug}.festpro.ahraz.site`
+  const publicWebUrl = `/festivals/${festSlug}`
+  const subdomainWebUrl = `https://${festSlug}.festpro.ahraz.site`
 
   const festivalHref = (path: string) =>
     festId ? `/dashboard/organization/${orgId}/festivals/${festId}/${path}` : `/dashboard/organization/${orgId}/festivals`

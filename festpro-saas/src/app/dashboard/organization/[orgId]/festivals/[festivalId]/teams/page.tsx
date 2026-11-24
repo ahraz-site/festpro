@@ -1,14 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useParams } from "next/navigation"
-import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
-import {
-  Users, Plus, Search, Trophy, Shield, ArrowLeft,
-  CheckCircle2, Trash2, Edit2, Sparkles, Building2, Flame
-} from "lucide-react"
+import { Users, Plus, Search, Trash2, Edit2, Shield, X, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
+import { ExportPrintBar } from "@/components/ui/export-print-bar"
+import { ViewToggle, type ViewMode } from "@/components/ui/view-toggle"
 
 interface Team {
   id: string
@@ -28,21 +28,19 @@ export default function FestivalTeamsPage() {
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [viewMode, setViewMode] = useState<ViewMode>("grid")
 
-  // New Team Form State
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingTeam, setEditingTeam] = useState<Team | null>(null)
   const [teamName, setTeamName] = useState("")
   const [teamCode, setTeamCode] = useState("")
   const [teamColor, setTeamColor] = useState("#4F46E5")
-  const [leaderName, setLeaderName] = useState("")
   const [submitting, setSubmitting] = useState(false)
 
-  useEffect(() => {
-    async function fetchTeams() {
-      setLoading(true)
+  const fetchTeams = useCallback(async () => {
+    try {
       const supabase = createClient()
-
-      // Fetch teams from Database
       const { data, error } = await supabase
         .from("teams")
         .select("*")
@@ -52,271 +50,360 @@ export default function FestivalTeamsPage() {
       if (data && data.length > 0) {
         setTeams(data as unknown as Team[])
       } else {
-        // Fallback default House Teams if none created yet
-        setTeams([
-          { id: "1", name: "Red House (Challengers)", code: "RED", color: "#EF4444", total_points: 154, leader_name: "Rahul V", members_count: 42 },
-          { id: "2", name: "Blue House (Victors)", code: "BLUE", color: "#3B82F6", total_points: 142, leader_name: "Ananya K", members_count: 38 },
-          { id: "3", name: "Green House (Warriors)", code: "GREEN", color: "#10B981", total_points: 128, leader_name: "Muhammed S", members_count: 35 },
-          { id: "4", name: "Yellow House (Titans)", code: "YELLOW", color: "#F59E0B", total_points: 110, leader_name: "Sneha P", members_count: 30 },
-        ])
+        // Default starter teams if none exist
+        const starter = [
+          { id: "1", name: "Team A", code: "TA", color: "#3B82F6", total_points: 0 },
+          { id: "2", name: "Team B", code: "TB", color: "#EF4444", total_points: 0 },
+        ]
+        setTeams(starter as Team[])
       }
+    } catch (e) {
+      console.error(e)
+    } finally {
       setLoading(false)
     }
-
-    fetchTeams()
   }, [festivalId])
 
-  const handleCreateTeam = async (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchTeams()
+  }, [fetchTeams])
+
+  const handleOpenAdd = () => {
+    setEditingTeam(null)
+    setTeamName("")
+    setTeamCode("")
+    setTeamColor("#4F46E5")
+    setIsModalOpen(true)
+  }
+
+  const handleOpenEdit = (t: Team) => {
+    setEditingTeam(t)
+    setTeamName(t.name)
+    setTeamCode(t.code)
+    setTeamColor(t.color || "#4F46E5")
+    setIsModalOpen(true)
+  }
+
+  const handleDeleteTeam = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete "${name}"?`)) return
+    try {
+      const supabase = createClient()
+      await supabase.from("teams").delete().eq("id", id)
+      setTeams((prev) => prev.filter((t) => t.id !== id))
+      toast.success(`Team "${name}" deleted`)
+    } catch {
+      toast.error("Failed to delete team")
+    }
+  }
+
+  const handleSaveTeam = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!teamName) {
-      toast.error("Please enter a team name")
+    if (!teamName.trim()) {
+      toast.error("Team name is required")
       return
     }
 
     setSubmitting(true)
-    const newTeamObj: Team = {
-      id: Date.now().toString(),
-      name: teamName,
-      code: teamCode || teamName.slice(0, 3).toUpperCase(),
-      color: teamColor,
-      total_points: 0,
-      leader_name: leaderName || "Team Manager",
-      members_count: 0,
+    const supabase = createClient()
+    const code = teamCode.trim().toUpperCase() || teamName.trim().slice(0, 3).toUpperCase()
+
+    if (editingTeam) {
+      await supabase
+        .from("teams")
+        .update({ name: teamName, code, color: teamColor })
+        .eq("id", editingTeam.id)
+      toast.success("Team updated successfully")
+    } else {
+      await supabase.from("teams").insert([
+        {
+          festival_id: festivalId,
+          name: teamName,
+          code,
+          color: teamColor,
+        },
+      ])
+      toast.success(`Team "${teamName}" created!`)
     }
 
-    // Try persisting to Supabase
-    try {
-      const supabase = createClient()
-      await supabase.from("teams").insert([{
-        festival_id: festivalId,
-        name: teamName,
-        code: newTeamObj.code,
-        color: teamColor,
-      }])
-    } catch {}
-
-    setTeams((prev) => [...prev, newTeamObj])
-    toast.success(`Team "${teamName}" created successfully! 🎉`)
-    setTeamName("")
-    setTeamCode("")
-    setLeaderName("")
-    setIsModalOpen(false)
     setSubmitting(false)
+    setIsModalOpen(false)
+    fetchTeams()
   }
 
-  const handleDeleteTeam = (id: string, name: string) => {
-    if (confirm(`Are you sure you want to delete ${name}?`)) {
-      setTeams((prev) => prev.filter((t) => t.id !== id))
-      toast.success(`Team ${name} removed.`)
-    }
-  }
+  const filtered = teams.filter((t) => {
+    const s = search.toLowerCase()
+    return t.name.toLowerCase().includes(s) || (t.code && t.code.toLowerCase().includes(s))
+  })
 
-  const filteredTeams = teams.filter(
-    (t) =>
-      t.name.toLowerCase().includes(search.toLowerCase()) ||
-      t.code.toLowerCase().includes(search.toLowerCase())
-  )
+  const exportColumns = [
+    { header: "Team Name", accessor: (t: Team) => t.name },
+    { header: "Code", accessor: (t: Team) => t.code },
+    { header: "Color", accessor: (t: Team) => t.color },
+    { header: "Total Points", accessor: (t: Team) => t.total_points || 0 },
+  ]
+
+  const maxLimit = 2
+  const count = teams.length
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto p-4 sm:p-6 bg-slate-50 min-h-screen">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Link
-              href={`/dashboard/organization/${orgId}/festivals/${festivalId}`}
-              className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-indigo-600"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" /> Back to Dashboard
-            </Link>
+    <div className="space-y-6 max-w-7xl mx-auto pb-16 font-sans">
+      {/* ── HEADER (Screenshot 3) ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-2xl bg-indigo-50 text-indigo-600 shadow-xs">
+            <Users className="h-6 w-6" />
           </div>
-          <h1 className="text-3xl font-extrabold text-slate-900 flex items-center gap-3">
-            <Users className="h-8 w-8 text-indigo-600" />
-            <span>Group / House / Unit Management</span>
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500">
-            Create, manage contingent units (Groups, Houses, Units), assign managers, and track live championship point tallies.
-          </p>
+          <div>
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Teams</h1>
+            <p className="text-xs text-slate-500 font-medium">Create house teams, assign team managers and view score tallies</p>
+          </div>
         </div>
 
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-indigo-500/20 active:scale-95 transition-all cursor-pointer"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Add New Team / House</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Excel / PDF Toolbar */}
+          <ExportPrintBar
+            title="Festival Teams List"
+            subtitle="FestPro Festival Management System"
+            data={filtered}
+            columns={exportColumns}
+            filename="teams"
+          />
+
+          {/* Line vs Grid View Toggle */}
+          <ViewToggle mode={viewMode} onChange={setViewMode} />
+
+          <Button
+            size="sm"
+            onClick={handleOpenAdd}
+            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Add Team
+          </Button>
+        </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative max-w-md">
+      {/* ── LIMIT / CAPACITY ALERT (Screenshot 3) ── */}
+      {count >= maxLimit && (
+        <div className="flex items-center justify-between px-4 py-3 rounded-2xl border border-red-200 bg-red-50/70 text-xs text-red-700">
+          <div className="flex items-center gap-2 font-semibold">
+            <span className="h-4 w-4 rounded-full border-2 border-red-500 flex items-center justify-center text-[10px] font-bold">!</span>
+            <span>{count} of {maxLimit} teams · Free Tier Capacity reached</span>
+          </div>
+          <a
+            href="/pricing"
+            className="font-bold underline hover:text-red-900"
+          >
+            Upgrade Tier
+          </a>
+        </div>
+      )}
+
+      {/* ── TOTAL TEAMS METRIC CARD (Screenshot 3) ── */}
+      <div className="w-full sm:w-64">
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold text-slate-500">Total Teams</p>
+            <p className="text-3xl font-black text-slate-900 mt-1">{count}</p>
+          </div>
+          <div className="p-3 rounded-xl bg-slate-50 text-slate-400">
+            <Users className="h-6 w-6" />
+          </div>
+        </div>
+      </div>
+
+      {/* ── SEARCH BAR (Screenshot 3) ── */}
+      <div className="relative">
         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-        <input
-          type="text"
+        <Input
           placeholder="Search teams by name or code..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
+          className="pl-10 h-10 rounded-xl bg-white border-slate-200 text-xs"
         />
       </div>
 
-      {/* Teams Grid */}
+      {/* ── CONTENT AREA (Grid View vs Line View) ── */}
       {loading ? (
-        <div className="text-center py-12 text-slate-500">Loading teams...</div>
-      ) : filteredTeams.length === 0 ? (
-        <div className="text-center py-16 bg-white border border-slate-200 rounded-2xl p-8 space-y-3">
-          <Users className="h-12 w-12 text-slate-300 mx-auto" />
-          <h3 className="text-lg font-bold text-slate-900">No teams found</h3>
-          <p className="text-xs text-slate-500">Create your first team or house to get started.</p>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold"
-          >
-            <Plus className="h-4 w-4" /> Create Team
-          </button>
+        <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-500">
+          <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+          <p className="text-xs font-bold uppercase tracking-wider">Loading teams...</p>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {filteredTeams.map((team) => (
+      ) : filtered.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center space-y-3">
+          <Users className="h-10 w-10 text-slate-300 mx-auto" />
+          <h3 className="text-sm font-bold text-slate-700">No teams found</h3>
+          <p className="text-xs text-slate-400">Create house teams for your festival competitions.</p>
+          <Button size="sm" onClick={handleOpenAdd} className="rounded-xl text-xs bg-emerald-700 hover:bg-emerald-800 text-white">
+            <Plus className="h-3.5 w-3.5 mr-1" /> Add Team
+          </Button>
+        </div>
+      ) : viewMode === "grid" ? (
+        /* ── GRID VIEW (Exact layout from Screenshot 3) ── */
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((t) => (
             <div
-              key={team.id}
-              className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-2xs hover:shadow-md hover:border-indigo-400 transition-all space-y-4 relative overflow-hidden"
+              key={t.id}
+              className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs hover:border-indigo-300 hover:shadow-md transition-all space-y-4"
             >
-              {/* Color Bar Accent */}
-              <div
-                className="absolute top-0 left-0 right-0 h-2"
-                style={{ backgroundColor: team.color || "#4F46E5" }}
-              />
-
-              <div className="flex justify-between items-start pt-1">
-                <div>
-                  <span
-                    className="inline-block px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold text-white uppercase shadow-2xs"
-                    style={{ backgroundColor: team.color || "#4F46E5" }}
-                  >
-                    {team.code}
-                  </span>
-                  <h3 className="text-lg font-bold text-slate-900 mt-2">{team.name}</h3>
-                </div>
-                <button
-                  onClick={() => handleDeleteTeam(team.id, team.name)}
-                  className="text-slate-400 hover:text-red-600 p-1 rounded-lg hover:bg-red-50 transition-colors"
-                  title="Delete Team"
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-black text-slate-900">{t.name}</h3>
+                <span
+                  className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase text-white shadow-2xs"
+                  style={{ backgroundColor: t.color || "#4F46E5" }}
                 >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                  {t.code || "TM"}
+                </span>
               </div>
 
-              <div className="space-y-2 pt-2 border-t border-slate-100 text-xs">
-                <div className="flex justify-between text-slate-600">
-                  <span>Team Leader:</span>
-                  <strong className="text-slate-900">{team.leader_name || "Assigned"}</strong>
-                </div>
-                <div className="flex justify-between text-slate-600">
-                  <span>Participants:</span>
-                  <strong className="text-indigo-600">{team.members_count || 0} members</strong>
-                </div>
-                <div className="flex justify-between items-center text-slate-600 pt-1">
-                  <span>Total Points:</span>
-                  <span className="text-base font-black text-slate-900 font-mono bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                    {team.total_points} pts
-                  </span>
-                </div>
+              <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                <span>Code:</span>
+                <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                  {t.code || "BJ"}
+                </span>
+              </div>
+
+              <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleOpenEdit(t)}
+                  className="flex-1 px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors text-center"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteTeam(t.id, t.name)}
+                  className="px-4 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-colors"
+                >
+                  Delete
+                </button>
               </div>
             </div>
           ))}
         </div>
+      ) : (
+        /* ── LINE / TABLE VIEW ── */
+        <div className="rounded-2xl border border-slate-200/90 bg-white overflow-hidden shadow-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/75 text-slate-600 font-bold uppercase tracking-wider text-[11px]">
+                  <th className="py-3 px-4">Team Name</th>
+                  <th className="py-3 px-4">Code</th>
+                  <th className="py-3 px-4">Color</th>
+                  <th className="py-3 px-4">Total Points</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium">
+                {filtered.map((t) => (
+                  <tr key={t.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="py-3.5 px-4 font-bold text-slate-900">{t.name}</td>
+                    <td className="py-3.5 px-4 font-bold text-slate-700">{t.code}</td>
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-2">
+                        <span className="h-4 w-4 rounded-full border border-slate-300" style={{ backgroundColor: t.color }} />
+                        <span className="text-[11px] text-slate-500 font-mono">{t.color}</span>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4 font-black text-indigo-700">{t.total_points || 0} pts</td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="inline-flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(t)}
+                          className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 text-[11px] font-semibold transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTeam(t.id, t.name)}
+                          className="px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-semibold transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
 
-      {/* Add Team Modal */}
+      {/* ── ADD / EDIT MODAL ── */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6 border border-slate-200 animate-in fade-in zoom-in duration-150">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-              <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                <Plus className="h-5 w-5 text-indigo-600" /> Add New Team / House
-              </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="w-full max-w-md rounded-2xl bg-white border border-slate-200 shadow-2xl p-6 space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h2 className="text-lg font-black text-slate-900">{editingTeam ? "Edit Team" : "Add Team"}</h2>
               <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 font-bold text-lg"
+                className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
               >
-                ✕
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateTeam} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Team / House Name *
-                </label>
-                <input
-                  type="text"
+            <form onSubmit={handleSaveTeam} className="space-y-4 text-xs font-semibold text-slate-700">
+              <div className="space-y-1.5">
+                <label className="block text-slate-600">Team Name</label>
+                <Input
                   required
-                  placeholder="e.g. Red House, Tagore Team"
+                  placeholder="e.g. BJP or Red Challengers"
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="h-10 rounded-xl border-slate-200 text-xs"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Team Code
-                  </label>
+              <div className="space-y-1.5">
+                <label className="block text-slate-600">Team Code</label>
+                <Input
+                  placeholder="e.g. BJ"
+                  value={teamCode}
+                  onChange={(e) => setTeamCode(e.target.value.toUpperCase())}
+                  className="h-10 rounded-xl border-slate-200 text-xs font-mono"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-slate-600">Team Color</label>
+                <div className="flex items-center gap-3">
                   <input
-                    type="text"
-                    placeholder="e.g. RED, TAG"
-                    value={teamCode}
-                    onChange={(e) => setTeamCode(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    type="color"
+                    value={teamColor}
+                    onChange={(e) => setTeamColor(e.target.value)}
+                    className="h-10 w-12 rounded-xl cursor-pointer border border-slate-200 p-1"
+                  />
+                  <Input
+                    value={teamColor}
+                    onChange={(e) => setTeamColor(e.target.value)}
+                    className="h-10 rounded-xl border-slate-200 text-xs font-mono"
                   />
                 </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    House Color
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={teamColor}
-                      onChange={(e) => setTeamColor(e.target.value)}
-                      className="h-10 w-12 rounded-lg border border-slate-200 cursor-pointer p-1 bg-white"
-                    />
-                    <span className="text-xs font-mono text-slate-600">{teamColor}</span>
-                  </div>
-                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Team Leader / Manager Name
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Rahul V"
-                  value={leaderName}
-                  onChange={(e) => setLeaderName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div className="pt-4 flex justify-end gap-3 border-t border-slate-100">
-                <button
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+                  className="rounded-xl text-xs font-semibold"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-500/20 active:scale-95 transition-all"
+                  className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white"
                 >
-                  {submitting ? "Creating..." : "Save Team"}
-                </button>
+                  {submitting ? "Saving..." : editingTeam ? "Update Team" : "Add Team"}
+                </Button>
               </div>
             </form>
           </div>

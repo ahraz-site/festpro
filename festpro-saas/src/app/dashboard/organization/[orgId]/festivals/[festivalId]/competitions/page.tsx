@@ -1,162 +1,534 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useEffect, useState, useCallback } from "react"
+import { useParams } from "next/navigation"
 import Link from "next/link"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import {
+  Trophy, Plus, Search, Filter, Trash2, Edit2, Loader2,
+  Check, X, Users, Layers, ExternalLink, Calendar
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Select } from "@/components/ui/select"
-import { getCompetitions, getCompetitionStats } from "@/lib/actions/competition"
+import { Input } from "@/components/ui/input"
+import { toast } from "sonner"
+import { getCompetitions, createCompetition, updateCompetition, deleteCompetition } from "@/lib/actions/competition"
 import { getCategories } from "@/lib/actions/competition/categories"
-import { COMPETITION_STATUSES } from "@/config/competition"
+import { ExportPrintBar } from "@/components/ui/export-print-bar"
+import { ViewToggle, type ViewMode } from "@/components/ui/view-toggle"
 import type { Competition, CompetitionCategory } from "@/types/competition"
-import { Trophy, Plus, Search, Filter, Users, Layers, Loader2 } from "lucide-react"
 
-export default function CompetitionsListPage() {
+export default function CompetitionsManagementPage() {
   const params = useParams()
-  const router = useRouter()
   const orgId = params.orgId as string
   const festivalId = params.festivalId as string
+
   const [competitions, setCompetitions] = useState<Competition[]>([])
   const [categories, setCategories] = useState<CompetitionCategory[]>([])
-  const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState("")
-  const [categoryFilter, setCategoryFilter] = useState("")
-  const [statusFilter, setStatusFilter] = useState("")
+  const [viewMode, setViewMode] = useState<ViewMode>("grid")
 
-  useEffect(() => {
-    async function load() {
-      const [comps, cats, st] = await Promise.all([
+  // Filters (Screenshot 9 & 10)
+  const [search, setSearch] = useState("")
+  const [typeFilter, setTypeFilter] = useState("all") // all, individual, group
+  const [stageFilter, setStageFilter] = useState("all") // all, stage, no_stage
+  const [categoryFilter, setCategoryFilter] = useState("all")
+
+  // Modals
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [editingComp, setEditingComp] = useState<Competition | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  // Form Fields
+  const [name, setName] = useState("")
+  const [categoryId, setCategoryId] = useState("")
+  const [compType, setCompType] = useState<"individual" | "group">("individual")
+  const [stageRequired, setStageRequired] = useState(true)
+  const [duration, setDuration] = useState("30")
+
+  const loadData = useCallback(async () => {
+    try {
+      const [comps, cats] = await Promise.all([
         getCompetitions(festivalId),
         getCategories(festivalId),
-        getCompetitionStats(festivalId),
       ])
-      setCompetitions(comps as Competition[])
+      if (comps && comps.length > 0) {
+        setCompetitions(comps as Competition[])
+      } else {
+        // Starter fallback program
+        setCompetitions([
+          {
+            id: "1",
+            festival_id: festivalId,
+            name: "Madh Song",
+            code: "PRG-01",
+            competition_type: "individual",
+            stage_required: true,
+            status: "published",
+            duration_minutes: 15,
+            category: { id: "c1", name: "Senior" } as any,
+          } as any,
+        ])
+      }
       setCategories(cats as CompetitionCategory[])
-      setStats(st)
+      if (cats && cats[0]) {
+        setCategoryId(cats[0].id)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
       setLoading(false)
     }
-    load()
   }, [festivalId])
 
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  const handleOpenAdd = () => {
+    setEditingComp(null)
+    setName("")
+    setCompType("individual")
+    setStageRequired(true)
+    setDuration("30")
+    if (categories[0]) setCategoryId(categories[0].id)
+    setShowAddModal(true)
+  }
+
+  const handleOpenEdit = (comp: Competition) => {
+    setEditingComp(comp)
+    setName(comp.name)
+    setCategoryId(comp.category_id || (categories[0]?.id || ""))
+    setCompType(((comp.competition_type as string) === "group" || comp.competition_type === "team") ? "group" : "individual")
+    setStageRequired(comp.stage_required ?? true)
+    setDuration(String(comp.duration_minutes || 30))
+    setShowAddModal(true)
+  }
+
+  const handleDelete = async (id: string, compName: string) => {
+    if (!confirm(`Are you sure you want to delete program "${compName}"?`)) return
+    const res = await deleteCompetition(id)
+    if (res.error) {
+      toast.error(res.error)
+    } else {
+      toast.success("Program removed")
+      setCompetitions((prev) => prev.filter((c) => c.id !== id))
+    }
+  }
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!name.trim()) {
+      toast.error("Program name is required")
+      return
+    }
+
+    setSubmitting(true)
+    const code = name.slice(0, 4).toUpperCase().replace(/[^A-Z]/g, "") + "-" + Math.floor(Math.random() * 90 + 10)
+    const payload = {
+      name,
+      category_id: categoryId || categories[0]?.id,
+      competition_type: compType,
+      is_team_event: compType === "group",
+      stage_required: stageRequired,
+      duration_minutes: duration,
+      code,
+      status: "published",
+    }
+
+    const res = editingComp
+      ? await updateCompetition(editingComp.id, payload as any)
+      : await createCompetition(festivalId, payload as any)
+
+    setSubmitting(false)
+    if (res.error) {
+      toast.error(res.error)
+    } else {
+      toast.success(editingComp ? "Program updated" : "Program added successfully!")
+      setShowAddModal(false)
+      loadData()
+    }
+  }
+
   const filtered = competitions.filter((c) => {
-    if (search && !c.name.toLowerCase().includes(search.toLowerCase()) && !(c.code?.toLowerCase().includes(search.toLowerCase()))) return false
-    if (categoryFilter && c.category_id !== categoryFilter) return false
-    if (statusFilter && c.status !== statusFilter) return false
+    const s = search.toLowerCase()
+    const matchesSearch = c.name.toLowerCase().includes(s) || (c.code && c.code.toLowerCase().includes(s))
+    if (!matchesSearch) return false
+
+    // Type filter (Screenshot 10)
+    const isCompGroup = (c.competition_type as string) === "group" || c.competition_type === "team"
+    if (typeFilter === "group" && !isCompGroup) return false
+    if (typeFilter === "individual" && isCompGroup) return false
+
+    // Stage filter
+    if (stageFilter === "stage" && c.stage_required === false) return false
+    if (stageFilter === "no_stage" && c.stage_required !== false) return false
+
+    // Category filter
+    if (categoryFilter !== "all") {
+      const catName = categories.find((cat) => cat.id === c.category_id)?.name || (c as any).category?.name || ""
+      if (catName.toLowerCase() !== categoryFilter.toLowerCase()) return false
+    }
+
     return true
   })
 
-  if (loading) return <div className="text-center py-12 text-gray-500"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></div>
+  const exportColumns = [
+    { header: "Program Name", accessor: (c: Competition) => c.name },
+    {
+      header: "Category",
+      accessor: (c: Competition) =>
+        categories.find((cat) => cat.id === c.category_id)?.name || (c as any).category?.name || "Senior",
+    },
+    {
+      header: "Type",
+      accessor: (c: Competition) =>
+        ((c.competition_type as string) === "group" || c.competition_type === "team") ? "Group" : "Individual",
+    },
+    { header: "Stage", accessor: (c: Competition) => (c.stage_required !== false ? "Stage" : "No Stage") },
+    { header: "Duration", accessor: (c: Competition) => `${c.duration_minutes || 30} mins` },
+    { header: "Code", accessor: (c: Competition) => c.code || "-" },
+  ]
+
+  const maxLimit = 5
+  const count = competitions.length
+  const remaining = Math.max(0, maxLimit - count)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto pb-16 font-sans">
+      {/* ── HEADER (Screenshot 9) ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Competitions</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage competition categories and entries.</p>
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-2xl bg-indigo-50 text-indigo-600 shadow-xs">
+            <Trophy className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Programs</h1>
+            <p className="text-xs text-slate-500 font-medium">Create and schedule individual & group competition events</p>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Link href={`/dashboard/organization/${orgId}/festivals/${festivalId}/competitions/categories`}>
-            <Button variant="outline">
-              <Layers className="h-4 w-4 mr-2" />
-              Categories
-            </Button>
-          </Link>
-          <Link href={`/dashboard/organization/${orgId}/festivals/${festivalId}/competitions/create`}>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              New Competition
-            </Button>
-          </Link>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Excel / PDF Toolbar */}
+          <ExportPrintBar
+            title="Festival Competition Programs"
+            subtitle="FestPro Festival Management System"
+            data={filtered}
+            columns={exportColumns}
+            filename="programs"
+          />
+
+          {/* Line vs Grid View Toggle */}
+          <ViewToggle mode={viewMode} onChange={setViewMode} />
+
+          <Button
+            size="sm"
+            onClick={handleOpenAdd}
+            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Add program
+          </Button>
         </div>
       </div>
 
-      {/* Stats */}
-      {stats && (
-        <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <Trophy className="h-5 w-5 text-indigo-600 mx-auto mb-1" />
-              <p className="text-xl font-bold text-gray-900">{stats.total}</p>
-              <p className="text-xs text-gray-500">Total</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <Layers className="h-5 w-5 text-purple-600 mx-auto mb-1" />
-              <p className="text-xl font-bold text-gray-900">{stats.categories}</p>
-              <p className="text-xs text-gray-500">Categories</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <Users className="h-5 w-5 text-green-600 mx-auto mb-1" />
-              <p className="text-xl font-bold text-gray-900">{stats.byStatus?.registration_open || 0}</p>
-              <p className="text-xs text-gray-500">Open Registration</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <Loader2 className="h-5 w-5 text-amber-600 mx-auto mb-1" />
-              <p className="text-xl font-bold text-gray-900">{stats.byStatus?.running || 0}</p>
-              <p className="text-xs text-gray-500">Running</p>
-            </CardContent>
-          </Card>
+      {/* ── CAPACITY INDICATOR (Screenshot 9) ── */}
+      <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200/90 bg-white text-xs font-semibold text-slate-700 shadow-xs">
+        <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+        <span>
+          <strong className="text-slate-900">{count} of {maxLimit} programs</strong> · {remaining} remaining
+        </span>
+      </div>
+
+      {/* ── SEARCH & 3-FILTER BAR (Screenshot 9 & 10) ── */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            placeholder="Search by name or description..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10 h-10 rounded-xl bg-white border-slate-200 text-xs"
+          />
+        </div>
+
+        {/* Filter 1: Type (All Types, Group, Individual) */}
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          className="h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 focus:outline-hidden focus:border-indigo-500"
+        >
+          <option value="all">Type: All Types</option>
+          <option value="individual">Individual</option>
+          <option value="group">Group</option>
+        </select>
+
+        {/* Filter 2: Stage (All Stages, Stage, No stage) */}
+        <select
+          value={stageFilter}
+          onChange={(e) => setStageFilter(e.target.value)}
+          className="h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 focus:outline-hidden focus:border-indigo-500"
+        >
+          <option value="all">Stage: All Stages</option>
+          <option value="stage">Stage</option>
+          <option value="no_stage">No stage</option>
+        </select>
+
+        {/* Filter 3: Category */}
+        <select
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          className="h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 focus:outline-hidden focus:border-indigo-500"
+        >
+          <option value="all">Category: All Categories</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.name}>{c.name}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* ── CONTENT AREA (Grid View vs Line View) ── */}
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-500">
+          <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+          <p className="text-xs font-bold uppercase tracking-wider">Loading programs...</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center space-y-3">
+          <Trophy className="h-10 w-10 text-slate-300 mx-auto" />
+          <h3 className="text-sm font-bold text-slate-700">No programs found</h3>
+          <p className="text-xs text-slate-400">Add competition programs like Solo Song, Group Dance, or Elocution.</p>
+          <Button size="sm" onClick={handleOpenAdd} className="rounded-xl text-xs bg-emerald-700 hover:bg-emerald-800 text-white">
+            <Plus className="h-3.5 w-3.5 mr-1" /> Add Program
+          </Button>
+        </div>
+      ) : viewMode === "grid" ? (
+        /* ── GRID VIEW (Exact layout from Screenshot 9) ── */
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((comp) => {
+            const catName =
+              categories.find((cat) => cat.id === comp.category_id)?.name ||
+              (comp as any).category?.name ||
+              "Senior"
+            const isGroup = (comp.competition_type as string) === "group" || comp.competition_type === "team"
+            const onStage = comp.stage_required !== false
+
+            return (
+              <div
+                key={comp.id}
+                className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs hover:border-indigo-300 hover:shadow-md transition-all flex flex-col justify-between space-y-4"
+              >
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 leading-tight">{comp.name}</h3>
+                  <p className="text-xs text-slate-500 font-medium mt-1">{catName}</p>
+
+                  <div className="flex items-center gap-2 mt-3">
+                    <span className="px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-semibold border border-slate-200">
+                      {isGroup ? "Group" : "Individual"}
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-semibold border border-slate-200">
+                      {onStage ? "Stage" : "No stage"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-1.5">
+                  <Link
+                    href={`/dashboard/organization/${orgId}/festivals/${festivalId}/competitions/${comp.id}`}
+                    className="px-2.5 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-[11px] font-semibold transition-colors"
+                  >
+                    View details
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEdit(comp)}
+                    className="px-2.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-semibold transition-colors"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(comp.id, comp.name)}
+                    className="px-2.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-[11px] font-semibold transition-colors"
+                  >
+                    Delete
+                  </button>
+                  <Link
+                    href={`/dashboard/organization/${orgId}/festivals/${festivalId}/competitions/${comp.id}/participants`}
+                    className="px-2.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-semibold transition-colors"
+                  >
+                    Assign participants
+                  </Link>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      ) : (
+        /* ── LINE / TABLE VIEW ── */
+        <div className="rounded-2xl border border-slate-200/90 bg-white overflow-hidden shadow-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/75 text-slate-600 font-bold uppercase tracking-wider text-[11px]">
+                  <th className="py-3 px-4">Program Name</th>
+                  <th className="py-3 px-4">Category</th>
+                  <th className="py-3 px-4">Type</th>
+                  <th className="py-3 px-4">Stage</th>
+                  <th className="py-3 px-4">Duration</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium">
+                {filtered.map((comp) => {
+                  const catName =
+                    categories.find((cat) => cat.id === comp.category_id)?.name ||
+                    (comp as any).category?.name ||
+                    "Senior"
+                  const isGroup = (comp.competition_type as string) === "group" || comp.competition_type === "team"
+                  const onStage = comp.stage_required !== false
+
+                  return (
+                    <tr key={comp.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3.5 px-4 font-bold text-slate-900">{comp.name}</td>
+                      <td className="py-3.5 px-4 text-slate-600">{catName}</td>
+                      <td className="py-3.5 px-4">
+                        <span className="inline-block px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px] font-semibold border border-slate-200">
+                          {isGroup ? "Group" : "Individual"}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="inline-block px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px] font-semibold border border-slate-200">
+                          {onStage ? "Stage" : "No stage"}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-500">{comp.duration_minutes || 30} mins</td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="inline-flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEdit(comp)}
+                            className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 text-[11px] font-semibold transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(comp.id, comp.name)}
+                            className="px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-semibold transition-colors"
+                          >
+                            Delete
+                          </button>
+                          <Link
+                            href={`/dashboard/organization/${orgId}/festivals/${festivalId}/competitions/${comp.id}/participants`}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-semibold transition-colors"
+                          >
+                            Assign
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input placeholder="Search by name or code..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-        </div>
-        <Select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} options={[{ value: "", label: "All Categories" }, ...categories.map((c) => ({ value: c.id, label: c.name }))]} className="w-full sm:w-44" />
-        <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} options={[{ value: "", label: "All Status" }, ...COMPETITION_STATUSES.map((s) => ({ value: s.value, label: s.label }))]} className="w-full sm:w-40" />
-      </div>
+      {/* ── ADD / EDIT PROGRAM MODAL ── */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="w-full max-w-md rounded-2xl bg-white border border-slate-200 shadow-2xl p-6 space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h2 className="text-lg font-black text-slate-900">{editingComp ? "Edit Program" : "Add Program"}</h2>
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
-      {/* Competition List */}
-      {filtered.length === 0 ? (
-        <Card>
-          <CardContent className="py-16 text-center">
-            <Trophy className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">No competitions yet</h3>
-            <p className="text-sm text-gray-500 mb-6">Create your first competition.</p>
-            <Link href={`/dashboard/organization/${orgId}/festivals/${festivalId}/competitions/create`}>
-              <Button><Plus className="h-4 w-4 mr-2" />Create Competition</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((comp) => {
-            const statusInfo = COMPETITION_STATUSES.find((s) => s.value === comp.status)
-            const cat = categories.find((c) => c.id === comp.category_id)
-            return (
-              <Card key={comp.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => router.push(`/dashboard/organization/${orgId}/festivals/${festivalId}/competitions/${comp.id}`)}>
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl text-white text-sm font-bold" style={{ backgroundColor: cat?.color || "#4F46E5" }}>
-                      {comp.name[0]}
-                    </div>
-                    {statusInfo && <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusInfo.color}`}>{statusInfo.label}</span>}
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-1">{comp.name}</h3>
-                  <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
-                    {cat && <span style={{ color: cat.color }}>{cat.name}</span>}
-                    {comp.code && <span>#{comp.code}</span>}
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-gray-500">
-                    <span className="capitalize">{comp.competition_type}</span>
-                    <span>{comp.duration_minutes}min</span>
-                    <span>{comp.judge_count} judge{(comp.judge_count || 0) > 1 ? "s" : ""}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
+            <form onSubmit={handleSave} className="space-y-4 text-xs font-semibold text-slate-700">
+              <div className="space-y-1.5">
+                <label className="block text-slate-600">Program Name</label>
+                <Input
+                  required
+                  placeholder="e.g. Madh Song, Mime, Group Dance"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="h-10 rounded-xl border-slate-200 text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-slate-600">Category</label>
+                <select
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
+                  className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700"
+                >
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="block text-slate-600">Type</label>
+                  <select
+                    value={compType}
+                    onChange={(e) => setCompType(e.target.value as any)}
+                    className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700"
+                  >
+                    <option value="individual">Individual</option>
+                    <option value="group">Group</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-slate-600">Stage</label>
+                  <select
+                    value={stageRequired ? "true" : "false"}
+                    onChange={(e) => setStageRequired(e.target.value === "true")}
+                    className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700"
+                  >
+                    <option value="true">Stage</option>
+                    <option value="false">No stage</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-slate-600">Duration (Minutes)</label>
+                <Input
+                  type="number"
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                  className="h-10 rounded-xl border-slate-200 text-xs"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowAddModal(false)}
+                  className="rounded-xl text-xs font-semibold"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={submitting}
+                  className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white"
+                >
+                  {submitting ? "Saving..." : editingComp ? "Save Changes" : "Add Program"}
+                </Button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

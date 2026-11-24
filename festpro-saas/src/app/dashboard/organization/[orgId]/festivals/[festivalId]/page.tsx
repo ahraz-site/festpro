@@ -96,7 +96,8 @@ export default function FestivalOperationsDashboard() {
   const resultsPublished = stats?.total_results_published || 1
 
   const festSlug = festival.code || festival.short_name || "fest"
-  const publicWebUrl = `https://${festSlug}.festpro.ahraz.site`
+  const publicWebUrl = `/festivals/${festSlug}`
+  const subdomainWebUrl = `https://${festSlug}.festpro.ahraz.site`
 
   // 30 Tools matching Festize Reference Screenshots with FestPro styling
   const tools = [
@@ -152,10 +153,21 @@ export default function FestivalOperationsDashboard() {
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200/80 text-indigo-700 text-xs font-bold hover:bg-indigo-100 transition-colors"
+            title="Open Live Public Portal"
           >
             <Globe className="h-3.5 w-3.5" />
-            <span>{festSlug}.festpro.ahraz.site</span>
+            <span>Open Public Site</span>
             <ExternalLink className="h-3 w-3 opacity-70" />
+          </a>
+          <a
+            href={subdomainWebUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors"
+            title="Custom Subdomain (requires wildcard DNS CNAME *.festpro)"
+          >
+            <span>{festSlug}.festpro.ahraz.site</span>
+            <ExternalLink className="h-3 w-3 opacity-50" />
           </a>
         </div>
       </div>
