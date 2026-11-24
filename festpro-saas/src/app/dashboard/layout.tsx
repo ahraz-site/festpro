@@ -792,7 +792,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Footer info */}
         <div className="p-4 border-t border-slate-100 text-[11px] text-slate-400 flex items-center justify-between">
-          <span>© 2026 FestPro</span>
+          <span>© 2026 FesPro</span>
           {currentFestival && (
             <span className="font-mono text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
               {festSlug}

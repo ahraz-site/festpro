@@ -10,7 +10,7 @@ export default function GlobalLoading() {
         </div>
       </div>
       <p className="mt-4 text-xs font-bold text-slate-600 tracking-wider uppercase animate-pulse">
-        Loading FestPro...
+        Loading FesPro...
       </p>
     </div>
   )

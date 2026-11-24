@@ -10,7 +10,7 @@ const spaceGrotesk = Space_Grotesk({ variable: "--font-space-grotesk", subsets: 
 const anekMalayalam = Anek_Malayalam({ variable: "--font-anek-malayalam", subsets: ["malayalam", "latin"] })
 
 export const metadata: Metadata = {
-  title: "FestPro - Enterprise Festival Management Software",
+  title: "FesPro - Enterprise Festival Management Software",
   description: "The complete enterprise solution for managing festivals, competitions, and youth events. Streamline operations with real-time scoring, live displays, and advanced CRM.",
   keywords: "enterprise festival software, school festival management, live scoring software, youth festival platform, B2B festival SaaS",
   icons: {
@@ -33,7 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="FestPro" />
+        <meta name="apple-mobile-web-app-title" content="FesPro" />
         <link rel="apple-touch-icon" href="/favicon.svg" />
       </head>
       <body className="min-h-full flex flex-col">

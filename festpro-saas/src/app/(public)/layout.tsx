@@ -81,7 +81,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm">
-            <p>&copy; {new Date().getFullYear()} FestPro. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} FesPro. All rights reserved.</p>
             <div className="flex gap-4">
               <Link href="/activate" className="text-indigo-400 hover:text-indigo-300 font-medium">Activate License Key</Link>
             </div>
