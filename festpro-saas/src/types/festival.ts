@@ -293,6 +293,7 @@ export interface FestivalDashboardData {
     id: string
     name: string
     code?: string
+    color?: string
     points: number
     rank?: number
     gold?: number
@@ -311,6 +312,7 @@ export interface FestivalDashboardData {
   activeStages?: Array<{
     id: string
     name: string
+    code?: string
     venueName?: string
     currentProgram?: string
     status?: string

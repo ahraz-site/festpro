@@ -1007,7 +1007,7 @@ export async function getFestivalDashboardData(festivalId: string): Promise<Fest
     admin.from("participants").select("id", { count: "exact", head: true }).eq("festival_id", festivalId),
     admin.from("competitions").select("id", { count: "exact", head: true }).eq("festival_id", festivalId),
     admin.from("festival_stages").select("id", { count: "exact", head: true }).eq("festival_id", festivalId),
-    admin.from("teams").select("id, name, code").eq("festival_id", festivalId).order("created_at"),
+    admin.from("teams").select("id, name, code, color").eq("festival_id", festivalId).order("created_at"),
     admin.from("team_points").select("*").eq("festival_id", festivalId).order("rank", { ascending: true, nullsFirst: false }),
     admin.from("stage_schedules").select("id, scheduled_date, start_time, end_time, status, competition:competitions(id, name, code), stage:festival_stages(id, name)").eq("festival_id", festivalId).order("scheduled_date", { ascending: true }).limit(5),
   ])
@@ -1030,6 +1030,7 @@ export async function getFestivalDashboardData(festivalId: string): Promise<Fest
       id: team.id,
       name: team.name,
       code: team.code,
+      color: team.color || (idx === 0 ? "#FACC15" : idx === 1 ? "#92400E" : idx === 2 ? "#3B82F6" : idx === 3 ? "#EC4899" : "#8B5CF6"),
       points: tp?.total_points || 0,
       rank: tp?.rank || idx + 1,
       gold: tp?.medals_gold || 0,
@@ -1048,11 +1049,13 @@ export async function getFestivalDashboardData(festivalId: string): Promise<Fest
     status: sch.status || "scheduled",
   }))
 
-  const activeStages = (stages || []).map((st: any) => ({
+  const activeStages = (stages || []).map((st: any, idx: number) => ({
     id: st.id,
-    name: st.name,
+    name: st.name || `Stage ${idx + 1}`,
+    code: st.code || `STG-${String(idx + 1).padStart(2, "0")}`,
     venueName: st.venue_name || "",
-    status: st.is_active ? "Active" : "Idle",
+    status: st.is_active ? "Active" : "Closed",
+    currentProgram: "Intermission / Sound Check",
   }))
 
   return {
