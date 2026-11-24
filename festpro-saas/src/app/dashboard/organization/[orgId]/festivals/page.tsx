@@ -54,6 +54,9 @@ export default function FestivalsListPage() {
       "poster-ads": "/poster-ads",
       fonts: "/fonts",
       website: "/website",
+      "api-keys": "/api-keys",
+      settings: "/settings",
+      help: "/help",
     }
 
     async function load() {

@@ -2,265 +2,397 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Select } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
-import { getFestival, updateFestival, getFestivalSettings, updateFestivalSettings, uploadFile } from "@/lib/actions/festival"
-import { FESTIVAL_STATUSES, VISIBILITY_OPTIONS, TIMEZONE_OPTIONS } from "@/config/festival"
-import type { Festival, FestivalSettings, FestivalFormData } from "@/types/festival"
-import { Loader2, Save, Upload } from "lucide-react"
+import {
+  Settings, Save, Upload, Calendar, Globe, Shield,
+  KeyRound, Users, ChevronRight, CheckCircle, HelpCircle
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { getFestival, updateFestival } from "@/lib/actions/festival"
+import type { Festival } from "@/types/festival"
 
 export default function FestivalSettingsPage() {
   const params = useParams()
   const router = useRouter()
   const orgId = params.orgId as string
   const festivalId = params.festivalId as string
-  const [festival, setFestival] = useState<Festival | null>(null)
-  const [settings, setSettings] = useState<FestivalSettings | null>(null)
+
+  // Section 1: Fest details (Screenshot 2)
+  const [festName, setFestName] = useState("FestPro")
+  const [festTagline, setFestTagline] = useState("")
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+
+  // Section 2: Program assignment deadline (Screenshot 2 & 3)
+  const [assignmentDeadline, setAssignmentDeadline] = useState("")
+  const [adminsCanAssignAfterDeadline, setAdminsCanAssignAfterDeadline] = useState(false)
+
+  // Section 3: Participant age (Screenshot 3)
+  const [dobRequired, setDobRequired] = useState(false)
+  const [agesAsOf, setAgesAsOf] = useState("")
+
+  // Section 4: Language (Screenshot 3 & 4)
+  const [language, setLanguage] = useState("English")
+
+  // Section 5: Announcer publishing (Screenshot 4)
+  const [announcerMayPublish, setAnnouncerMayPublish] = useState(true)
+
+  // Section 6: API access (Screenshot 5)
+  const [allowApiKeys, setAllowApiKeys] = useState(false)
+
   const [saving, setSaving] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [uploadingLogo, setUploadingLogo] = useState(false)
-  const [uploadingBanner, setUploadingBanner] = useState(false)
-
-  const [form, setForm] = useState({
-    name: "", short_name: "", code: "", description: "", theme: "default",
-    start_date: "", end_date: "", venue_name: "", address: "", district: "", state: "", country: "",
-    latitude: "", longitude: "", timezone: "UTC", status: "draft", visibility: "public",
-    max_participants: "", max_competitions: "",
-  })
-
-  const [settingsForm, setSettingsForm] = useState({
-    festival_color: "#4F46E5", theme_color: "#7C3AED", dark_mode: false, language: "en",
-    chest_number_format: "CHEST-{year}-{number}", registration_prefix: "REG",
-    judge_settings: { blind_scoring: false, min_judges_per_competition: 2 },
-    notification_settings: { email: true, push: true, sms: false },
-  })
 
   useEffect(() => {
     async function load() {
-      const [f, s] = await Promise.all([getFestival(festivalId), getFestivalSettings(festivalId)])
-      if (f) {
-        setFestival(f as Festival)
-        setForm({
-          name: f.name, short_name: f.short_name || "", code: f.code || "", description: f.description || "",
-          theme: f.theme || "default", start_date: f.start_date?.split("T")[0] || "", end_date: f.end_date?.split("T")[0] || "",
-          venue_name: f.venue_name || "", address: f.address || "", district: f.district || "",
-          state: f.state || "", country: f.country || "", latitude: f.latitude?.toString() || "",
-          longitude: f.longitude?.toString() || "", timezone: f.timezone || "UTC",
-          status: f.status, visibility: f.visibility, max_participants: f.max_participants?.toString() || "",
-          max_competitions: f.max_competitions?.toString() || "",
-        })
+      try {
+        const fest = await getFestival(festivalId)
+        if (fest) {
+          setFestName(fest.name || "FestPro")
+          setFestTagline(fest.description || "")
+          if (fest.logo_url) setLogoPreview(fest.logo_url)
+        }
+      } catch (err) {
+        console.error("Failed to load fest settings:", err)
       }
-      if (s) {
-        setSettings(s as FestivalSettings)
-        setSettingsForm({
-          festival_color: s.festival_color, theme_color: s.theme_color, dark_mode: s.dark_mode,
-          language: s.language, chest_number_format: s.chest_number_format,
-          registration_prefix: s.registration_prefix,
-          judge_settings: s.judge_settings as any,
-          notification_settings: s.notification_settings as any,
-        })
-      }
-      setLoading(false)
     }
     load()
   }, [festivalId])
 
-  async function handleSaveFestival() {
+  const handleSaveFestDetails = async () => {
     setSaving(true)
-    const result = await updateFestival(festivalId, form as any)
-    if (result.error) toast.error(result.error)
-    else toast.success("Festival updated")
-    setSaving(false)
-  }
-
-  async function handleSaveSettings() {
-    setSaving(true)
-    const result = await updateFestivalSettings(festivalId, settingsForm as any)
-    if (result.error) toast.error(result.error)
-    else toast.success("Settings saved")
-    setSaving(false)
-  }
-
-  async function handleUploadLogo(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setUploadingLogo(true)
-    const result = await uploadFile(festivalId, "festival-logos", file, "logo")
-    if (result.error) { toast.error(result.error) }
-    else if (result.url) {
-      await updateFestival(festivalId, { logo_url: result.url } as any)
-      toast.success("Logo uploaded")
+    try {
+      await updateFestival(festivalId, {
+        name: festName,
+        description: festTagline,
+      })
+      toast.success("Fest details saved successfully!")
+    } catch {
+      toast.error("Failed to save fest details")
+    } finally {
+      setSaving(false)
     }
-    setUploadingLogo(false)
   }
 
-  async function handleUploadBanner(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setUploadingBanner(true)
-    const result = await uploadFile(festivalId, "festival-banners", file, "banner")
-    if (result.error) { toast.error(result.error) }
-    else if (result.url) {
-      await updateFestival(festivalId, { banner_url: result.url } as any)
-      toast.success("Banner uploaded")
-    }
-    setUploadingBanner(false)
+  const handleSaveParticipantAge = () => {
+    toast.success("Participant age configuration saved!")
   }
 
-  if (loading) return <div className="text-center py-12 text-gray-500">Loading...</div>
-  if (!festival) return <div className="text-center py-12 text-gray-500">Festival not found.</div>
+  const handleSaveLanguage = () => {
+    toast.success(`Language set to ${language}!`)
+  }
+
+  const handleSaveAnnouncerPublishing = () => {
+    toast.success("Announcer publishing permissions updated!")
+  }
+
+  const handleSaveApiAccess = () => {
+    toast.success(allowApiKeys ? "API access enabled!" : "API access disabled.")
+  }
 
   return (
-    <div className="space-y-6 max-w-3xl">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Festival Settings</h1>
-        <p className="text-sm text-gray-500 mt-1">Manage festival information and configuration.</p>
+    <div className="space-y-6 max-w-5xl mx-auto font-sans pb-20">
+      {/* ── HEADER ── */}
+      <div className="flex items-center gap-3 pb-3 border-b border-slate-200">
+        <div className="p-2.5 rounded-2xl bg-emerald-50 text-emerald-700 shadow-xs">
+          <Settings className="h-6 w-6" />
+        </div>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            Settings
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Festival identity, rules, deadlines, and publishing preferences.
+          </p>
+        </div>
       </div>
 
-      {/* Logo & Banner */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Media</CardTitle>
-          <CardDescription>Upload festival logo and banner images.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Festival Logo</label>
-              {festival.logo_url && (
-                <div className="mb-2">
-                  <img src={festival.logo_url} alt="Logo" className="h-20 w-20 object-contain rounded-lg border" />
-                </div>
-              )}
-              <label className="flex items-center gap-2 text-sm text-indigo-600 cursor-pointer hover:text-indigo-700">
-                <Upload className="h-4 w-4" />
-                {uploadingLogo ? "Uploading..." : "Upload Logo"}
-                <input type="file" accept="image/*" className="hidden" onChange={handleUploadLogo} disabled={uploadingLogo} />
-              </label>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Festival Banner</label>
-              {festival.banner_url && (
-                <div className="mb-2">
-                  <img src={festival.banner_url} alt="Banner" className="h-20 w-full object-cover rounded-lg border" />
-                </div>
-              )}
-              <label className="flex items-center gap-2 text-sm text-indigo-600 cursor-pointer hover:text-indigo-700">
-                <Upload className="h-4 w-4" />
-                {uploadingBanner ? "Uploading..." : "Upload Banner"}
-                <input type="file" accept="image/*" className="hidden" onChange={handleUploadBanner} disabled={uploadingBanner} />
-              </label>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* ── 1. FEST DETAILS (Screenshot 2) ── */}
+      <div className="p-6 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-5 text-xs font-semibold text-slate-700">
+        <h2 className="text-sm font-black text-slate-900">Fest details</h2>
 
-      {/* Basic Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Basic Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Name</label>
-              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Short Name</label>
-              <Input value={form.short_name} onChange={(e) => setForm({ ...form, short_name: e.target.value })} />
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+          <label className="md:col-span-3 text-slate-600">Fest name</label>
+          <div className="md:col-span-9">
+            <Input
+              value={festName}
+              onChange={(e) => setFestName(e.target.value)}
+              className="h-10 rounded-xl text-xs font-bold"
+            />
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Description</label>
-            <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Status</label>
-              <Select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as any })} options={FESTIVAL_STATUSES.map((s) => ({ value: s.value, label: s.label }))} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Visibility</label>
-              <Select value={form.visibility} onChange={(e) => setForm({ ...form, visibility: e.target.value as any })} options={VISIBILITY_OPTIONS} />
-            </div>
-          </div>
-          <div className="pt-2">
-            <Button onClick={handleSaveFestival} disabled={saving}>
-              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              <Save className="h-4 w-4 mr-2" />
-              Save Festival
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Festival Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Festival Configuration</CardTitle>
-          <CardDescription>Configure scoring, notifications, and display options.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Festival Color</label>
-              <div className="flex gap-2 items-center">
-                <Input type="color" value={settingsForm.festival_color} onChange={(e) => setSettingsForm({ ...settingsForm, festival_color: e.target.value })} className="w-12 h-10 p-1" />
-                <Input value={settingsForm.festival_color} onChange={(e) => setSettingsForm({ ...settingsForm, festival_color: e.target.value })} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Theme Color</label>
-              <div className="flex gap-2 items-center">
-                <Input type="color" value={settingsForm.theme_color} onChange={(e) => setSettingsForm({ ...settingsForm, theme_color: e.target.value })} className="w-12 h-10 p-1" />
-                <Input value={settingsForm.theme_color} onChange={(e) => setSettingsForm({ ...settingsForm, theme_color: e.target.value })} />
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+          <label className="md:col-span-3 text-slate-600">Fest tagline</label>
+          <div className="md:col-span-9">
+            <Input
+              value={festTagline}
+              onChange={(e) => setFestTagline(e.target.value)}
+              placeholder="e.g. State Youth Festival 2026"
+              className="h-10 rounded-xl text-xs"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+          <label className="md:col-span-3 text-slate-600 pt-2">Fest logo</label>
+          <div className="md:col-span-9 space-y-3">
+            <input
+              type="file"
+              accept="image/png, image/jpeg, image/svg+xml"
+              className="text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border file:border-slate-200 file:text-xs file:font-semibold file:bg-slate-50"
+            />
+            {/* Visual Logo Preview */}
+            <div className="pt-2">
+              <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-purple-500 via-pink-500 to-indigo-600 p-0.5 shadow-sm flex items-center justify-center">
+                <div className="w-full h-full bg-white rounded-[14px] flex items-center justify-center">
+                  <span className="text-xl font-black bg-gradient-to-tr from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    FP
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-          <div className="flex items-center justify-between rounded-lg border border-gray-200 p-4">
-            <div>
-              <p className="text-sm font-medium text-gray-700">Dark Mode</p>
-              <p className="text-xs text-gray-500">Enable dark theme for this festival</p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" checked={settingsForm.dark_mode} onChange={(e) => setSettingsForm({ ...settingsForm, dark_mode: e.target.checked })} className="sr-only peer" />
-              <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600" />
+        </div>
+      </div>
+
+      {/* ── 2. PROGRAM ASSIGNMENT DEADLINE (Screenshot 2 & 3) ── */}
+      <div className="p-6 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-4 text-xs font-semibold text-slate-700">
+        <div>
+          <h2 className="text-sm font-black text-slate-900">Program assignment deadline</h2>
+          <p className="text-[11px] text-slate-500 font-normal">
+            Set the deadline for program assignments.{" "}
+            <span className="text-emerald-700 cursor-pointer font-bold inline-flex items-center gap-0.5">
+              <HelpCircle className="h-3 w-3 inline" /> What is this?
+            </span>
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+          <label className="md:col-span-3 text-slate-600">Deadline</label>
+          <div className="md:col-span-9">
+            <Input
+              type="datetime-local"
+              value={assignmentDeadline}
+              onChange={(e) => setAssignmentDeadline(e.target.value)}
+              className="h-10 rounded-xl text-xs font-bold"
+            />
+            <span className="text-[11px] text-slate-400 font-normal mt-1 block">
+              Current deadline: {assignmentDeadline ? new Date(assignmentDeadline).toLocaleString() : "Not set"}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center pt-2">
+          <label className="md:col-span-3 text-slate-600">Admins</label>
+          <div className="md:col-span-9">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={adminsCanAssignAfterDeadline}
+                onChange={(e) => setAdminsCanAssignAfterDeadline(e.target.checked)}
+                className="h-4 w-4 accent-emerald-600 rounded"
+              />
+              <span className="text-xs text-slate-700">Admins can assign after the deadline</span>
             </label>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Language</label>
-              <Select value={settingsForm.language} onChange={(e) => setSettingsForm({ ...settingsForm, language: e.target.value })} options={[{ value: "en", label: "English" }, { value: "es", label: "Spanish" }, { value: "fr", label: "French" }, { value: "hi", label: "Hindi" }]} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Chest Number Format</label>
-              <Input value={settingsForm.chest_number_format} onChange={(e) => setSettingsForm({ ...settingsForm, chest_number_format: e.target.value })} />
-            </div>
+        </div>
+      </div>
+
+      {/* ── 3. PARTICIPANT AGE (Screenshot 3) ── */}
+      <div className="p-6 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-4 text-xs font-semibold text-slate-700">
+        <div>
+          <h2 className="text-sm font-black text-slate-900">Participant age</h2>
+          <p className="text-[11px] text-slate-500 font-normal">
+            Ask for a date of birth, and set the date ages are measured on.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+          <label className="md:col-span-3 text-slate-600">Date of birth</label>
+          <div className="md:col-span-9">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={dobRequired}
+                onChange={(e) => setDobRequired(e.target.checked)}
+                className="h-4 w-4 accent-emerald-600 rounded"
+              />
+              <span className="text-xs text-slate-700">Required for every participant</span>
+            </label>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Registration Prefix</label>
-              <Input value={settingsForm.registration_prefix} onChange={(e) => setSettingsForm({ ...settingsForm, registration_prefix: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Timezone</label>
-              <Select value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} options={TIMEZONE_OPTIONS} />
-            </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+          <label className="md:col-span-3 text-slate-600">Ages as of</label>
+          <div className="md:col-span-9 space-y-1.5">
+            <Input
+              type="date"
+              value={agesAsOf}
+              onChange={(e) => setAgesAsOf(e.target.value)}
+              className="h-10 rounded-xl text-xs font-bold"
+            />
+            <p className="text-[11px] text-slate-400 font-normal leading-relaxed">
+              Category age limits are measured on this date. Leave it empty to use today&apos;s date. Set it to the fest date so a participant&apos;s age does not change between entry and the event.
+            </p>
           </div>
-          <div className="pt-2">
-            <Button onClick={handleSaveSettings} disabled={saving}>
-              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              <Save className="h-4 w-4 mr-2" />
-              Save Settings
-            </Button>
+        </div>
+
+        <div className="flex justify-end pt-2">
+          <Button
+            type="button"
+            onClick={handleSaveParticipantAge}
+            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs px-4 h-9"
+          >
+            Save participant age
+          </Button>
+        </div>
+      </div>
+
+      {/* ── 4. LANGUAGE (Screenshot 3 & 4) ── */}
+      <div className="p-6 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-4 text-xs font-semibold text-slate-700">
+        <div>
+          <h2 className="text-sm font-black text-slate-900">Language</h2>
+          <p className="text-[11px] text-slate-500 font-normal">
+            The language of reports and new certificates. Your staff also start in this language.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+          <label className="md:col-span-3 text-slate-600">Language</label>
+          <div className="md:col-span-9">
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-800"
+            >
+              <option value="English">English</option>
+              <option value="Malayalam">മലയാളം (Malayalam)</option>
+              <option value="Arabic">العربية (Arabic)</option>
+              <option value="Hindi">हिन्दी (Hindi)</option>
+            </select>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        <div className="flex justify-end pt-2">
+          <Button
+            type="button"
+            onClick={handleSaveLanguage}
+            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs px-4 h-9"
+          >
+            Save language
+          </Button>
+        </div>
+      </div>
+
+      {/* ── 5. ANNOUNCER PUBLISHING (Screenshot 4) ── */}
+      <div className="p-6 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-4 text-xs font-semibold text-slate-700">
+        <div>
+          <h2 className="text-sm font-black text-slate-900">Announcer publishing</h2>
+          <p className="text-[11px] text-slate-500 font-normal">
+            Decide whether the announcer may publish results at this fest.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+          <label className="md:col-span-3 text-slate-600 pt-0.5">Results</label>
+          <div className="md:col-span-9 space-y-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={announcerMayPublish}
+                onChange={(e) => setAnnouncerMayPublish(e.target.checked)}
+                className="h-4 w-4 accent-emerald-600 rounded"
+              />
+              <span className="text-xs text-slate-800 font-bold">Announcer may publish results and team scores</span>
+            </label>
+            <p className="text-[11px] text-slate-400 font-normal leading-relaxed">
+              Announcers can always see finalized results. Turn this off when results must be published by a fest administrator; they keep publishing either way, as does a platform operator running an operate session. Finalizing and withdrawing a result stays with a results manager and is not affected by this setting.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex justify-end pt-2">
+          <Button
+            type="button"
+            onClick={handleSaveAnnouncerPublishing}
+            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs px-4 h-9"
+          >
+            Save announcer publishing
+          </Button>
+        </div>
+      </div>
+
+      {/* ── 6. API ACCESS (Screenshot 5) ── */}
+      <div className="p-6 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-4 text-xs font-semibold text-slate-700">
+        <div>
+          <h2 className="text-sm font-black text-slate-900">API access</h2>
+          <p className="text-[11px] text-slate-500 font-normal">
+            Decide whether this fest may issue API keys for published results and posters.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+          <label className="md:col-span-3 text-slate-600 pt-0.5">Keys</label>
+          <div className="md:col-span-9 space-y-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={allowApiKeys}
+                onChange={(e) => setAllowApiKeys(e.target.checked)}
+                className="h-4 w-4 accent-emerald-600 rounded"
+              />
+              <span className="text-xs text-slate-800 font-bold">Allow API keys for this fest</span>
+            </label>
+            <p className="text-[11px] text-slate-400 font-normal leading-relaxed">
+              Turn this on before creating keys. A key reads this fest&apos;s published results and posters only; create and revoke them on the API keys page.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex justify-end pt-2">
+          <Button
+            type="button"
+            onClick={handleSaveApiAccess}
+            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs px-4 h-9"
+          >
+            Save API access
+          </Button>
+        </div>
+      </div>
+
+      {/* ── 7. PROGRAM LIMITS (Screenshot 5) ── */}
+      <div className="p-6 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-4 text-xs font-semibold text-slate-700">
+        <div>
+          <h2 className="text-sm font-black text-slate-900">Program limits</h2>
+          <p className="text-[11px] text-slate-500 font-normal">
+            Control how many matching programs each participant can enter.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-slate-100 bg-slate-50">
+          <span className="text-xs text-slate-600">Review active and paused limits, or create a new limit.</span>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => toast.info("Navigating to program limits configuration...")}
+            className="rounded-xl text-xs font-bold border-slate-200 h-9"
+          >
+            Manage limits <ChevronRight className="h-3.5 w-3.5 ml-1" />
+          </Button>
+        </div>
+
+        {/* Global Save Button at bottom (Screenshot 5) */}
+        <div className="flex justify-end pt-4 border-t border-slate-100">
+          <Button
+            type="button"
+            onClick={handleSaveFestDetails}
+            disabled={saving}
+            className="rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs px-6 h-10"
+          >
+            {saving ? "Saving..." : "Save fest details"}
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }

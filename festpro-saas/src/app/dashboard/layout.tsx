@@ -12,7 +12,7 @@ import {
   Tv, HelpCircle, Moon, Sun, ArrowLeft, Bookmark, LayoutGrid, Search,
   RefreshCw, ExternalLink, Sparkles, Gamepad2, Monitor, ClipboardCheck,
   Keyboard, Dices, Medal, BarChart2, Star, Gift, Award, ListFilter,
-  Printer, LayoutTemplate, Megaphone, Type, Globe
+  Printer, LayoutTemplate, Megaphone, Type, Globe, KeyRound
 } from "lucide-react"
 import type { Profile } from "@/types"
 import type { ExtendedOrganization } from "@/types/organization"
@@ -412,6 +412,38 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     },
   ] : []
 
+  // 6. FEST SETUP (Screenshots 1-5)
+  const festSetupItems = currentOrgId ? [
+    {
+      label: "API keys",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/api-keys`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=api-keys`,
+      icon: KeyRound,
+      isActive: pathname.includes("/api-keys"),
+    },
+    {
+      label: "Settings",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/settings`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=settings`,
+      icon: Settings,
+      isActive: pathname.endsWith("/settings"),
+    },
+  ] : []
+
+  // 7. SUPPORT (Screenshot 6)
+  const supportItems = currentOrgId ? [
+    {
+      label: "Help",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/help`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=help`,
+      icon: HelpCircle,
+      isActive: pathname.includes("/help"),
+    },
+  ] : []
+
   const triggerRefresh = () => {
     setIsRefreshing(true)
     setTimeout(() => {
@@ -672,6 +704,68 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           {designOutputItems.map((item) => {
+            const isActive = item.isActive
+            const Icon = item.icon
+            return (
+              <Link
+                prefetch={true}
+                key={item.label}
+                href={item.href}
+                className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition-all min-h-[38px] ${
+                  isActive
+                    ? "bg-indigo-50 text-indigo-700 font-bold"
+                    : "text-slate-600 hover:text-indigo-600 hover:bg-slate-50"
+                }`}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className={`h-4 w-4 ${isActive ? "text-indigo-600" : "text-slate-400"}`} />
+                  <span>{item.label}</span>
+                </div>
+                {isActive && <span className="h-1.5 w-1.5 rounded-full bg-indigo-600" />}
+              </Link>
+            )
+          })}
+
+          {/* 6. FEST SETUP (Screenshot 1-5) */}
+          <div className="pt-5 pb-1.5 px-3">
+            <span className="text-[11px] font-bold text-slate-400 tracking-wider uppercase block">
+              FEST SETUP
+            </span>
+          </div>
+
+          {festSetupItems.map((item) => {
+            const isActive = item.isActive
+            const Icon = item.icon
+            return (
+              <Link
+                prefetch={true}
+                key={item.label}
+                href={item.href}
+                className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition-all min-h-[38px] ${
+                  isActive
+                    ? "bg-indigo-50 text-indigo-700 font-bold"
+                    : "text-slate-600 hover:text-indigo-600 hover:bg-slate-50"
+                }`}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className={`h-4 w-4 ${isActive ? "text-indigo-600" : "text-slate-400"}`} />
+                  <span>{item.label}</span>
+                </div>
+                {isActive && <span className="h-1.5 w-1.5 rounded-full bg-indigo-600" />}
+              </Link>
+            )
+          })}
+
+          {/* 7. SUPPORT (Screenshot 6) */}
+          <div className="pt-5 pb-1.5 px-3">
+            <span className="text-[11px] font-bold text-slate-400 tracking-wider uppercase block">
+              SUPPORT
+            </span>
+          </div>
+
+          {supportItems.map((item) => {
             const isActive = item.isActive
             const Icon = item.icon
             return (

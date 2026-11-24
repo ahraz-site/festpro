@@ -132,12 +132,12 @@ export default function FestivalOperationsDashboard() {
     { label: "Poster templates", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/poster-templates`, icon: Palette },
     { label: "Poster ads", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/poster-ads`, icon: Megaphone },
     { label: "Fonts", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/fonts`, icon: Type },
-    { label: "API keys", href: `/dashboard/organization/${orgId}/settings`, icon: KeyRound },
+    { label: "API keys", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/api-keys`, icon: KeyRound },
     { label: "Settings", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/settings`, icon: Settings },
     { label: "Prizes", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/prizes`, icon: Gift },
     { label: "Top candidates", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/top-candidates`, icon: Crown },
     { label: "Website", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/website`, icon: Globe },
-    { label: "Help", href: "/contact", icon: HelpCircle },
+    { label: "Help", href: `/dashboard/organization/${orgId}/festivals/${festivalId}/help`, icon: HelpCircle },
   ]
 
   return (
