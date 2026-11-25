@@ -463,9 +463,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const triggerRefresh = () => {
     setIsRefreshing(true)
+    router.refresh()
     setTimeout(() => {
       setIsRefreshing(false)
-    }, 1200)
+    }, 900)
   }
 
   // Render full-viewport IDE for FesPro Website Studio

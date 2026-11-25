@@ -28,6 +28,8 @@ export interface FestivalSiteRendererProps {
   isEditorMode?: boolean
   selectedSectionId?: string | null
   onSelectSection?: (sectionId: string) => void
+  forcedTab?: "overview" | "results" | "schedule" | "leaderboard" | "gallery" | "videos" | "news"
+  onTabChange?: (tab: "overview" | "results" | "schedule" | "leaderboard" | "gallery" | "videos" | "news") => void
 }
 
 // Smart Video URL Resolver (YouTube, Shorts, Live, Instagram Reels, FB, Vimeo, MP4)
@@ -286,6 +288,8 @@ export default function FestivalSiteRenderer({
   isEditorMode = false,
   selectedSectionId = null,
   onSelectSection,
+  forcedTab,
+  onTabChange,
 }: FestivalSiteRendererProps) {
   const defaults = getDefaultWebsiteConfig(festival)
   const config: FestivalWebsiteConfig = {
@@ -324,9 +328,14 @@ export default function FestivalSiteRenderer({
   const hdr = config.headerConfig!
   const isLight = palette.themeMode === "light"
 
-  const [activeTab, setActiveTab] = useState<
+  const [internalTab, setInternalTab] = useState<
     "overview" | "results" | "schedule" | "leaderboard" | "gallery" | "videos" | "news"
   >("overview")
+  const activeTab = forcedTab ?? internalTab
+  const setActiveTab = (t: "overview" | "results" | "schedule" | "leaderboard" | "gallery" | "videos" | "news") => {
+    setInternalTab(t)
+    onTabChange?.(t)
+  }
   const [search, setSearch] = useState("")
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrollProgress, setScrollProgress] = useState(0)
@@ -754,7 +763,15 @@ export default function FestivalSiteRenderer({
               }`}
             >
               <button
-                onClick={() => setActiveTab((config.heroConfig?.primaryCtaTarget as any) || "results")}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const t = config.heroConfig?.primaryCtaTarget
+                  if (t === "custom" && config.heroConfig?.primaryCtaUrl) {
+                    window.open(config.heroConfig.primaryCtaUrl, "_blank")
+                  } else {
+                    setActiveTab((t as any) || "results")
+                  }
+                }}
                 className="px-6 py-3 font-bold text-sm text-white shadow-lg transition-transform hover:scale-105 cursor-pointer"
                 style={{
                   background: palette.gradientEnabled
@@ -766,7 +783,15 @@ export default function FestivalSiteRenderer({
                 {config.heroConfig?.primaryCtaText || "Live Results"}
               </button>
               <button
-                onClick={() => setActiveTab((config.heroConfig?.secondaryCtaTarget as any) || "leaderboard")}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const t = config.heroConfig?.secondaryCtaTarget
+                  if (t === "custom" && config.heroConfig?.secondaryCtaUrl) {
+                    window.open(config.heroConfig.secondaryCtaUrl, "_blank")
+                  } else {
+                    setActiveTab((t as any) || "leaderboard")
+                  }
+                }}
                 className="px-6 py-3 font-bold text-sm border transition-all cursor-pointer hover:opacity-90"
                 style={{
                   backgroundColor: `${palette.surface}cc`,
@@ -1892,8 +1917,14 @@ export default function FestivalSiteRenderer({
                   ? "columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4"
                   : config.galleryStudio?.layout === "carousel"
                   ? "flex overflow-x-auto gap-4 pb-4 snap-x"
-                  : `grid gap-4 grid-cols-${config.galleryStudio?.columnsMobile || 1} sm:grid-cols-2 lg:grid-cols-${
-                      config.galleryStudio?.columnsDesktop || 3
+                  : `grid gap-4 ${
+                      config.galleryStudio?.columnsMobile === 2 ? "grid-cols-2" : "grid-cols-1"
+                    } sm:grid-cols-2 ${
+                      config.galleryStudio?.columnsDesktop === 4
+                        ? "lg:grid-cols-4"
+                        : config.galleryStudio?.columnsDesktop === 2
+                        ? "lg:grid-cols-2"
+                        : "lg:grid-cols-3"
                     }`
               }
             >

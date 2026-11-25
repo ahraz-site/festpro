@@ -28,9 +28,7 @@ import {
   ArrowLeft,
   RefreshCw,
   Check,
-  Sliders,
   Share2,
-  Video,
   Sparkles,
 } from "lucide-react"
 import FestivalSiteRenderer from "@/components/studio/FestivalSiteRenderer"
@@ -58,14 +56,16 @@ import {
 } from "@/types/website-studio"
 
 type StudioPanelId =
-  | "templates"
   | "sections"
+  | "templates"
   | "design"
   | "header"
   | "footer"
   | "media"
   | "motion"
   | "seo"
+
+type CanvasTabType = "overview" | "results" | "schedule" | "leaderboard" | "gallery" | "videos" | "news"
 
 export default function FesProStudioPage() {
   const params = useParams()
@@ -80,25 +80,33 @@ export default function FesProStudioPage() {
   const [schedules, setSchedules] = useState<any[]>([])
   const [stats, setStats] = useState({ competitionsCount: 0, participantsCount: 0, stagesCount: 0 })
 
-  // Studio Panels & Sub-tabs
+  // Studio UI State
   const [activePanel, setActivePanel] = useState<StudioPanelId>("sections")
-  const [sectionSubTab, setSectionSubTab] = useState<"content" | "layout" | "background" | "effects">("background")
+  const [sectionSubTab, setSectionSubTab] = useState<"content" | "background" | "layout" | "effects">("content")
   const [designSubTab, setDesignSubTab] = useState<"colors" | "typography" | "shape">("colors")
   const [mediaSubTab, setMediaSubTab] = useState<"gallery" | "videos">("gallery")
   const [seoSubTab, setSeoSubTab] = useState<"news" | "popup" | "seo">("news")
 
   const [viewport, setViewport] = useState<"desktop" | "tablet" | "mobile">("desktop")
   const [isPreviewMode, setIsPreviewMode] = useState(false)
+  const [canvasTab, setCanvasTab] = useState<CanvasTabType>("overview")
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>("sec-hero")
   const [draggedSectionId, setDraggedSectionId] = useState<string | null>(null)
 
-  // Config & Undo/Redo Stack
-  const [config, setConfig] = useState<FestivalWebsiteConfig>(() => getDefaultWebsiteConfig())
-  const [history, setHistory] = useState<FestivalWebsiteConfig[]>(() => [getDefaultWebsiteConfig()])
-  const [historyIdx, setHistoryIdx] = useState(0)
+  // Atomic Studio State (Zero nested setState bugs for Undo/Redo!)
+  const [studio, setStudio] = useState<{
+    config: FestivalWebsiteConfig
+    history: FestivalWebsiteConfig[]
+    historyIdx: number
+  }>(() => {
+    const initial = getDefaultWebsiteConfig()
+    return { config: initial, history: [initial], historyIdx: 0 }
+  })
   const [hasUnsaved, setHasUnsaved] = useState(false)
 
-  // Temp inputs
+  const config = studio.config
+
+  // Form temporary inputs
   const [newPhoto, setNewPhoto] = useState({ title: "", url: "", category: "Stage" })
   const [newVideo, setNewVideo] = useState<{
     title: string
@@ -109,6 +117,7 @@ export default function FesProStudioPage() {
   const [newNews, setNewNews] = useState({ title: "", date: "Today", badge: "Update", content: "" })
   const [newBgSlideUrl, setNewBgSlideUrl] = useState("")
   const [newSlide, setNewSlide] = useState({ imageUrl: "", heading: "", description: "", ctaText: "Explore" })
+  const [newQuote, setNewQuote] = useState({ name: "", quote: "" })
 
   useEffect(() => {
     let active = true
@@ -131,9 +140,8 @@ export default function FesProStudioPage() {
         if (cfgRes.status === "fulfilled" && cfgRes.value?.success && cfgRes.value?.data) {
           setFestivalData(cfgRes.value.data.festival)
           if (cfgRes.value.data.config) {
-            setConfig(cfgRes.value.data.config)
-            setHistory([cfgRes.value.data.config])
-            setHistoryIdx(0)
+            const loaded = cfgRes.value.data.config
+            setStudio({ config: loaded, history: [loaded], historyIdx: 0 })
           }
         }
         if (rRes.status === "fulfilled" && rRes.value?.data) setResults(rRes.value.data)
@@ -157,19 +165,19 @@ export default function FesProStudioPage() {
 
   const updateConfig = useCallback(
     (updater: FestivalWebsiteConfig | ((prev: FestivalWebsiteConfig) => FestivalWebsiteConfig)) => {
-      setConfig((prev) => {
-        const next = typeof updater === "function" ? updater(prev) : updater
-        setHistory((h) => {
-          const sliced = h.slice(0, historyIdx + 1)
-          const updated = [...sliced, next].slice(-30)
-          setHistoryIdx(updated.length - 1)
-          return updated
-        })
-        setHasUnsaved(true)
-        return next
+      setStudio((prev) => {
+        const nextConfig = typeof updater === "function" ? updater(prev.config) : updater
+        const slicedHistory = prev.history.slice(0, prev.historyIdx + 1)
+        const nextHistory = [...slicedHistory, nextConfig].slice(-30)
+        return {
+          config: nextConfig,
+          history: nextHistory,
+          historyIdx: nextHistory.length - 1,
+        }
       })
+      setHasUnsaved(true)
     },
-    [historyIdx]
+    []
   )
 
   const updateSelectedSection = (patchFn: (sec: BuilderSection) => BuilderSection) => {
@@ -181,21 +189,29 @@ export default function FesProStudioPage() {
   }
 
   const handleUndo = () => {
-    if (historyIdx > 0) {
-      const targetIdx = historyIdx - 1
-      setHistoryIdx(targetIdx)
-      setConfig(history[targetIdx])
-      setHasUnsaved(true)
-    }
+    setStudio((prev) => {
+      if (prev.historyIdx <= 0) return prev
+      const targetIdx = prev.historyIdx - 1
+      return {
+        ...prev,
+        config: prev.history[targetIdx],
+        historyIdx: targetIdx,
+      }
+    })
+    setHasUnsaved(true)
   }
 
   const handleRedo = () => {
-    if (historyIdx < history.length - 1) {
-      const targetIdx = historyIdx + 1
-      setHistoryIdx(targetIdx)
-      setConfig(history[targetIdx])
-      setHasUnsaved(true)
-    }
+    setStudio((prev) => {
+      if (prev.historyIdx >= prev.history.length - 1) return prev
+      const targetIdx = prev.historyIdx + 1
+      return {
+        ...prev,
+        config: prev.history[targetIdx],
+        historyIdx: targetIdx,
+      }
+    })
+    setHasUnsaved(true)
   }
 
   const handleSavePublish = () => {
@@ -218,6 +234,7 @@ export default function FesProStudioPage() {
       templateId: tpl.id,
       globalDesign: { ...prev.globalDesign!, ...(tpl.patch.globalDesign || {}) },
     }))
+    setCanvasTab("overview")
     toast.success(`Applied "${tpl.name}" template!`)
   }
 
@@ -250,6 +267,13 @@ export default function FesProStudioPage() {
         ? { mediaUrl: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1200&q=80", title: "Welcome to Our Campus Festival", subtitle: "Three days of art, culture, and brilliance" }
         : type === "heading_banner"
         ? { heading: "Highlight Section Title", subheading: "Official updates & announcements" }
+        : type === "testimonial_slider"
+        ? {
+            quotes: [
+              { name: "Chief Jury", quote: "Remarkable energy and punctual stage operations." },
+              { name: "Principal", quote: "A proud celebration of campus art and heritage." },
+            ],
+          }
         : {}
 
     const newSec: BuilderSection = {
@@ -275,6 +299,7 @@ export default function FesProStudioPage() {
     })
     setSelectedSectionId(newSec.id)
     setSectionSubTab("content")
+    setCanvasTab("overview")
     toast.success(`Inserted "${label}"`)
   }
 
@@ -321,7 +346,7 @@ export default function FesProStudioPage() {
     <div className="h-screen flex flex-col bg-slate-950 text-slate-100 overflow-hidden">
       {/* ── TOP STUDIO BAR ── */}
       <header className="h-14 bg-slate-900 border-b border-slate-800 px-3 sm:px-4 flex items-center justify-between gap-2 shrink-0 z-30">
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0">
           <Link
             href={`/dashboard/organization/${orgId}/festivals/${festivalId}`}
             className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
@@ -333,7 +358,7 @@ export default function FesProStudioPage() {
             <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-black text-xs text-white shrink-0">
               FS
             </div>
-            <div className="truncate">
+            <div className="truncate hidden sm:block">
               <div className="flex items-center gap-1.5">
                 <span className="text-xs font-black tracking-tight text-white">FesPro Studio</span>
                 <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-[9px] font-black uppercase">
@@ -352,18 +377,28 @@ export default function FesProStudioPage() {
           </div>
         </div>
 
-        {/* Center Controls */}
-        <div className="hidden md:flex items-center gap-2">
+        {/* Center Controls (Always accessible across viewports!) */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <div className="flex items-center bg-slate-800 rounded-lg p-0.5 border border-slate-700">
-            <button onClick={handleUndo} disabled={historyIdx <= 0} className="p-1.5 rounded text-slate-300 hover:text-white disabled:opacity-30 cursor-pointer" title="Undo">
+            <button
+              onClick={handleUndo}
+              disabled={studio.historyIdx <= 0}
+              className="p-1.5 rounded text-slate-300 hover:text-white disabled:opacity-30 cursor-pointer"
+              title="Undo"
+            >
               <Undo className="h-3.5 w-3.5" />
             </button>
-            <button onClick={handleRedo} disabled={historyIdx >= history.length - 1} className="p-1.5 rounded text-slate-300 hover:text-white disabled:opacity-30 cursor-pointer" title="Redo">
+            <button
+              onClick={handleRedo}
+              disabled={studio.historyIdx >= studio.history.length - 1}
+              className="p-1.5 rounded text-slate-300 hover:text-white disabled:opacity-30 cursor-pointer"
+              title="Redo"
+            >
               <Redo className="h-3.5 w-3.5" />
             </button>
           </div>
 
-          <div className="flex items-center bg-slate-800 rounded-lg p-0.5 border border-slate-700">
+          <div className="hidden sm:flex items-center bg-slate-800 rounded-lg p-0.5 border border-slate-700">
             {[
               { id: "desktop", icon: Monitor },
               { id: "tablet", icon: Tablet },
@@ -375,6 +410,7 @@ export default function FesProStudioPage() {
                   key={v.id}
                   onClick={() => setViewport(v.id as any)}
                   className={`p-1.5 rounded cursor-pointer ${viewport === v.id ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white"}`}
+                  title={v.id}
                 >
                   <Icon className="h-3.5 w-3.5" />
                 </button>
@@ -384,12 +420,12 @@ export default function FesProStudioPage() {
 
           <button
             onClick={() => setIsPreviewMode(!isPreviewMode)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border cursor-pointer ${
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold border cursor-pointer ${
               isPreviewMode ? "bg-emerald-600 border-emerald-500 text-white" : "bg-slate-800 border-slate-700 text-slate-300"
             }`}
           >
             <Eye className="h-3.5 w-3.5" />
-            <span>{isPreviewMode ? "Clean Preview" : "Preview"}</span>
+            <span className="hidden sm:inline">{isPreviewMode ? "Clean Preview" : "Preview"}</span>
           </button>
         </div>
 
@@ -399,7 +435,7 @@ export default function FesProStudioPage() {
             href={liveSiteUrl}
             target="_blank"
             rel="noreferrer"
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold"
+            className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold"
           >
             <span>Open Live</span>
             <ExternalLink className="h-3 w-3" />
@@ -407,10 +443,10 @@ export default function FesProStudioPage() {
           <button
             onClick={handleSavePublish}
             disabled={isPending}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black shadow-lg shadow-indigo-500/20 cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black shadow-lg shadow-indigo-500/20 cursor-pointer disabled:opacity-50"
           >
             {isPending ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-            <span>{isPending ? "Publishing..." : "Publish Site"}</span>
+            <span>{isPending ? "Saving..." : "Publish"}</span>
           </button>
         </div>
       </header>
@@ -419,7 +455,7 @@ export default function FesProStudioPage() {
       <div className="flex-1 flex overflow-hidden">
         {!isPreviewMode && (
           <aside className="flex h-full border-r border-slate-800 bg-slate-900 shrink-0 z-20">
-            {/* Updated FesPro Studio Sidebar Rail (Zero Stickers Tab) */}
+            {/* Icon Rail */}
             <nav className="w-16 border-r border-slate-800 flex flex-col items-center py-3 gap-1.5 overflow-y-auto bg-slate-950/60">
               {[
                 { id: "sections", label: "Sections", icon: Layers },
@@ -450,20 +486,20 @@ export default function FesProStudioPage() {
               })}
             </nav>
 
-            {/* Inspector Panel */}
+            {/* Inspector Drawer */}
             <div className="w-80 sm:w-88 overflow-y-auto p-4 space-y-5 bg-slate-900 text-xs">
-              {/* ── 1. SECTION BUILDER + PER-SECTION BACKGROUND STUDIO + BETWEEN-SECTION INSERT ── */}
+              {/* ── 1. SECTION BUILDER + INSPECTOR + BETWEEN-SECTION INSERT ── */}
               {activePanel === "sections" && (
                 <div className="space-y-4">
                   <div>
                     <h3 className="text-sm font-black text-white">Section &amp; Background Studio</h3>
                     <p className="text-[11px] text-slate-400 mt-0.5">
-                      Drag to reorder, edit per-section Background/Layout/Effects, or insert Banners &amp; Sliders between sections.
+                      Drag to reorder, edit Content/BG/Layout/Effects, or insert Banners &amp; Sliders.
                     </p>
                   </div>
 
                   {/* Section Stack */}
-                  <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                     {(config.sections || []).map((sec, idx) => {
                       const isSel = selectedSectionId === sec.id
                       return (
@@ -473,7 +509,10 @@ export default function FesProStudioPage() {
                           onDragStart={() => setDraggedSectionId(sec.id)}
                           onDragOver={(e) => e.preventDefault()}
                           onDrop={() => handleDropSection(sec.id)}
-                          onClick={() => setSelectedSectionId(sec.id)}
+                          onClick={() => {
+                            setSelectedSectionId(sec.id)
+                            setCanvasTab("overview")
+                          }}
                           className={`p-2 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
                             isSel ? "border-indigo-500 bg-indigo-500/15" : "border-slate-800 bg-slate-950/60"
                           } ${!sec.enabled ? "opacity-50" : ""}`}
@@ -481,10 +520,10 @@ export default function FesProStudioPage() {
                           <GripVertical className="h-3.5 w-3.5 text-slate-500 cursor-grab shrink-0" />
                           <div className="flex-1 min-w-0 truncate font-bold text-slate-200">{sec.label}</div>
                           <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                            <button onClick={() => moveSection(idx, -1)} className="p-0.5 text-slate-400 hover:text-white">
+                            <button onClick={() => moveSection(idx, -1)} className="p-0.5 text-slate-400 hover:text-white cursor-pointer" title="Move Up">
                               <ArrowUp className="h-3 w-3" />
                             </button>
-                            <button onClick={() => moveSection(idx, 1)} className="p-0.5 text-slate-400 hover:text-white">
+                            <button onClick={() => moveSection(idx, 1)} className="p-0.5 text-slate-400 hover:text-white cursor-pointer" title="Move Down">
                               <ArrowDown className="h-3 w-3" />
                             </button>
                             <input
@@ -506,7 +545,7 @@ export default function FesProStudioPage() {
                     })}
                   </div>
 
-                  {/* Elementor-style Inspector for Selected Section */}
+                  {/* Selected Section Inspector */}
                   {selectedSection && (
                     <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
                       <div className="flex items-center justify-between">
@@ -522,7 +561,7 @@ export default function FesProStudioPage() {
                               }))
                               setSelectedSectionId("sec-hero")
                             }}
-                            className="text-rose-400 hover:text-rose-300"
+                            className="text-rose-400 hover:text-rose-300 cursor-pointer"
                             title="Delete Section"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -530,7 +569,7 @@ export default function FesProStudioPage() {
                         )}
                       </div>
 
-                      {/* 4 Subtabs: Content | Background | Layout | Effects */}
+                      {/* 4 Subtabs */}
                       <div className="grid grid-cols-4 gap-1 bg-slate-900 p-1 rounded-lg">
                         {[
                           { id: "content", label: "Content" },
@@ -550,7 +589,539 @@ export default function FesProStudioPage() {
                         ))}
                       </div>
 
-                      {/* SUBTAB A: SECTION BACKGROUND STUDIO */}
+                      {/* SUBTAB A: COMPLETE SECTION CONTENT */}
+                      {sectionSubTab === "content" && (
+                        <div className="space-y-2.5">
+                          {selectedSection.type === "hero" && (
+                            <>
+                              <input
+                                type="text"
+                                placeholder="Hero Badge Text"
+                                value={config.heroConfig?.badgeText || ""}
+                                onChange={(e) =>
+                                  updateConfig((p) => ({ ...p, heroConfig: { ...p.heroConfig, badgeText: e.target.value } }))
+                                }
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-indigo-300"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Hero Main Heading"
+                                value={config.heroTitle || ""}
+                                onChange={(e) => updateConfig((p) => ({ ...p, heroTitle: e.target.value }))}
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-bold"
+                              />
+                              <textarea
+                                rows={2}
+                                placeholder="Hero Subtitle"
+                                value={config.heroSubtitle || ""}
+                                onChange={(e) => updateConfig((p) => ({ ...p, heroSubtitle: e.target.value }))}
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                              />
+                              <div className="grid grid-cols-2 gap-2">
+                                <input
+                                  type="text"
+                                  placeholder="Button 1 Text"
+                                  value={config.heroConfig?.primaryCtaText || ""}
+                                  onChange={(e) =>
+                                    updateConfig((p) => ({
+                                      ...p,
+                                      heroConfig: { ...p.heroConfig, primaryCtaText: e.target.value },
+                                    }))
+                                  }
+                                  className="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="Button 2 Text"
+                                  value={config.heroConfig?.secondaryCtaText || ""}
+                                  onChange={(e) =>
+                                    updateConfig((p) => ({
+                                      ...p,
+                                      heroConfig: { ...p.heroConfig, secondaryCtaText: e.target.value },
+                                    }))
+                                  }
+                                  className="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                                />
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <select
+                                  value={config.heroConfig?.alignment || "center"}
+                                  onChange={(e) =>
+                                    updateConfig((p) => ({
+                                      ...p,
+                                      heroConfig: { ...p.heroConfig, alignment: e.target.value as any },
+                                    }))
+                                  }
+                                  className="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                                >
+                                  <option value="center">Center Align</option>
+                                  <option value="left">Left Align</option>
+                                </select>
+                                <input
+                                  type="text"
+                                  placeholder="Banner Photo URL"
+                                  value={config.bannerUrl || ""}
+                                  onChange={(e) => updateConfig((p) => ({ ...p, bannerUrl: e.target.value }))}
+                                  className="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                                />
+                              </div>
+                            </>
+                          )}
+
+                          {selectedSection.type === "countdown" && (
+                            <>
+                              <input
+                                type="text"
+                                placeholder="Countdown Title"
+                                value={selectedSection.settings?.title || config.heroConfig?.countdownTitle || ""}
+                                onChange={(e) =>
+                                  updateSelectedSection((s) => ({
+                                    ...s,
+                                    settings: { ...s.settings, title: e.target.value },
+                                  }))
+                                }
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-bold"
+                              />
+                              <div>
+                                <label className="text-[10px] text-slate-400">Target Event Date</label>
+                                <input
+                                  type="date"
+                                  value={config.heroConfig?.countdownTargetDate || ""}
+                                  onChange={(e) =>
+                                    updateConfig((p) => ({
+                                      ...p,
+                                      heroConfig: { ...p.heroConfig, countdownTargetDate: e.target.value },
+                                    }))
+                                  }
+                                  className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white mt-0.5"
+                                />
+                              </div>
+                            </>
+                          )}
+
+                          {selectedSection.type === "marquee" && (
+                            <>
+                              <textarea
+                                rows={3}
+                                placeholder="Marquee ticker scrolling text..."
+                                value={selectedSection.settings?.text || ""}
+                                onChange={(e) =>
+                                  updateSelectedSection((s) => ({
+                                    ...s,
+                                    settings: { ...s.settings, text: e.target.value },
+                                  }))
+                                }
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                              />
+                              <label className="text-[10px] text-slate-400">
+                                Scroll Speed: {selectedSection.settings?.speedSeconds || 22}s
+                              </label>
+                              <input
+                                type="range"
+                                min={8}
+                                max={45}
+                                value={selectedSection.settings?.speedSeconds || 22}
+                                onChange={(e) =>
+                                  updateSelectedSection((s) => ({
+                                    ...s,
+                                    settings: { ...s.settings, speedSeconds: Number(e.target.value) },
+                                  }))
+                                }
+                                className="w-full accent-indigo-500"
+                              />
+                            </>
+                          )}
+
+                          {(selectedSection.type === "image_banner" || selectedSection.type === "gif_banner") && (
+                            <>
+                              <input
+                                type="text"
+                                placeholder="Image or GIF URL"
+                                value={selectedSection.settings?.mediaUrl || ""}
+                                onChange={(e) =>
+                                  updateSelectedSection((s) => ({
+                                    ...s,
+                                    settings: { ...s.settings, mediaUrl: e.target.value },
+                                  }))
+                                }
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Overlay Title (Optional)"
+                                value={selectedSection.settings?.title || ""}
+                                onChange={(e) =>
+                                  updateSelectedSection((s) => ({
+                                    ...s,
+                                    settings: { ...s.settings, title: e.target.value },
+                                  }))
+                                }
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Overlay Subtitle (Optional)"
+                                value={selectedSection.settings?.subtitle || ""}
+                                onChange={(e) =>
+                                  updateSelectedSection((s) => ({
+                                    ...s,
+                                    settings: { ...s.settings, subtitle: e.target.value },
+                                  }))
+                                }
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                              />
+                            </>
+                          )}
+
+                          {selectedSection.type === "video_banner" && (
+                            <input
+                              type="text"
+                              placeholder="YouTube or Direct MP4 Video URL"
+                              value={selectedSection.settings?.videoUrl || ""}
+                              onChange={(e) =>
+                                updateSelectedSection((s) => ({
+                                  ...s,
+                                  settings: { ...s.settings, videoUrl: e.target.value },
+                                }))
+                              }
+                              className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                            />
+                          )}
+
+                          {selectedSection.type === "promo_banner" && (
+                            <>
+                              <input
+                                type="text"
+                                placeholder="Promo Side Image URL"
+                                value={selectedSection.settings?.imageUrl || ""}
+                                onChange={(e) =>
+                                  updateSelectedSection((s) => ({
+                                    ...s,
+                                    settings: { ...s.settings, imageUrl: e.target.value },
+                                  }))
+                                }
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Promo Title"
+                                value={selectedSection.settings?.title || ""}
+                                onChange={(e) =>
+                                  updateSelectedSection((s) => ({
+                                    ...s,
+                                    settings: { ...s.settings, title: e.target.value },
+                                  }))
+                                }
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-bold"
+                              />
+                              <textarea
+                                rows={2}
+                                placeholder="Description..."
+                                value={selectedSection.settings?.description || ""}
+                                onChange={(e) =>
+                                  updateSelectedSection((s) => ({
+                                    ...s,
+                                    settings: { ...s.settings, description: e.target.value },
+                                  }))
+                                }
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                              />
+                              <input
+                                type="text"
+                                placeholder="CTA Button Label"
+                                value={selectedSection.settings?.ctaText || ""}
+                                onChange={(e) =>
+                                  updateSelectedSection((s) => ({
+                                    ...s,
+                                    settings: { ...s.settings, ctaText: e.target.value },
+                                  }))
+                                }
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                              />
+                            </>
+                          )}
+
+                          {selectedSection.type === "slider_banner" && (
+                            <div className="space-y-2">
+                              <div className="grid grid-cols-2 gap-2">
+                                <select
+                                  value={selectedSection.settings?.transition || "fade"}
+                                  onChange={(e) =>
+                                    updateSelectedSection((s) => ({
+                                      ...s,
+                                      settings: { ...s.settings, transition: e.target.value },
+                                    }))
+                                  }
+                                  className="px-2 py-1 rounded bg-slate-900 border border-slate-700 text-white"
+                                >
+                                  <option value="fade">Fade</option>
+                                  <option value="zoom">Zoom</option>
+                                  <option value="ken_burns">Ken Burns</option>
+                                </select>
+                                <label className="flex items-center gap-1.5 text-slate-300">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedSection.settings?.autoplay !== false}
+                                    onChange={(e) =>
+                                      updateSelectedSection((s) => ({
+                                        ...s,
+                                        settings: { ...s.settings, autoplay: e.target.checked },
+                                      }))
+                                    }
+                                    className="accent-indigo-500"
+                                  />
+                                  Autoplay
+                                </label>
+                              </div>
+
+                              {/* Existing Slides List with Delete */}
+                              <div className="space-y-1 max-h-32 overflow-y-auto">
+                                {(selectedSection.settings?.slides || []).map((sl: any, sIdx: number) => (
+                                  <div key={sl.id || sIdx} className="p-1.5 rounded bg-slate-900 border border-slate-800 flex items-center justify-between gap-2">
+                                    <span className="truncate text-[11px] text-slate-300">{sl.heading || `Slide ${sIdx + 1}`}</span>
+                                    <button
+                                      onClick={() =>
+                                        updateSelectedSection((s) => ({
+                                          ...s,
+                                          settings: {
+                                            ...s.settings,
+                                            slides: (s.settings?.slides || []).filter((_: any, i: number) => i !== sIdx),
+                                          },
+                                        }))
+                                      }
+                                      className="text-rose-400 hover:text-rose-300 cursor-pointer"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+
+                              <div className="p-2 rounded bg-slate-900 border border-slate-800 space-y-1.5">
+                                <span className="text-[10px] font-bold text-indigo-400">+ Add New Slide</span>
+                                <input
+                                  type="text"
+                                  placeholder="Slide Image URL"
+                                  value={newSlide.imageUrl}
+                                  onChange={(e) => setNewSlide({ ...newSlide, imageUrl: e.target.value })}
+                                  className="w-full px-2 py-1 rounded bg-slate-950 border border-slate-800 text-white"
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="Slide Heading"
+                                  value={newSlide.heading}
+                                  onChange={(e) => setNewSlide({ ...newSlide, heading: e.target.value })}
+                                  className="w-full px-2 py-1 rounded bg-slate-950 border border-slate-800 text-white"
+                                />
+                                <button
+                                  onClick={() => {
+                                    if (!newSlide.imageUrl.trim()) return
+                                    const item: SliderSlideItem = {
+                                      id: `sl-${Date.now()}`,
+                                      imageUrl: newSlide.imageUrl.trim(),
+                                      heading: newSlide.heading || "Festival Highlight",
+                                      ctaText: newSlide.ctaText,
+                                      ctaUrl: "#results",
+                                      overlayOpacity: 45,
+                                    }
+                                    updateSelectedSection((s) => ({
+                                      ...s,
+                                      settings: { ...s.settings, slides: [...(s.settings?.slides || []), item] },
+                                    }))
+                                    setNewSlide({ imageUrl: "", heading: "", description: "", ctaText: "Explore" })
+                                    toast.success("Slide added to Slider!")
+                                  }}
+                                  className="w-full py-1 rounded bg-indigo-600 text-white font-bold cursor-pointer"
+                                >
+                                  Add Slide
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {selectedSection.type === "announcement_bar" && (
+                            <>
+                              <input
+                                type="text"
+                                placeholder="Alert notice text..."
+                                value={selectedSection.settings?.text || ""}
+                                onChange={(e) =>
+                                  updateSelectedSection((s) => ({
+                                    ...s,
+                                    settings: { ...s.settings, text: e.target.value },
+                                  }))
+                                }
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                              />
+                              <input
+                                type="text"
+                                placeholder="CTA Button Label (Optional)"
+                                value={selectedSection.settings?.ctaText || ""}
+                                onChange={(e) =>
+                                  updateSelectedSection((s) => ({
+                                    ...s,
+                                    settings: { ...s.settings, ctaText: e.target.value },
+                                  }))
+                                }
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                              />
+                            </>
+                          )}
+
+                          {selectedSection.type === "logo_carousel" && (
+                            <>
+                              <input
+                                type="text"
+                                placeholder="Sponsor Section Title"
+                                value={selectedSection.settings?.title || ""}
+                                onChange={(e) =>
+                                  updateSelectedSection((s) => ({
+                                    ...s,
+                                    settings: { ...s.settings, title: e.target.value },
+                                  }))
+                                }
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Partner Names (comma-separated)"
+                                value={(selectedSection.settings?.logos || []).join(", ")}
+                                onChange={(e) =>
+                                  updateSelectedSection((s) => ({
+                                    ...s,
+                                    settings: {
+                                      ...s.settings,
+                                      logos: e.target.value.split(",").map((x) => x.trim()).filter(Boolean),
+                                    },
+                                  }))
+                                }
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                              />
+                            </>
+                          )}
+
+                          {selectedSection.type === "testimonial_slider" && (
+                            <div className="space-y-2">
+                              <input
+                                type="text"
+                                placeholder="Person / Jury Name"
+                                value={newQuote.name}
+                                onChange={(e) => setNewQuote({ ...newQuote, name: e.target.value })}
+                                className="w-full px-2 py-1 rounded bg-slate-900 border border-slate-700 text-white"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Quote / Review"
+                                value={newQuote.quote}
+                                onChange={(e) => setNewQuote({ ...newQuote, quote: e.target.value })}
+                                className="w-full px-2 py-1 rounded bg-slate-900 border border-slate-700 text-white"
+                              />
+                              <button
+                                onClick={() => {
+                                  if (!newQuote.quote.trim()) return
+                                  updateSelectedSection((s) => ({
+                                    ...s,
+                                    settings: {
+                                      ...s.settings,
+                                      quotes: [...(s.settings?.quotes || []), { ...newQuote }],
+                                    },
+                                  }))
+                                  setNewQuote({ name: "", quote: "" })
+                                }}
+                                className="w-full py-1 rounded bg-indigo-600 text-white font-bold cursor-pointer"
+                              >
+                                + Add Quote
+                              </button>
+                            </div>
+                          )}
+
+                          {selectedSection.type === "heading_banner" && (
+                            <>
+                              <input
+                                type="text"
+                                placeholder="Heading Title"
+                                value={selectedSection.settings?.heading || ""}
+                                onChange={(e) =>
+                                  updateSelectedSection((s) => ({
+                                    ...s,
+                                    settings: { ...s.settings, heading: e.target.value },
+                                  }))
+                                }
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-bold"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Subheading"
+                                value={selectedSection.settings?.subheading || ""}
+                                onChange={(e) =>
+                                  updateSelectedSection((s) => ({
+                                    ...s,
+                                    settings: { ...s.settings, subheading: e.target.value },
+                                  }))
+                                }
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                              />
+                            </>
+                          )}
+
+                          {selectedSection.type === "custom_html" && (
+                            <textarea
+                              rows={4}
+                              placeholder="<div>Custom HTML</div>"
+                              value={selectedSection.settings?.html || ""}
+                              onChange={(e) =>
+                                updateSelectedSection((s) => ({
+                                  ...s,
+                                  settings: { ...s.settings, html: e.target.value },
+                                }))
+                              }
+                              className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-emerald-300 font-mono text-[11px]"
+                            />
+                          )}
+
+                          {["stats", "leaderboard", "results", "schedule", "gallery", "videos", "news", "contact"].includes(
+                            selectedSection.type
+                          ) && (
+                            <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 space-y-2 text-[11px] text-slate-300">
+                              <p>
+                                Dynamically synced with FesPro Database. Use <strong>BG Studio</strong>, <strong>Layout</strong>, or <strong>Effects</strong> above to style this section!
+                              </p>
+                              {(selectedSection.type === "gallery" || selectedSection.type === "videos") && (
+                                <button
+                                  onClick={() => {
+                                    setActivePanel("media")
+                                    setMediaSubTab(selectedSection.type === "gallery" ? "gallery" : "videos")
+                                  }}
+                                  className="px-2.5 py-1 rounded bg-indigo-600 text-white font-bold cursor-pointer"
+                                >
+                                  Open Media Studio
+                                </button>
+                              )}
+                              {selectedSection.type === "news" && (
+                                <button
+                                  onClick={() => {
+                                    setActivePanel("seo")
+                                    setSeoSubTab("news")
+                                  }}
+                                  className="px-2.5 py-1 rounded bg-indigo-600 text-white font-bold cursor-pointer"
+                                >
+                                  Manage Bulletins
+                                </button>
+                              )}
+                              {selectedSection.type === "contact" && (
+                                <button
+                                  onClick={() => setActivePanel("footer")}
+                                  className="px-2.5 py-1 rounded bg-indigo-600 text-white font-bold cursor-pointer"
+                                >
+                                  Edit Venue &amp; Contact
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* SUBTAB B: SECTION BACKGROUND STUDIO */}
                       {sectionSubTab === "background" && (
                         <div className="space-y-3">
                           <div>
@@ -716,13 +1287,31 @@ export default function FesProStudioPage() {
                                     }))
                                     setNewBgSlideUrl("")
                                   }}
-                                  className="px-2.5 py-1 rounded bg-indigo-600 text-white font-bold"
+                                  className="px-2.5 py-1 rounded bg-indigo-600 text-white font-bold cursor-pointer"
                                 >
                                   Add
                                 </button>
                               </div>
-                              <div className="text-[10px] text-slate-400">
-                                {(selectedSection.background.sliderImages || []).length} background slide(s) active
+                              <div className="space-y-1 max-h-24 overflow-y-auto">
+                                {(selectedSection.background.sliderImages || []).map((url, idx) => (
+                                  <div key={idx} className="flex items-center justify-between gap-2 px-2 py-1 rounded bg-slate-900 text-[10px]">
+                                    <span className="truncate text-slate-300">Slide {idx + 1}</span>
+                                    <button
+                                      onClick={() =>
+                                        updateSelectedSection((s) => ({
+                                          ...s,
+                                          background: {
+                                            ...s.background!,
+                                            sliderImages: (s.background?.sliderImages || []).filter((_, i) => i !== idx),
+                                          },
+                                        }))
+                                      }
+                                      className="text-rose-400 cursor-pointer"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                ))}
                               </div>
                             </div>
                           )}
@@ -743,10 +1332,9 @@ export default function FesProStudioPage() {
                             </select>
                           )}
 
-                          {/* Overlay Opacity */}
                           <div>
                             <label className="text-[10px] text-slate-400">
-                              Background Overlay Opacity: {selectedSection.background?.overlayOpacity ?? 50}%
+                              Overlay Opacity: {selectedSection.background?.overlayOpacity ?? 50}%
                             </label>
                             <input
                               type="range"
@@ -769,7 +1357,7 @@ export default function FesProStudioPage() {
                         </div>
                       )}
 
-                      {/* SUBTAB B: SECTION LAYOUT */}
+                      {/* SUBTAB C: SECTION LAYOUT */}
                       {sectionSubTab === "layout" && (
                         <div className="space-y-2.5">
                           <div className="grid grid-cols-2 gap-2">
@@ -846,7 +1434,7 @@ export default function FesProStudioPage() {
                         </div>
                       )}
 
-                      {/* SUBTAB C: SECTION EFFECTS & SVG SHAPE DIVIDERS */}
+                      {/* SUBTAB D: SECTION EFFECTS & SVG SHAPE DIVIDERS */}
                       {sectionSubTab === "effects" && (
                         <div className="space-y-2.5">
                           <div className="grid grid-cols-2 gap-2">
@@ -910,204 +1498,13 @@ export default function FesProStudioPage() {
                           </div>
                         </div>
                       )}
-
-                      {/* SUBTAB D: SECTION CONTENT & SLIDER STUDIO */}
-                      {sectionSubTab === "content" && (
-                        <div className="space-y-2.5">
-                          {selectedSection.type === "hero" && (
-                            <>
-                              <input
-                                type="text"
-                                placeholder="Hero Main Heading"
-                                value={config.heroTitle || ""}
-                                onChange={(e) => updateConfig((p) => ({ ...p, heroTitle: e.target.value }))}
-                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-bold"
-                              />
-                              <textarea
-                                rows={2}
-                                placeholder="Hero Subtitle"
-                                value={config.heroSubtitle || ""}
-                                onChange={(e) => updateConfig((p) => ({ ...p, heroSubtitle: e.target.value }))}
-                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
-                              />
-                            </>
-                          )}
-
-                          {selectedSection.type === "marquee" && (
-                            <>
-                              <textarea
-                                rows={3}
-                                placeholder="Marquee ticker scrolling text..."
-                                value={selectedSection.settings?.text || ""}
-                                onChange={(e) =>
-                                  updateSelectedSection((s) => ({
-                                    ...s,
-                                    settings: { ...s.settings, text: e.target.value },
-                                  }))
-                                }
-                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
-                              />
-                              <label className="text-[10px] text-slate-400">
-                                Scroll Speed: {selectedSection.settings?.speedSeconds || 22}s
-                              </label>
-                              <input
-                                type="range"
-                                min={8}
-                                max={45}
-                                value={selectedSection.settings?.speedSeconds || 22}
-                                onChange={(e) =>
-                                  updateSelectedSection((s) => ({
-                                    ...s,
-                                    settings: { ...s.settings, speedSeconds: Number(e.target.value) },
-                                  }))
-                                }
-                                className="w-full accent-indigo-500"
-                              />
-                            </>
-                          )}
-
-                          {(selectedSection.type === "image_banner" || selectedSection.type === "gif_banner") && (
-                            <>
-                              <input
-                                type="text"
-                                placeholder="Image or GIF URL"
-                                value={selectedSection.settings?.mediaUrl || ""}
-                                onChange={(e) =>
-                                  updateSelectedSection((s) => ({
-                                    ...s,
-                                    settings: { ...s.settings, mediaUrl: e.target.value },
-                                  }))
-                                }
-                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
-                              />
-                              <input
-                                type="text"
-                                placeholder="Overlay Title (Optional)"
-                                value={selectedSection.settings?.title || ""}
-                                onChange={(e) =>
-                                  updateSelectedSection((s) => ({
-                                    ...s,
-                                    settings: { ...s.settings, title: e.target.value },
-                                  }))
-                                }
-                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
-                              />
-                            </>
-                          )}
-
-                          {selectedSection.type === "slider_banner" && (
-                            <div className="space-y-2">
-                              <div className="grid grid-cols-2 gap-2">
-                                <select
-                                  value={selectedSection.settings?.transition || "fade"}
-                                  onChange={(e) =>
-                                    updateSelectedSection((s) => ({
-                                      ...s,
-                                      settings: { ...s.settings, transition: e.target.value },
-                                    }))
-                                  }
-                                  className="px-2 py-1 rounded bg-slate-900 border border-slate-700 text-white"
-                                >
-                                  <option value="fade">Fade</option>
-                                  <option value="zoom">Zoom</option>
-                                  <option value="ken_burns">Ken Burns</option>
-                                </select>
-                                <label className="flex items-center gap-1.5 text-slate-300">
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedSection.settings?.autoplay !== false}
-                                    onChange={(e) =>
-                                      updateSelectedSection((s) => ({
-                                        ...s,
-                                        settings: { ...s.settings, autoplay: e.target.checked },
-                                      }))
-                                    }
-                                    className="accent-indigo-500"
-                                  />
-                                  Autoplay
-                                </label>
-                              </div>
-
-                              <div className="p-2 rounded bg-slate-900 border border-slate-800 space-y-1.5">
-                                <span className="text-[10px] font-bold text-indigo-400">+ Add New Slide</span>
-                                <input
-                                  type="text"
-                                  placeholder="Slide Image URL"
-                                  value={newSlide.imageUrl}
-                                  onChange={(e) => setNewSlide({ ...newSlide, imageUrl: e.target.value })}
-                                  className="w-full px-2 py-1 rounded bg-slate-950 border border-slate-800 text-white"
-                                />
-                                <input
-                                  type="text"
-                                  placeholder="Slide Heading"
-                                  value={newSlide.heading}
-                                  onChange={(e) => setNewSlide({ ...newSlide, heading: e.target.value })}
-                                  className="w-full px-2 py-1 rounded bg-slate-950 border border-slate-800 text-white"
-                                />
-                                <button
-                                  onClick={() => {
-                                    if (!newSlide.imageUrl.trim()) return
-                                    const item: SliderSlideItem = {
-                                      id: `sl-${Date.now()}`,
-                                      imageUrl: newSlide.imageUrl.trim(),
-                                      heading: newSlide.heading || "Festival Highlight",
-                                      ctaText: newSlide.ctaText,
-                                      ctaUrl: "#results",
-                                      overlayOpacity: 45,
-                                    }
-                                    updateSelectedSection((s) => ({
-                                      ...s,
-                                      settings: { ...s.settings, slides: [...(s.settings?.slides || []), item] },
-                                    }))
-                                    setNewSlide({ imageUrl: "", heading: "", description: "", ctaText: "Explore" })
-                                    toast.success("Slide added to Slider!")
-                                  }}
-                                  className="w-full py-1 rounded bg-indigo-600 text-white font-bold cursor-pointer"
-                                >
-                                  Add Slide
-                                </button>
-                              </div>
-                            </div>
-                          )}
-
-                          {selectedSection.type === "announcement_bar" && (
-                            <input
-                              type="text"
-                              placeholder="Alert notice text..."
-                              value={selectedSection.settings?.text || ""}
-                              onChange={(e) =>
-                                updateSelectedSection((s) => ({
-                                  ...s,
-                                  settings: { ...s.settings, text: e.target.value },
-                                }))
-                              }
-                              className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
-                            />
-                          )}
-
-                          {selectedSection.type === "custom_html" && (
-                            <textarea
-                              rows={4}
-                              placeholder="<div>Custom HTML</div>"
-                              value={selectedSection.settings?.html || ""}
-                              onChange={(e) =>
-                                updateSelectedSection((s) => ({
-                                  ...s,
-                                  settings: { ...s.settings, html: e.target.value },
-                                }))
-                              }
-                              className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-emerald-300 font-mono text-[11px]"
-                            />
-                          )}
-                        </div>
-                      )}
                     </div>
                   )}
 
-                  {/* Between-Sections Creative Component Insert Library */}
+                  {/* Between-Sections Insert Library */}
                   <div className="space-y-2 pt-2 border-t border-slate-800">
                     <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400">
-                      + Insert Between Sections (Creative Library)
+                      + Insert Between Sections
                     </span>
                     <div className="grid grid-cols-2 gap-1.5">
                       {[
@@ -1143,7 +1540,7 @@ export default function FesProStudioPage() {
                 <div className="space-y-3">
                   <div>
                     <h3 className="text-sm font-black text-white">Festival Template Kits</h3>
-                    <p className="text-[11px] text-slate-400 mt-0.5">Instant design kits built for every cultural &amp; campus event.</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">One-click style presets for every event type.</p>
                   </div>
                   <div className="space-y-2.5">
                     {READY_MADE_TEMPLATES.map((tpl) => {
@@ -1176,14 +1573,14 @@ export default function FesProStudioPage() {
                 </div>
               )}
 
-              {/* ── 3. GLOBAL DESIGN SYSTEM ── */}
+              {/* ── 3. DESIGN SYSTEM ── */}
               {activePanel === "design" && (
                 <div className="space-y-4">
                   <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
                     {[
                       { id: "colors", label: "Colours" },
                       { id: "typography", label: "Fonts" },
-                      { id: "shape", label: "Theme & Shape" },
+                      { id: "shape", label: "Shape" },
                     ].map((t) => (
                       <button
                         key={t.id}
@@ -1199,6 +1596,29 @@ export default function FesProStudioPage() {
 
                   {designSubTab === "colors" && (
                     <div className="space-y-3">
+                      <button
+                        onClick={() =>
+                          updateConfig((prev) => ({
+                            ...prev,
+                            themeMode: palette.themeMode === "dark" ? "light" : "dark",
+                            globalDesign: {
+                              ...prev.globalDesign!,
+                              palette: {
+                                ...palette,
+                                themeMode: palette.themeMode === "dark" ? "light" : "dark",
+                                background: palette.themeMode === "dark" ? "#F8FAFC" : "#0F172A",
+                                surface: palette.themeMode === "dark" ? "#FFFFFF" : "#1E293B",
+                                text: palette.themeMode === "dark" ? "#0F172A" : "#FFFFFF",
+                                mutedText: palette.themeMode === "dark" ? "#475569" : "#94A3B8",
+                              },
+                            },
+                          }))
+                        }
+                        className="w-full py-2 rounded-xl bg-slate-950 border border-slate-800 font-bold text-amber-300 cursor-pointer"
+                      >
+                        Switch to {palette.themeMode === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode"}
+                      </button>
+
                       {RECOMMENDED_COLOR_PALETTES.map((pal) => (
                         <button
                           key={pal.id}
@@ -1230,6 +1650,7 @@ export default function FesProStudioPage() {
                           { key: "accent", label: "Accent Highlight" },
                           { key: "background", label: "Page Background" },
                           { key: "surface", label: "Card Surface" },
+                          { key: "text", label: "Primary Text Color" },
                         ].map((cf) => (
                           <div key={cf.key} className="flex items-center justify-between">
                             <span className="text-slate-300">{cf.label}</span>
@@ -1282,7 +1703,7 @@ export default function FesProStudioPage() {
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label className="text-[10px] text-slate-400">Malayalam Font</label>
+                          <label className="text-[10px] text-slate-400">Malayalam</label>
                           <select
                             value={typo.malayalamFont}
                             onChange={(e) =>
@@ -1294,7 +1715,7 @@ export default function FesProStudioPage() {
                           </select>
                         </div>
                         <div>
-                          <label className="text-[10px] text-slate-400">Arabic Font</label>
+                          <label className="text-[10px] text-slate-400">Arabic / Urdu</label>
                           <select
                             value={typo.arabicFont}
                             onChange={(e) =>
@@ -1306,15 +1727,31 @@ export default function FesProStudioPage() {
                           </select>
                         </div>
                       </div>
-                      <input
-                        type="text"
-                        placeholder="Custom WOFF2 / TTF Font URL"
-                        value={typo.customFontUrl || ""}
-                        onChange={(e) =>
-                          updateConfig((p) => ({ ...p, globalDesign: { ...p.globalDesign!, typography: { ...typo, customFontUrl: e.target.value } } }))
-                        }
-                        className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white"
-                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <select
+                          value={typo.headingSize}
+                          onChange={(e) =>
+                            updateConfig((p) => ({ ...p, globalDesign: { ...p.globalDesign!, typography: { ...typo, headingSize: e.target.value as any } } }))
+                          }
+                          className="px-2 py-1.5 rounded bg-slate-950 border border-slate-800 text-white"
+                        >
+                          <option value="compact">Compact Size</option>
+                          <option value="standard">Standard Size</option>
+                          <option value="large">Large Display</option>
+                          <option value="heroic">Heroic Display</option>
+                        </select>
+                        <select
+                          value={typo.textTransform}
+                          onChange={(e) =>
+                            updateConfig((p) => ({ ...p, globalDesign: { ...p.globalDesign!, typography: { ...typo, textTransform: e.target.value as any } } }))
+                          }
+                          className="px-2 py-1.5 rounded bg-slate-950 border border-slate-800 text-white"
+                        >
+                          <option value="none">Normal Case</option>
+                          <option value="uppercase">UPPERCASE</option>
+                          <option value="capitalize">Capitalize</option>
+                        </select>
+                      </div>
                     </div>
                   )}
 
@@ -1335,19 +1772,30 @@ export default function FesProStudioPage() {
                           </button>
                         ))}
                       </div>
-                      <div>
-                        <label className="text-[10px] text-slate-400">Global Radius</label>
+                      <div className="grid grid-cols-2 gap-2">
                         <select
                           value={shape.borderRadius}
                           onChange={(e) =>
                             updateConfig((p) => ({ ...p, globalDesign: { ...p.globalDesign!, shape: { ...shape, borderRadius: e.target.value as any } } }))
                           }
-                          className="w-full px-2 py-1.5 rounded bg-slate-950 border border-slate-800 text-white mt-1"
+                          className="px-2 py-1.5 rounded bg-slate-950 border border-slate-800 text-white"
                         >
-                          <option value="0px">0px (Sharp)</option>
-                          <option value="8px">8px</option>
-                          <option value="16px">16px</option>
-                          <option value="24px">24px</option>
+                          <option value="0px">Radius: 0px</option>
+                          <option value="8px">Radius: 8px</option>
+                          <option value="16px">Radius: 16px</option>
+                          <option value="24px">Radius: 24px</option>
+                        </select>
+                        <select
+                          value={shape.buttonShape}
+                          onChange={(e) =>
+                            updateConfig((p) => ({ ...p, globalDesign: { ...p.globalDesign!, shape: { ...shape, buttonShape: e.target.value as any } } }))
+                          }
+                          className="px-2 py-1.5 rounded bg-slate-950 border border-slate-800 text-white"
+                        >
+                          <option value="rounded">Btn: Rounded</option>
+                          <option value="pill">Btn: Pill</option>
+                          <option value="sharp">Btn: Sharp</option>
+                          <option value="brutal">Btn: Brutal</option>
                         </select>
                       </div>
                     </div>
@@ -1361,7 +1809,7 @@ export default function FesProStudioPage() {
                   <div>
                     <h3 className="text-sm font-black text-white">Header Design Studio</h3>
                     <p className="text-[11px] text-slate-400 mt-0.5">
-                      Customize header background (Solid, Gradient, Image, GIF, Video), layout &amp; scroll behavior.
+                      Customize header background, logo alignment, height &amp; scroll behavior.
                     </p>
                   </div>
 
@@ -1381,6 +1829,29 @@ export default function FesProStudioPage() {
                       <option value="transparent">Transparent Header</option>
                     </select>
                   </div>
+
+                  {hdr.bgType === "gradient" && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] text-slate-400">Gradient From</label>
+                        <input
+                          type="color"
+                          value={hdr.gradientFrom || palette.primary}
+                          onChange={(e) => updateConfig((p) => ({ ...p, headerConfig: { ...hdr, gradientFrom: e.target.value } }))}
+                          className="w-full h-7 rounded bg-slate-950"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400">Gradient To</label>
+                        <input
+                          type="color"
+                          value={hdr.gradientTo || palette.secondary}
+                          onChange={(e) => updateConfig((p) => ({ ...p, headerConfig: { ...hdr, gradientTo: e.target.value } }))}
+                          className="w-full h-7 rounded bg-slate-950"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {(hdr.bgType === "image" || hdr.bgType === "gif" || hdr.bgType === "video") && (
                     <div className="space-y-2">
@@ -1429,19 +1900,40 @@ export default function FesProStudioPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-[10px] text-slate-400">Scroll Effect</label>
+                      <label className="text-[10px] text-slate-400">Header Height</label>
                       <select
-                        value={hdr.scrollEffect || "none"}
-                        onChange={(e) => updateConfig((p) => ({ ...p, headerConfig: { ...hdr, scrollEffect: e.target.value as any } }))}
+                        value={hdr.height || "standard"}
+                        onChange={(e) => updateConfig((p) => ({ ...p, headerConfig: { ...hdr, height: e.target.value as any } }))}
                         className="w-full px-2 py-1.5 rounded bg-slate-950 border border-slate-800 text-white mt-0.5"
                       >
-                        <option value="none">Normal Sticky</option>
-                        <option value="shrink">Shrink on Scroll</option>
-                        <option value="bg_change">BG Change on Scroll</option>
-                        <option value="hide_on_scroll">Hide on Scroll Down</option>
+                        <option value="compact">Compact</option>
+                        <option value="standard">Standard</option>
+                        <option value="tall">Tall</option>
                       </select>
                     </div>
                   </div>
+
+                  <div>
+                    <label className="text-[10px] text-slate-400">Scroll Effect</label>
+                    <select
+                      value={hdr.scrollEffect || "none"}
+                      onChange={(e) => updateConfig((p) => ({ ...p, headerConfig: { ...hdr, scrollEffect: e.target.value as any } }))}
+                      className="w-full px-2 py-1.5 rounded bg-slate-950 border border-slate-800 text-white mt-0.5"
+                    >
+                      <option value="none">Normal Sticky</option>
+                      <option value="shrink">Shrink on Scroll</option>
+                      <option value="bg_change">BG Change on Scroll</option>
+                      <option value="hide_on_scroll">Hide on Scroll Down</option>
+                    </select>
+                  </div>
+
+                  <input
+                    type="text"
+                    placeholder="Tagline below festival name"
+                    value={hdr.tagline || ""}
+                    onChange={(e) => updateConfig((p) => ({ ...p, headerConfig: { ...hdr, tagline: e.target.value } }))}
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white"
+                  />
 
                   <input
                     type="text"
@@ -1525,15 +2017,27 @@ export default function FesProStudioPage() {
                       className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white"
                     />
                   ))}
+                  <input
+                    type="text"
+                    placeholder="Custom Copyright Text"
+                    value={config.footerConfig?.copyrightText || ""}
+                    onChange={(e) =>
+                      updateConfig((p) => ({ ...p, footerConfig: { ...p.footerConfig, copyrightText: e.target.value } }))
+                    }
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white"
+                  />
                 </div>
               )}
 
-              {/* ── 6. GALLERY & VIDEO STUDIO ── */}
+              {/* ── 6. MEDIA STUDIO (WITH DELETE BUTTONS!) ── */}
               {activePanel === "media" && (
                 <div className="space-y-4">
                   <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
                     <button
-                      onClick={() => setMediaSubTab("gallery")}
+                      onClick={() => {
+                        setMediaSubTab("gallery")
+                        setCanvasTab("gallery")
+                      }}
                       className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold cursor-pointer ${
                         mediaSubTab === "gallery" ? "bg-indigo-600 text-white" : "text-slate-400"
                       }`}
@@ -1541,7 +2045,10 @@ export default function FesProStudioPage() {
                       Gallery Builder
                     </button>
                     <button
-                      onClick={() => setMediaSubTab("videos")}
+                      onClick={() => {
+                        setMediaSubTab("videos")
+                        setCanvasTab("videos")
+                      }}
                       className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold cursor-pointer ${
                         mediaSubTab === "videos" ? "bg-indigo-600 text-white" : "text-slate-400"
                       }`}
@@ -1581,6 +2088,16 @@ export default function FesProStudioPage() {
                         </select>
                       </div>
 
+                      <input
+                        type="text"
+                        placeholder="Watermark Text (Optional)"
+                        value={config.galleryStudio?.watermarkText || ""}
+                        onChange={(e) =>
+                          updateConfig((p) => ({ ...p, galleryStudio: { ...p.galleryStudio!, watermarkText: e.target.value } }))
+                        }
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white"
+                      />
+
                       <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
                         <input
                           type="text"
@@ -1611,6 +2128,23 @@ export default function FesProStudioPage() {
                           + Add Gallery Photo
                         </button>
                       </div>
+
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                        {(config.gallery || []).map((g) => (
+                          <div key={g.id} className="p-2 rounded-lg bg-slate-950 border border-slate-800 flex items-center gap-2">
+                            <img src={g.url} alt={g.title} className="h-8 w-8 rounded object-cover" />
+                            <span className="flex-1 truncate text-slate-300">{g.title}</span>
+                            <button
+                              onClick={() =>
+                                updateConfig((p) => ({ ...p, gallery: (p.gallery || []).filter((x) => x.id !== g.id) }))
+                              }
+                              className="text-rose-400 cursor-pointer"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -1633,6 +2167,15 @@ export default function FesProStudioPage() {
                           <option value="facebook">Facebook Video</option>
                           <option value="vimeo">Vimeo</option>
                           <option value="mp4">Direct MP4 Video</option>
+                        </select>
+                        <select
+                          value={newVideo.aspectRatio}
+                          onChange={(e) => setNewVideo({ ...newVideo, aspectRatio: e.target.value as any })}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-white"
+                        >
+                          <option value="16:9">16:9 Widescreen</option>
+                          <option value="9:16">9:16 Vertical Reels</option>
+                          <option value="1:1">1:1 Square</option>
                         </select>
                         <input
                           type="text"
@@ -1658,6 +2201,28 @@ export default function FesProStudioPage() {
                         >
                           + Add Video
                         </button>
+                      </div>
+
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                        {(config.videoStudio?.videos || []).map((v) => (
+                          <div key={v.id} className="p-2 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+                            <span className="truncate text-slate-300 flex-1">{v.title}</span>
+                            <button
+                              onClick={() =>
+                                updateConfig((p) => ({
+                                  ...p,
+                                  videoStudio: {
+                                    layout: p.videoStudio?.layout || "featured_playlist",
+                                    videos: (p.videoStudio?.videos || []).filter((x) => x.id !== v.id),
+                                  },
+                                }))
+                              }
+                              className="text-rose-400 cursor-pointer"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -1756,6 +2321,21 @@ export default function FesProStudioPage() {
                       >
                         + Publish Bulletin
                       </button>
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto pt-2">
+                        {(config.news || []).map((n) => (
+                          <div key={n.id} className="p-2 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+                            <span className="truncate text-slate-300 flex-1">{n.title}</span>
+                            <button
+                              onClick={() =>
+                                updateConfig((p) => ({ ...p, news: (p.news || []).filter((x) => x.id !== n.id) }))
+                              }
+                              className="text-rose-400 cursor-pointer"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 
@@ -1790,6 +2370,15 @@ export default function FesProStudioPage() {
                         }
                         className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white"
                       />
+                      <input
+                        type="text"
+                        placeholder="Popup Action Button Text"
+                        value={config.popupBuilder?.ctaText || ""}
+                        onChange={(e) =>
+                          updateConfig((p) => ({ ...p, popupBuilder: { ...p.popupBuilder!, ctaText: e.target.value } }))
+                        }
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white"
+                      />
                     </div>
                   )}
 
@@ -1809,6 +2398,18 @@ export default function FesProStudioPage() {
                           className="accent-rose-500 h-4 w-4"
                         />
                       </label>
+                      <input
+                        type="text"
+                        placeholder="SEO Meta Title"
+                        value={config.seoAndAdvanced?.metaTitle || ""}
+                        onChange={(e) =>
+                          updateConfig((p) => ({
+                            ...p,
+                            seoAndAdvanced: { ...p.seoAndAdvanced, metaTitle: e.target.value },
+                          }))
+                        }
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white"
+                      />
                       <textarea
                         rows={5}
                         placeholder="Custom CSS Overrides..."
@@ -1829,32 +2430,65 @@ export default function FesProStudioPage() {
           </aside>
         )}
 
-        {/* RIGHT PANE: LIVE WYSIWYG CANVAS */}
-        <main className="flex-1 overflow-y-auto bg-slate-950 p-3 sm:p-6 flex justify-center items-start">
-          <div
-            className={`transition-all duration-300 border border-slate-800 shadow-2xl overflow-hidden bg-slate-950 ${
-              viewport === "mobile"
-                ? "w-[390px] rounded-[2rem] border-4 border-slate-800"
-                : viewport === "tablet"
-                ? "w-[768px] rounded-2xl border-2 border-slate-800"
-                : "w-full rounded-xl"
-            }`}
-          >
-            <FestivalSiteRenderer
-              festivalName={festivalData?.name || "Festival Portal"}
-              festival={festivalData}
-              config={config}
-              results={results}
-              teamPoints={teamPoints}
-              schedules={schedules}
-              stats={stats}
-              isEditorMode={!isPreviewMode}
-              selectedSectionId={selectedSectionId}
-              onSelectSection={(secId) => {
-                setSelectedSectionId(secId)
-                setActivePanel("sections")
-              }}
-            />
+        {/* RIGHT PANE: LIVE INTERACTIVE CANVAS */}
+        <main className="flex-1 flex flex-col overflow-hidden bg-slate-950">
+          {/* Canvas Page Switcher Strip */}
+          {!isPreviewMode && (
+            <div className="bg-slate-900/70 border-b border-slate-800 px-4 py-1.5 flex items-center justify-between gap-2 overflow-x-auto shrink-0">
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] font-bold text-slate-400 mr-2">CANVAS VIEW:</span>
+                {[
+                  { id: "overview", label: "Overview Home" },
+                  { id: "results", label: "Results" },
+                  { id: "schedule", label: "Schedule" },
+                  { id: "leaderboard", label: "Standings" },
+                  { id: "gallery", label: "Gallery" },
+                  { id: "videos", label: "Videos" },
+                  { id: "news", label: "News" },
+                ].map((ct) => (
+                  <button
+                    key={ct.id}
+                    onClick={() => setCanvasTab(ct.id as CanvasTabType)}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold cursor-pointer whitespace-nowrap ${
+                      canvasTab === ct.id ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    {ct.label}
+                  </button>
+                ))}
+              </div>
+              <span className="text-[10px] text-slate-500 hidden lg:inline">Click any section on canvas to edit</span>
+            </div>
+          )}
+
+          <div className="flex-1 overflow-y-auto p-3 sm:p-6 flex justify-center items-start">
+            <div
+              className={`transition-all duration-300 border border-slate-800 shadow-2xl overflow-hidden bg-slate-950 ${
+                viewport === "mobile"
+                  ? "w-[390px] rounded-[2rem] border-4 border-slate-800"
+                  : viewport === "tablet"
+                  ? "w-[768px] rounded-2xl border-2 border-slate-800"
+                  : "w-full rounded-xl"
+              }`}
+            >
+              <FestivalSiteRenderer
+                festivalName={festivalData?.name || "Festival Portal"}
+                festival={festivalData}
+                config={config}
+                results={results}
+                teamPoints={teamPoints}
+                schedules={schedules}
+                stats={stats}
+                isEditorMode={!isPreviewMode}
+                selectedSectionId={selectedSectionId}
+                forcedTab={canvasTab}
+                onTabChange={(t) => setCanvasTab(t)}
+                onSelectSection={(secId) => {
+                  setSelectedSectionId(secId)
+                  setActivePanel("sections")
+                }}
+              />
+            </div>
           </div>
         </main>
       </div>

@@ -4,33 +4,73 @@ import { revalidatePath } from "next/cache"
 import crypto from "crypto"
 import fs from "fs"
 import path from "path"
+import os from "os"
 import { createAdminClient } from "@/lib/supabase/admin"
 import type { SaasLicense, GenerateLicenseInput, LicenseStatus } from "@/types/licensing"
-import defaultLicensesJson from "@/config/local-licenses.json"
 
-// Fallback local file store to ensure 100% operation even if Supabase table migration hasn't been executed yet
-const LOCAL_STORE_PATH = path.join(process.cwd(), "src", "config", "local-licenses.json")
+const REPO_STORE_PATH = path.join(process.cwd(), "src", "config", "local-licenses.json")
+const TMP_STORE_PATH = path.join(os.tmpdir(), "festpro-local-licenses.json")
 
 function readLocalLicenses(): SaasLicense[] {
-  try {
-    if (fs.existsSync(LOCAL_STORE_PATH)) {
-      const content = fs.readFileSync(LOCAL_STORE_PATH, "utf-8")
-      const parsed = JSON.parse(content)
-      if (Array.isArray(parsed)) return parsed
-    }
-  } catch (err) {
-    console.error("Failed to read local licenses store:", err)
+  for (const p of [TMP_STORE_PATH, REPO_STORE_PATH]) {
+    try {
+      if (fs.existsSync(p)) {
+        const content = fs.readFileSync(p, "utf-8")
+        const parsed = JSON.parse(content)
+        if (Array.isArray(parsed)) return parsed
+      }
+    } catch {}
   }
   return []
 }
 
 function writeLocalLicenses(licenses: SaasLicense[]) {
+  const payload = JSON.stringify(licenses, null, 2)
+  // Always write to writable tmpdir on serverless (Vercel) and repo path locally
   try {
-    const dir = path.dirname(LOCAL_STORE_PATH)
+    fs.writeFileSync(TMP_STORE_PATH, payload, "utf-8")
+  } catch {}
+  try {
+    const dir = path.dirname(REPO_STORE_PATH)
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-    fs.writeFileSync(LOCAL_STORE_PATH, JSON.stringify(licenses, null, 2), "utf-8")
-  } catch (err) {
-    console.error("Failed to write local licenses store:", err)
+    fs.writeFileSync(REPO_STORE_PATH, payload, "utf-8")
+  } catch {}
+}
+
+function packQuotaNotes(
+  rawNotes: string | null | undefined,
+  quota: {
+    max_participants?: number | null
+    max_competitions?: number | null
+    max_stages?: number | null
+    plan_tier?: string
+    valid_until?: string | null
+  }
+): string | null {
+  const cleanNote = (rawNotes || "").replace(/\s*<!--QUOTA:[\s\S]*?-->/g, "").trim()
+  const json = JSON.stringify(quota)
+  return cleanNote ? `${cleanNote} <!--QUOTA:${json}-->` : `<!--QUOTA:${json}-->`
+}
+
+function unpackLicenseRecord(row: any): SaasLicense {
+  if (!row) return row
+  let notes = row.notes || ""
+  let extracted: any = {}
+  const match = typeof notes === "string" ? notes.match(/<!--QUOTA:([\s\S]*?)-->/) : null
+  if (match && match[1]) {
+    try {
+      extracted = JSON.parse(match[1])
+    } catch {}
+    notes = notes.replace(/\s*<!--QUOTA:[\s\S]*?-->/g, "").trim() || null
+  }
+  return {
+    ...row,
+    notes: notes || null,
+    max_participants: row.max_participants ?? extracted.max_participants ?? null,
+    max_competitions: row.max_competitions ?? extracted.max_competitions ?? null,
+    max_stages: row.max_stages ?? extracted.max_stages ?? null,
+    plan_tier: row.plan_tier ?? extracted.plan_tier ?? "pro",
+    valid_until: row.valid_until ?? extracted.valid_until ?? null,
   }
 }
 
@@ -52,13 +92,21 @@ export async function generateLicense(input: GenerateLicenseInput) {
     const paid_amount = Number(input.paid_amount) || 0
     const pending_amount = Math.max(0, total_amount - paid_amount)
     const max_festivals = input.max_festivals !== undefined ? Number(input.max_festivals) : 1
-    const max_participants = input.max_participants !== undefined ? Number(input.max_participants) : null
-    const max_competitions = input.max_competitions !== undefined ? Number(input.max_competitions) : null
-    const max_stages = input.max_stages !== undefined ? Number(input.max_stages) : null
+    const max_participants = input.max_participants !== undefined && input.max_participants !== null ? Number(input.max_participants) : null
+    const max_competitions = input.max_competitions !== undefined && input.max_competitions !== null ? Number(input.max_competitions) : null
+    const max_stages = input.max_stages !== undefined && input.max_stages !== null ? Number(input.max_stages) : null
     const plan_tier = input.plan_tier || "pro"
     const valid_until = input.valid_until || null
 
-    const newRecord: SaasLicense = {
+    const packedNotes = packQuotaNotes(input.notes, {
+      max_participants,
+      max_competitions,
+      max_stages,
+      plan_tier,
+      valid_until,
+    })
+
+    const baseRecord = {
       id: crypto.randomUUID(),
       license_key,
       client_name: input.client_name.trim(),
@@ -70,43 +118,48 @@ export async function generateLicense(input: GenerateLicenseInput) {
       paid_amount,
       pending_amount,
       max_festivals,
+      is_activated: false,
+      activated_at: null,
+      organization_id: null,
+      notes: packedNotes,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+
+    const fullRecord: SaasLicense = {
+      ...baseRecord,
       max_participants,
       max_competitions,
       max_stages,
       plan_tier,
       valid_until,
-      is_activated: false,
-      activated_at: null,
-      organization_id: null,
-      notes: input.notes?.trim() || null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      status: "active",
     }
 
-    // Try Supabase first
+    // Try full insert first; if schema doesn't have extended columns yet, fall back to baseRecord (quota stored cleanly in notes)
     try {
-      const { data, error } = await admin
-        .from("saas_licenses")
-        .insert(newRecord)
-        .select()
-        .single()
-
+      const { data, error } = await admin.from("saas_licenses").insert(fullRecord).select().single()
       if (!error && data) {
         revalidatePath("/dashboard/licensing")
-        revalidatePath("/dashboard/admin/licenses")
-        return { success: true, license: data as SaasLicense }
+        return { success: true, license: unpackLicenseRecord(data) }
+      }
+      if (error) {
+        const { data: data2, error: err2 } = await admin.from("saas_licenses").insert(baseRecord).select().single()
+        if (!err2 && data2) {
+          revalidatePath("/dashboard/licensing")
+          return { success: true, license: unpackLicenseRecord(data2) }
+        }
       }
     } catch (dbErr) {
-      console.warn("Supabase saas_licenses insert failed, falling back to local store:", dbErr)
+      console.warn("Supabase saas_licenses insert fallback:", dbErr)
     }
 
-    // Fallback: Local JSON store
     const local = readLocalLicenses()
-    local.unshift(newRecord)
+    local.unshift(fullRecord)
     writeLocalLicenses(local)
 
     revalidatePath("/dashboard/licensing")
-    return { success: true, license: newRecord }
+    return { success: true, license: unpackLicenseRecord(fullRecord) }
   } catch (err: any) {
     console.error("generateLicense error:", err)
     return { error: err?.message || "Failed to generate license" }
@@ -127,39 +180,58 @@ export async function updateLicenseDetails(licenseId: string, updates: Partial<S
     const paid_amount = updates.paid_amount !== undefined ? Number(updates.paid_amount) : existing.paid_amount
     const pending_amount = Math.max(0, total_amount - paid_amount)
 
-    const payload = {
-      ...updates,
+    const quotaObj = {
+      max_participants: updates.max_participants !== undefined ? updates.max_participants : existing.max_participants,
+      max_competitions: updates.max_competitions !== undefined ? updates.max_competitions : existing.max_competitions,
+      max_stages: updates.max_stages !== undefined ? updates.max_stages : existing.max_stages,
+      plan_tier: updates.plan_tier !== undefined ? updates.plan_tier : existing.plan_tier,
+      valid_until: updates.valid_until !== undefined ? updates.valid_until : existing.valid_until,
+    }
+
+    const packedNotes = packQuotaNotes(
+      updates.notes !== undefined ? updates.notes : existing.notes,
+      quotaObj
+    )
+
+    const basePayload = {
+      client_name: updates.client_name ?? existing.client_name,
+      client_phone: updates.client_phone !== undefined ? updates.client_phone : existing.client_phone,
+      client_email: updates.client_email !== undefined ? updates.client_email : existing.client_email,
+      max_festivals: updates.max_festivals !== undefined ? updates.max_festivals : existing.max_festivals,
       total_amount,
       paid_amount,
       pending_amount,
+      notes: packedNotes,
       updated_at: new Date().toISOString(),
     }
 
-    try {
-      const { data, error } = await admin
-        .from("saas_licenses")
-        .update(payload)
-        .eq("id", licenseId)
-        .select()
-        .single()
+    const fullPayload = { ...basePayload, ...quotaObj }
 
+    try {
+      const { data, error } = await admin.from("saas_licenses").update(fullPayload).eq("id", licenseId).select().single()
       if (!error && data) {
         revalidatePath("/dashboard/licensing")
-        revalidatePath("/dashboard/admin/licenses")
-        return { success: true, license: data as SaasLicense }
+        return { success: true, license: unpackLicenseRecord(data) }
+      }
+      if (error) {
+        const { data: d2, error: e2 } = await admin.from("saas_licenses").update(basePayload).eq("id", licenseId).select().single()
+        if (!e2 && d2) {
+          revalidatePath("/dashboard/licensing")
+          return { success: true, license: unpackLicenseRecord(d2) }
+        }
       }
     } catch {}
 
     const local = readLocalLicenses()
     const idx = local.findIndex((l) => l.id === licenseId)
     if (idx !== -1) {
-      local[idx] = { ...local[idx], ...payload }
+      local[idx] = { ...local[idx], ...fullPayload }
       writeLocalLicenses(local)
       revalidatePath("/dashboard/licensing")
-      return { success: true, license: local[idx] }
+      return { success: true, license: unpackLicenseRecord(local[idx]) }
     }
 
-    return { error: "License not found in store" }
+    return { error: "License not found" }
   } catch (err: any) {
     return { error: err?.message || "Failed to update license" }
   }
@@ -180,7 +252,7 @@ export async function deleteLicenseAction(licenseId: string) {
     writeLocalLicenses(updated)
 
     revalidatePath("/dashboard/licensing")
-    revalidatePath("/dashboard/admin/licenses")
+    revalidatePath("/dashboard/admin")
     return { success: true }
   } catch (err: any) {
     return { error: err?.message || "Failed to delete license" }
@@ -188,19 +260,22 @@ export async function deleteLicenseAction(licenseId: string) {
 }
 
 /**
- * Clear all demo/sample licenses and reset store to clean production state
+ * Clear all licenses (valid UUID safe query)
  */
 export async function clearAllDemoLicensesAction() {
   try {
     const admin = createAdminClient()
     try {
-      await admin.from("saas_licenses").delete().neq("id", "none")
+      await admin
+        .from("saas_licenses")
+        .delete()
+        .neq("id", "00000000-0000-0000-0000-000000000000")
     } catch {}
 
     writeLocalLicenses([])
 
     revalidatePath("/dashboard/licensing")
-    revalidatePath("/dashboard/admin/licenses")
+    revalidatePath("/dashboard/admin")
     return { success: true }
   } catch (err: any) {
     return { error: err?.message || "Failed to clear demo licenses" }
@@ -222,14 +297,14 @@ export async function getLicenses(filter?: { status?: string; search?: string })
       }
       const { data, error } = await query
       if (!error && data) {
-        list = data as SaasLicense[]
+        list = data.map(unpackLicenseRecord)
       }
     } catch (dbErr) {
-      console.warn("Supabase saas_licenses fetch failed, using local store:", dbErr)
+      console.warn("Supabase saas_licenses fetch fallback:", dbErr)
     }
 
     if (list.length === 0) {
-      list = readLocalLicenses()
+      list = readLocalLicenses().map(unpackLicenseRecord)
       if (filter?.status && filter.status !== "all") {
         list = list.filter((l) => l.status === filter.status)
       }
@@ -249,7 +324,7 @@ export async function getLicenses(filter?: { status?: string; search?: string })
     return { data: list }
   } catch (err: any) {
     console.error("getLicenses error:", err)
-    return { data: readLocalLicenses() }
+    return { data: readLocalLicenses().map(unpackLicenseRecord) }
   }
 }
 
@@ -280,18 +355,17 @@ export async function updateLicenseStatus(
       if (!error && data) {
         revalidatePath("/dashboard/licensing")
         revalidatePath("/dashboard", "layout")
-        return { success: true, license: data as SaasLicense }
+        return { success: true, license: unpackLicenseRecord(data) }
       }
     } catch {}
 
-    // Fallback: Local store
     const list = readLocalLicenses()
     const idx = list.findIndex((l) => l.id === licenseId)
     if (idx !== -1) {
       list[idx] = { ...list[idx], ...updates }
       writeLocalLicenses(list)
       revalidatePath("/dashboard/licensing")
-      return { success: true, license: list[idx] }
+      return { success: true, license: unpackLicenseRecord(list[idx]) }
     }
 
     return { error: "License not found" }
@@ -301,7 +375,7 @@ export async function updateLicenseStatus(
 }
 
 /**
- * Update payment figures (e.g. logging newly received payment)
+ * Update payment figures
  */
 export async function updateLicensePayment(
   licenseId: string,
@@ -317,8 +391,6 @@ export async function updateLicensePayment(
     const newTotal = totalAmount !== undefined ? totalAmount : existing.total_amount
     const newPaid = paidAmount
     const newPending = Math.max(0, newTotal - newPaid)
-
-    // Auto-unhold if pending is 0 and it was on hold for pending payment
     const autoStatus = newPending === 0 && existing.status === "on_hold" ? "active" : existing.status
 
     const updates = {
@@ -340,7 +412,7 @@ export async function updateLicensePayment(
 
       if (!error && data) {
         revalidatePath("/dashboard/licensing")
-        return { success: true, license: data as SaasLicense }
+        return { success: true, license: unpackLicenseRecord(data) }
       }
     } catch {}
 
@@ -350,7 +422,7 @@ export async function updateLicensePayment(
       localList[idx] = { ...localList[idx], ...updates }
       writeLocalLicenses(localList)
       revalidatePath("/dashboard/licensing")
-      return { success: true, license: localList[idx] }
+      return { success: true, license: unpackLicenseRecord(localList[idx]) }
     }
 
     return { error: "License not found" }
@@ -377,13 +449,14 @@ export async function verifyAndConsumeLicense(licenseKey: string, organizationId
         .single()
 
       if (!error && data) {
-        license = data as SaasLicense
+        license = unpackLicenseRecord(data)
       }
     } catch {}
 
     if (!license) {
       const local = readLocalLicenses()
-      license = local.find((l) => l.license_key.toUpperCase() === cleanKey) || null
+      const found = local.find((l) => l.license_key.toUpperCase() === cleanKey)
+      license = found ? unpackLicenseRecord(found) : null
     }
 
     if (!license) {
@@ -398,7 +471,6 @@ export async function verifyAndConsumeLicense(licenseKey: string, organizationId
       return { valid: false, error: "This License Key has been blocked. Please contact administration." }
     }
 
-    // Consume and link
     const updates = {
       is_activated: true,
       activated_at: new Date().toISOString(),
@@ -424,7 +496,7 @@ export async function verifyAndConsumeLicense(licenseKey: string, organizationId
 }
 
 /**
- * Retrieve license details for an organization (to check hold/block status and quota)
+ * Retrieve license details for an organization
  */
 export async function getOrganizationLicense(organizationId: string): Promise<SaasLicense | null> {
   try {
@@ -436,11 +508,12 @@ export async function getOrganizationLicense(organizationId: string): Promise<Sa
         .eq("organization_id", organizationId)
         .single()
 
-      if (!error && data) return data as SaasLicense
+      if (!error && data) return unpackLicenseRecord(data)
     } catch {}
 
     const local = readLocalLicenses()
-    return local.find((l) => l.organization_id === organizationId) || null
+    const found = local.find((l) => l.organization_id === organizationId)
+    return found ? unpackLicenseRecord(found) : null
   } catch {
     return null
   }
