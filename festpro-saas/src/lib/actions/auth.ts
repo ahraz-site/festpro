@@ -261,66 +261,14 @@ export async function signUp(formData: {
 export async function signIn(formData: { email: string; password: string }) {
   try {
     const supabase = await createServerClient()
-    const adminClient = createAdminClient()
     const userEmail = (formData.email || "").toLowerCase().trim()
     const isMasterAdminEmail =
       ADMIN_EMAILS.includes(userEmail) || userEmail.startsWith("admin@")
 
-    let { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: userEmail,
       password: formData.password,
     })
-
-    // If super admin and sign-in failed (e.g., account doesn't exist yet or password mismatch)
-    if (error && isMasterAdminEmail) {
-      try {
-        const { data: userList } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 })
-        const existingAdmin = userList?.users?.find(
-          (u) => (u.email || "").toLowerCase().trim() === userEmail
-        )
-
-        if (!existingAdmin) {
-          // Auto-provision brand new Super Admin in Supabase Auth
-          const { data: newAuth, error: createErr } = await adminClient.auth.admin.createUser({
-            email: userEmail,
-            password: formData.password,
-            email_confirm: true,
-            user_metadata: {
-              first_name: userEmail.split("@")[0],
-              role: "platform_owner",
-            },
-          })
-          if (!createErr && newAuth.user) {
-            const retry = await supabase.auth.signInWithPassword({
-              email: userEmail,
-              password: formData.password,
-            })
-            if (!retry.error && retry.data.user) {
-              data = retry.data
-              error = null
-            }
-          }
-        } else {
-          // Admin account exists, update password to the one entered so owner is never locked out
-          const { error: updateErr } = await adminClient.auth.admin.updateUserById(existingAdmin.id, {
-            password: formData.password,
-            email_confirm: true,
-          })
-          if (!updateErr) {
-            const retry = await supabase.auth.signInWithPassword({
-              email: userEmail,
-              password: formData.password,
-            })
-            if (!retry.error && retry.data.user) {
-              data = retry.data
-              error = null
-            }
-          }
-        }
-      } catch (adminErr) {
-        console.error("Super Admin auto-provision fallback error:", adminErr)
-      }
-    }
 
     if (error) {
       return { error: error.message }
@@ -330,7 +278,12 @@ export async function signIn(formData: { email: string; password: string }) {
       return { error: "Invalid credentials" }
     }
 
-    const profile = await ensureUserProfile(data.user)
+    let profile = null
+    try {
+      profile = await ensureUserProfile(data.user)
+    } catch (e) {
+      console.warn("ensureUserProfile warning in signIn:", e)
+    }
 
     const isAdmin =
       profile?.role === "platform_owner" ||

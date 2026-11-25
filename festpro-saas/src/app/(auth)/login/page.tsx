@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
-import { signIn } from "@/lib/actions/auth"
+import { createClient } from "@/lib/supabase/client"
+import { ADMIN_EMAILS } from "@/lib/actions/auth"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -33,16 +34,54 @@ export default function LoginPage() {
 
     setIsLoading(true)
     try {
-      const result = await signIn({ email: form.email, password: form.password })
+      const cleanEmail = form.email.trim().toLowerCase()
+      const isMasterAdmin =
+        ADMIN_EMAILS.includes(cleanEmail) || cleanEmail.startsWith("admin@")
 
-      if (result.error) {
-        toast.error(result.error)
+      const supabase = createClient()
+      let { data, error } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password: form.password,
+      })
+
+      // If master admin and sign-in failed (e.g. initial setup of password), attempt signup
+      if (error && isMasterAdmin) {
+        try {
+          const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+            email: cleanEmail,
+            password: form.password,
+            options: {
+              data: {
+                first_name: cleanEmail.split("@")[0],
+                role: "platform_owner",
+              },
+            },
+          })
+
+          if (!signUpErr && signUpData.user) {
+            toast.success("Master Admin account initialized!")
+            window.location.href = "/dashboard/admin"
+            return
+          }
+        } catch (e) {
+          console.warn("Auto-provision attempt:", e)
+        }
+      }
+
+      if (error) {
+        toast.error(error.message || "Invalid credentials. Please verify your email and password.")
+        setIsLoading(false)
+        return
+      }
+
+      if (!data?.user) {
+        toast.error("Invalid credentials")
         setIsLoading(false)
         return
       }
 
       toast.success("Welcome back!")
-      window.location.href = result.redirectTo || "/dashboard/admin"
+      window.location.href = isMasterAdmin ? "/dashboard/admin" : "/dashboard"
     } catch (err: any) {
       toast.error(err?.message || "Failed to sign in")
       setIsLoading(false)
