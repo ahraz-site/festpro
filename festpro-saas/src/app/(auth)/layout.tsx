@@ -1,15 +1,9 @@
-import Link from "next/link"
-import { FestProLogo } from "@/components/ui/logo"
+import React from "react"
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-      <div className="absolute top-4 left-4 z-10">
-        <Link href="/" className="flex items-center">
-          <FestProLogo height={32} />
-        </Link>
-      </div>
-      <div className="flex-1 flex items-center justify-center p-4">{children}</div>
+    <div className="min-h-screen bg-[#080d14] text-white flex flex-col justify-center">
+      {children}
     </div>
   )
 }
