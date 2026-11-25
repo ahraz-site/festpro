@@ -1,12 +1,9 @@
-const CACHE_NAME = "festpro-v1"
-const STATIC_CACHE = "festpro-static-v1"
-const DYNAMIC_CACHE = "festpro-dynamic-v1"
-const API_CACHE = "festpro-api-v1"
+const CACHE_NAME = "festpro-v3"
+const STATIC_CACHE = "festpro-static-v3"
+const DYNAMIC_CACHE = "festpro-dynamic-v3"
+const API_CACHE = "festpro-api-v3"
 
 const STATIC_ASSETS = [
-  "/",
-  "/mobile",
-  "/mobile/login",
   "/manifest.json",
 ]
 

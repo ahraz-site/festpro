@@ -1,8 +1,6 @@
-"use client"
-
-import { useEffect, useState } from "react"
-import { useParams } from "next/navigation"
-import { Sparkles, Loader2 } from "lucide-react"
+import type { Metadata } from "next"
+import { redirect } from "next/navigation"
+import { headers } from "next/headers"
 import FestivalSiteRenderer from "@/components/studio/FestivalSiteRenderer"
 import {
   getPublicResults,
@@ -12,84 +10,75 @@ import {
   getPublicFestivalInfo,
 } from "@/lib/actions/certificate"
 
-export default function PublicFestivalPage() {
-  const params = useParams()
-  const festivalId = params.festivalId as string
+export const dynamic = "force-dynamic"
+export const revalidate = 0
 
-  const [loading, setLoading] = useState(true)
-  const [festival, setFestival] = useState<any>(null)
-  const [festivalName, setFestivalName] = useState<string>("Festival Portal")
-  const [results, setResults] = useState<any[]>([])
-  const [teamPoints, setTeamPoints] = useState<any[]>([])
-  const [schedules, setSchedules] = useState<any[]>([])
-  const [stats, setStats] = useState({ competitionsCount: 0, participantsCount: 0, stagesCount: 0 })
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ festivalId: string }>
+}): Promise<Metadata> {
+  const { festivalId } = await params
+  const res = await getPublicFestivalInfo(festivalId)
+  const fest = res?.data
+  const title = fest?.name ? `${fest.name} - Official Live Festival Portal` : "Festival Portal"
+  const description = fest?.description || "Live scoring, stage events, and real-time announcements."
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: fest?.banner_url ? [fest.banner_url] : [],
+    },
+  }
+}
 
-  useEffect(() => {
-    if (!festivalId) {
-      setLoading(false)
-      return
-    }
+export default async function PublicFestivalPage({
+  params,
+}: {
+  params: Promise<{ festivalId: string }>
+}) {
+  const { festivalId } = await params
 
-    let active = true
-    const cleanName = festivalId
-      .replace(/-/g, " ")
-      .replace(/\b\w/g, (c) => c.toUpperCase())
-    setFestivalName(cleanName.includes("Fest") ? cleanName : `${cleanName} Festival`)
-
-    const safetyTimer = setTimeout(() => {
-      if (active) setLoading(false)
-    }, 4500)
-
-    Promise.allSettled([
-      getPublicFestivalInfo(festivalId),
-      getPublicResults(festivalId),
-      getPublicTeamPoints(festivalId),
-      getPublicSchedules(festivalId),
-      getPublicStats(festivalId),
-    ])
-      .then(([fRes, rRes, tRes, sRes, stRes]) => {
-        if (!active) return
-        if (fRes.status === "fulfilled" && fRes.value?.data) {
-          const fest = fRes.value.data
-          setFestival(fest)
-          if (fest.name) setFestivalName(fest.name)
-          const slug =
-            fest.short_name?.toLowerCase() ||
-            fest.code?.toLowerCase() ||
-            (fest.name ? fest.name.toLowerCase().replace(/[^a-z0-9]/g, "") : "")
-          if (slug && typeof window !== "undefined") {
-            const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(festivalId)
-            const host = window.location.hostname
-            if (host.includes("ahraz.site") && isUuid) {
-              window.location.replace(`https://${slug}.ahraz.site`)
-            }
-          }
-        }
-        if (rRes.status === "fulfilled" && rRes.value?.data) setResults(rRes.value.data)
-        if (tRes.status === "fulfilled" && tRes.value?.data) setTeamPoints(tRes.value.data)
-        if (sRes.status === "fulfilled" && sRes.value?.data) setSchedules(sRes.value.data)
-        if (stRes.status === "fulfilled" && stRes.value?.data) setStats(stRes.value.data)
-      })
-      .finally(() => {
-        clearTimeout(safetyTimer)
-        if (active) setLoading(false)
-      })
-
-    return () => {
-      active = false
-      clearTimeout(safetyTimer)
-    }
-  }, [festivalId])
-
-  if (loading) {
+  if (!festivalId) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
-        <div className="flex items-center gap-3">
-          <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
-          <span className="font-bold text-sm text-slate-300">Loading festival portal...</span>
-        </div>
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6 text-center">
+        <h1 className="text-xl font-bold">Festival Portal Not Found</h1>
       </div>
     )
+  }
+
+  // Fetch all public festival data in parallel directly on the server
+  const [fRes, rRes, tRes, sRes, stRes] = await Promise.all([
+    getPublicFestivalInfo(festivalId),
+    getPublicResults(festivalId),
+    getPublicTeamPoints(festivalId),
+    getPublicSchedules(festivalId),
+    getPublicStats(festivalId),
+  ])
+
+  const festival = fRes?.data || null
+  const results = rRes?.data || []
+  const teamPoints = tRes?.data || []
+  const schedules = sRes?.data || []
+  const stats = stRes?.data || { competitionsCount: 0, participantsCount: 0, stagesCount: 0 }
+
+  // Redirect UUID links to custom subdomain if applicable
+  if (festival) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(festivalId)
+    const slug =
+      festival.short_name?.toLowerCase() ||
+      festival.code?.toLowerCase() ||
+      (festival.name ? festival.name.toLowerCase().replace(/[^a-z0-9]/g, "") : "")
+
+    if (isUuid && slug) {
+      const headerList = await headers()
+      const host = headerList.get("host") || ""
+      if (host.includes("ahraz.site") && !host.startsWith(`${slug}.`)) {
+        redirect(`https://${slug}.ahraz.site`)
+      }
+    }
   }
 
   let customSettings: any = null
@@ -109,6 +98,10 @@ export default function PublicFestivalPage() {
       ? rawFields
       : {}
   const webConfig = customFields.website_config || undefined
+
+  const festivalName = festival?.name || (
+    festivalId.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  )
 
   return (
     <FestivalSiteRenderer
