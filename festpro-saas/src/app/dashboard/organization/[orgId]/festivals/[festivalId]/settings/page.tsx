@@ -19,7 +19,7 @@ export default function FestivalSettingsPage() {
   const festivalId = params.festivalId as string
 
   // Section 1: Fest details (Screenshot 2)
-  const [festName, setFestName] = useState("FestPro")
+  const [festName, setFestName] = useState("FesPro")
   const [festTagline, setFestTagline] = useState("")
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
 
@@ -47,7 +47,7 @@ export default function FestivalSettingsPage() {
       try {
         const fest = await getFestival(festivalId)
         if (fest) {
-          setFestName(fest.name || "FestPro")
+          setFestName(fest.name || "FesPro")
           setFestTagline(fest.description || "")
           if (fest.logo_url) setLogoPreview(fest.logo_url)
         }
