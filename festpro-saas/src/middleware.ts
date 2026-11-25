@@ -61,7 +61,19 @@ export async function middleware(request: NextRequest) {
   }
 
   // If request is coming from a custom festival subdomain (e.g. festivalId.festpro.ahraz.site)
-  if (subdomain && subdomain !== "www" && !pathname.startsWith("/api") && !pathname.startsWith("/_next")) {
+  const isExcludedFromSubdomain =
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/favicon") ||
+    pathname.startsWith("/manifest") ||
+    pathname.startsWith("/sw.js") ||
+    pathname.startsWith("/robots.txt") ||
+    pathname.startsWith("/sitemap")
+
+  if (subdomain && subdomain !== "www" && !isExcludedFromSubdomain) {
     return NextResponse.rewrite(new URL(`/festivals/${subdomain}${pathname === "/" ? "" : pathname}`, request.url))
   }
   const code = request.nextUrl.searchParams.get("code")
