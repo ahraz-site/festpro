@@ -420,7 +420,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       isActive: pathname.includes("/fonts"),
     },
     {
-      label: "Website Builder",
+      label: "FesPro Studio",
       href: effectiveFestivalId
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/website`
         : `/dashboard/organization/${currentOrgId}/festivals?target=website`,
@@ -466,6 +466,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setTimeout(() => {
       setIsRefreshing(false)
     }, 1200)
+  }
+
+  // Render full-viewport IDE for FesPro Website Studio
+  if (pathname?.endsWith("/website") || pathname?.endsWith("/page-builder")) {
+    return <>{children}</>
   }
 
   return (

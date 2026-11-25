@@ -232,11 +232,39 @@ export async function getPublicResults(festivalId: string, competitionId?: strin
   const admin = createAdminClient()
   const { id: resolvedId } = await resolveFestival(festivalId)
   let q = admin.from("result_items")
-    .select("*, participant:participants(id, first_name, last_name, participant_id, chest_number, photo_url, unit, division)")
+    .select("*, participant:participants(id, first_name, last_name, participant_id, chest_number, photo_url, unit, division), competition:competitions(id, name, code)")
     .eq("festival_id", resolvedId).eq("status", "live").order("rank", { ascending: true, nullsFirst: false })
   if (competitionId) q = q.eq("competition_id", competitionId)
   const { data } = await q
-  return { data: data as any[] }
+  return { data: (data as any[]) || [] }
+}
+
+export async function getPublicSchedules(festivalId: string) {
+  const admin = createAdminClient()
+  const { id: resolvedId } = await resolveFestival(festivalId)
+  const { data } = await admin
+    .from("stage_schedules")
+    .select("*, stage:festival_stages(id, name, code), competition:competitions(id, name, code)")
+    .eq("festival_id", resolvedId)
+    .order("scheduled_date", { ascending: true })
+  return { data: (data as any[]) || [] }
+}
+
+export async function getPublicStats(festivalId: string) {
+  const admin = createAdminClient()
+  const { id: resolvedId } = await resolveFestival(festivalId)
+  const [compRes, partRes, stageRes] = await Promise.all([
+    admin.from("competitions").select("id", { count: "exact", head: true }).eq("festival_id", resolvedId),
+    admin.from("participants").select("id", { count: "exact", head: true }).eq("festival_id", resolvedId),
+    admin.from("festival_stages").select("id", { count: "exact", head: true }).eq("festival_id", resolvedId),
+  ])
+  return {
+    data: {
+      competitionsCount: compRes.count || 0,
+      participantsCount: partRes.count || 0,
+      stagesCount: stageRes.count || 0,
+    },
+  }
 }
 
 export async function getPublicTeamPoints(festivalId: string) {
