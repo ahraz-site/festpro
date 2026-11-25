@@ -30,18 +30,29 @@ export default function PublicFestivalPage() {
       return
     }
 
+    let active = true
     const cleanName = festivalId
       .replace(/-/g, " ")
       .replace(/\b\w/g, (c) => c.toUpperCase())
     setFestivalName(cleanName.includes("Fest") ? cleanName : `${cleanName} Festival`)
 
-    getPublicFestivalInfo(festivalId)
-      .then((fRes) => {
-        if (fRes.data) {
-          setFestival(fRes.data)
-          if (fRes.data.name) setFestivalName(fRes.data.name)
+    const safetyTimer = setTimeout(() => {
+      if (active) setLoading(false)
+    }, 4500)
 
-          const fest = fRes.data
+    Promise.allSettled([
+      getPublicFestivalInfo(festivalId),
+      getPublicResults(festivalId),
+      getPublicTeamPoints(festivalId),
+      getPublicSchedules(festivalId),
+      getPublicStats(festivalId),
+    ])
+      .then(([fRes, rRes, tRes, sRes, stRes]) => {
+        if (!active) return
+        if (fRes.status === "fulfilled" && fRes.value?.data) {
+          const fest = fRes.value.data
+          setFestival(fest)
+          if (fest.name) setFestivalName(fest.name)
           const slug =
             fest.short_name?.toLowerCase() ||
             fest.code?.toLowerCase() ||
@@ -54,23 +65,20 @@ export default function PublicFestivalPage() {
             }
           }
         }
+        if (rRes.status === "fulfilled" && rRes.value?.data) setResults(rRes.value.data)
+        if (tRes.status === "fulfilled" && tRes.value?.data) setTeamPoints(tRes.value.data)
+        if (sRes.status === "fulfilled" && sRes.value?.data) setSchedules(sRes.value.data)
+        if (stRes.status === "fulfilled" && stRes.value?.data) setStats(stRes.value.data)
       })
-      .catch(() => {})
+      .finally(() => {
+        clearTimeout(safetyTimer)
+        if (active) setLoading(false)
+      })
 
-    Promise.all([
-      getPublicResults(festivalId),
-      getPublicTeamPoints(festivalId),
-      getPublicSchedules(festivalId),
-      getPublicStats(festivalId),
-    ])
-      .then(([rRes, tRes, sRes, stRes]) => {
-        setResults(rRes.data || [])
-        setTeamPoints(tRes.data || [])
-        setSchedules(sRes.data || [])
-        if (stRes.data) setStats(stRes.data)
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
+    return () => {
+      active = false
+      clearTimeout(safetyTimer)
+    }
   }, [festivalId])
 
   if (loading) {

@@ -210,75 +210,107 @@ async function resolveFestival(festivalIdOrSlug: string) {
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clean)
   let fest: any = null
   if (isUuid) {
-    const { data } = await admin.from("festivals").select("*, settings:festival_settings(*)").eq("id", clean).maybeSingle()
-    fest = data
+    const { data } = await admin.from("festivals").select("*, settings:festival_settings(*)").eq("id", clean).limit(1)
+    fest = data?.[0] || null
   } else {
     const { data } = await admin
       .from("festivals")
       .select("*, settings:festival_settings(*)")
       .or(`code.ilike.${clean},short_name.ilike.${clean},name.ilike.${clean}`)
-      .maybeSingle()
-    fest = data
+      .limit(1)
+    fest = data?.[0] || null
   }
   return { id: fest?.id || clean, festival: fest }
 }
 
 export async function getPublicFestivalInfo(festivalId: string) {
-  const { festival } = await resolveFestival(festivalId)
-  return { data: festival }
+  try {
+    const { festival } = await resolveFestival(festivalId)
+    return { data: festival }
+  } catch {
+    return { data: null }
+  }
 }
 
 export async function getPublicResults(festivalId: string, competitionId?: string) {
-  const admin = createAdminClient()
-  const { id: resolvedId } = await resolveFestival(festivalId)
-  let q = admin.from("result_items")
-    .select("*, participant:participants(id, first_name, last_name, participant_id, chest_number, photo_url, unit, division), competition:competitions(id, name, code)")
-    .eq("festival_id", resolvedId).eq("status", "live").order("rank", { ascending: true, nullsFirst: false })
-  if (competitionId) q = q.eq("competition_id", competitionId)
-  const { data } = await q
-  return { data: (data as any[]) || [] }
+  try {
+    const admin = createAdminClient()
+    const { id: resolvedId } = await resolveFestival(festivalId)
+    let q = admin.from("result_items")
+      .select("*, participant:participants(id, first_name, last_name, participant_id, chest_number, photo_url, unit, division), competition:competitions(id, name, code)")
+      .eq("festival_id", resolvedId).eq("status", "live").order("rank", { ascending: true, nullsFirst: false })
+    if (competitionId) q = q.eq("competition_id", competitionId)
+    const { data, error } = await q
+    if (error) {
+      let fallback = admin.from("result_items")
+        .select("*, participant:participants(id, first_name, last_name, participant_id, chest_number)")
+        .eq("festival_id", resolvedId).eq("status", "live").order("rank", { ascending: true, nullsFirst: false })
+      if (competitionId) fallback = fallback.eq("competition_id", competitionId)
+      const res2 = await fallback
+      return { data: (res2.data as any[]) || [] }
+    }
+    return { data: (data as any[]) || [] }
+  } catch {
+    return { data: [] }
+  }
 }
 
 export async function getPublicSchedules(festivalId: string) {
-  const admin = createAdminClient()
-  const { id: resolvedId } = await resolveFestival(festivalId)
-  const { data } = await admin
-    .from("stage_schedules")
-    .select("*, stage:festival_stages(id, name, code), competition:competitions(id, name, code)")
-    .eq("festival_id", resolvedId)
-    .order("scheduled_date", { ascending: true })
-  return { data: (data as any[]) || [] }
+  try {
+    const admin = createAdminClient()
+    const { id: resolvedId } = await resolveFestival(festivalId)
+    const { data } = await admin
+      .from("stage_schedules")
+      .select("*, stage:festival_stages(id, name, code), competition:competitions(id, name, code)")
+      .eq("festival_id", resolvedId)
+      .order("scheduled_date", { ascending: true })
+    return { data: (data as any[]) || [] }
+  } catch {
+    return { data: [] }
+  }
 }
 
 export async function getPublicStats(festivalId: string) {
-  const admin = createAdminClient()
-  const { id: resolvedId } = await resolveFestival(festivalId)
-  const [compRes, partRes, stageRes] = await Promise.all([
-    admin.from("competitions").select("id", { count: "exact", head: true }).eq("festival_id", resolvedId),
-    admin.from("participants").select("id", { count: "exact", head: true }).eq("festival_id", resolvedId),
-    admin.from("festival_stages").select("id", { count: "exact", head: true }).eq("festival_id", resolvedId),
-  ])
-  return {
-    data: {
-      competitionsCount: compRes.count || 0,
-      participantsCount: partRes.count || 0,
-      stagesCount: stageRes.count || 0,
-    },
+  try {
+    const admin = createAdminClient()
+    const { id: resolvedId } = await resolveFestival(festivalId)
+    const [compRes, partRes, stageRes] = await Promise.all([
+      admin.from("competitions").select("id", { count: "exact", head: true }).eq("festival_id", resolvedId),
+      admin.from("participants").select("id", { count: "exact", head: true }).eq("festival_id", resolvedId),
+      admin.from("festival_stages").select("id", { count: "exact", head: true }).eq("festival_id", resolvedId),
+    ])
+    return {
+      data: {
+        competitionsCount: compRes.count || 0,
+        participantsCount: partRes.count || 0,
+        stagesCount: stageRes.count || 0,
+      },
+    }
+  } catch {
+    return { data: { competitionsCount: 0, participantsCount: 0, stagesCount: 0 } }
   }
 }
 
 export async function getPublicTeamPoints(festivalId: string) {
-  const admin = createAdminClient()
-  const { id: resolvedId } = await resolveFestival(festivalId)
-  const { data } = await admin.from("team_points").select("*")
-    .eq("festival_id", resolvedId).eq("status", "published").order("rank", { ascending: true, nullsFirst: false })
-  return { data: data as any[] }
+  try {
+    const admin = createAdminClient()
+    const { id: resolvedId } = await resolveFestival(festivalId)
+    const { data } = await admin.from("team_points").select("*")
+      .eq("festival_id", resolvedId).eq("status", "published").order("rank", { ascending: true, nullsFirst: false })
+    return { data: (data as any[]) || [] }
+  } catch {
+    return { data: [] }
+  }
 }
 
 export async function getPublicChampionship(festivalId: string) {
-  const admin = createAdminClient()
-  const { id: resolvedId } = await resolveFestival(festivalId)
-  const { data } = await admin.from("overall_championship").select("*")
-    .eq("festival_id", resolvedId).eq("status", "published").order("rank", { ascending: true, nullsFirst: false })
-  return { data: data as any[] }
+  try {
+    const admin = createAdminClient()
+    const { id: resolvedId } = await resolveFestival(festivalId)
+    const { data } = await admin.from("overall_championship").select("*")
+      .eq("festival_id", resolvedId).eq("status", "published").order("rank", { ascending: true, nullsFirst: false })
+    return { data: (data as any[]) || [] }
+  } catch {
+    return { data: [] }
+  }
 }

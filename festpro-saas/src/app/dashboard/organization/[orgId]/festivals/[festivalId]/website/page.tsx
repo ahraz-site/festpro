@@ -101,8 +101,8 @@ export default function FesProStudioPage() {
 
   // Config & Undo/Redo Stack
   const [config, setConfig] = useState<FestivalWebsiteConfig>(() => getDefaultWebsiteConfig())
-  const [history, setHistory] = useState<FestivalWebsiteConfig[]>([])
-  const [historyIdx, setHistoryIdx] = useState(-1)
+  const [history, setHistory] = useState<FestivalWebsiteConfig[]>(() => [getDefaultWebsiteConfig()])
+  const [historyIdx, setHistoryIdx] = useState(0)
   const [hasUnsaved, setHasUnsaved] = useState(false)
 
   // Temporary input helpers
@@ -117,25 +117,48 @@ export default function FesProStudioPage() {
   const [customStickerUrl, setCustomStickerUrl] = useState({ name: "", url: "", isGif: false })
 
   useEffect(() => {
-    Promise.all([
-      getFestivalWebsiteConfigAction(festivalId),
-      getPublicResults(festivalId),
-      getPublicTeamPoints(festivalId),
-      getPublicSchedules(festivalId),
-      getPublicStats(festivalId),
-    ]).then(([cfgRes, rRes, tRes, sRes, stRes]) => {
-      if (cfgRes.success && cfgRes.data) {
-        setFestivalData(cfgRes.data.festival)
-        setConfig(cfgRes.data.config)
-        setHistory([cfgRes.data.config])
-        setHistoryIdx(0)
+    let active = true
+    const safetyTimer = setTimeout(() => {
+      if (active) setLoading(false)
+    }, 5000)
+
+    async function syncStudioData() {
+      try {
+        const [cfgRes, rRes, tRes, sRes, stRes] = await Promise.allSettled([
+          getFestivalWebsiteConfigAction(festivalId),
+          getPublicResults(festivalId),
+          getPublicTeamPoints(festivalId),
+          getPublicSchedules(festivalId),
+          getPublicStats(festivalId),
+        ])
+
+        if (!active) return
+
+        if (cfgRes.status === "fulfilled" && cfgRes.value?.success && cfgRes.value?.data) {
+          setFestivalData(cfgRes.value.data.festival)
+          if (cfgRes.value.data.config) {
+            setConfig(cfgRes.value.data.config)
+            setHistory([cfgRes.value.data.config])
+            setHistoryIdx(0)
+          }
+        }
+        if (rRes.status === "fulfilled" && rRes.value?.data) setResults(rRes.value.data)
+        if (tRes.status === "fulfilled" && tRes.value?.data) setTeamPoints(tRes.value.data)
+        if (sRes.status === "fulfilled" && sRes.value?.data) setSchedules(sRes.value.data)
+        if (stRes.status === "fulfilled" && stRes.value?.data) setStats(stRes.value.data)
+      } catch (err) {
+        console.warn("Studio sync fallback:", err)
+      } finally {
+        clearTimeout(safetyTimer)
+        if (active) setLoading(false)
       }
-      setResults(rRes.data || [])
-      setTeamPoints(tRes.data || [])
-      setSchedules(sRes.data || [])
-      if (stRes.data) setStats(stRes.data)
-      setLoading(false)
-    })
+    }
+
+    syncStudioData()
+    return () => {
+      active = false
+      clearTimeout(safetyTimer)
+    }
   }, [festivalId])
 
   // Centralized state updater with Undo/Redo history tracking
@@ -282,17 +305,6 @@ export default function FesProStudioPage() {
   const selectedSticker = (config.stickers || []).find((s) => s.id === selectedStickerId)
   const selectedSection = (config.sections || []).find((s) => s.id === selectedSectionId)
 
-  if (loading) {
-    return (
-      <div className="h-screen bg-slate-950 text-white flex items-center justify-center">
-        <div className="flex items-center gap-3">
-          <RefreshCw className="h-5 w-5 animate-spin text-indigo-400" />
-          <span className="text-sm font-bold">Loading FesPro Studio...</span>
-        </div>
-      </div>
-    )
-  }
-
   const palette = config.globalDesign!.palette
   const typo = config.globalDesign!.typography
   const shape = config.globalDesign!.shape
@@ -321,6 +333,11 @@ export default function FesProStudioPage() {
                 <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-[9px] font-black uppercase">
                   PRO
                 </span>
+                {loading && (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[9px] font-bold">
+                    <RefreshCw className="h-2.5 w-2.5 animate-spin" /> Syncing
+                  </span>
+                )}
               </div>
               <p className="text-[10px] text-slate-400 truncate">
                 {festivalData?.name || "Festival Designer"} {hasUnsaved && "• Unsaved edits"}
