@@ -208,15 +208,18 @@ async function resolveFestival(festivalIdOrSlug: string) {
   const admin = createAdminClient()
   const clean = String(festivalIdOrSlug || "").trim()
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clean)
+  let fest: any = null
   if (isUuid) {
-    const { data: fest } = await admin.from("festivals").select("*").eq("id", clean).maybeSingle()
-    return { id: clean, festival: fest }
+    const { data } = await admin.from("festivals").select("*, settings:festival_settings(*)").eq("id", clean).maybeSingle()
+    fest = data
+  } else {
+    const { data } = await admin
+      .from("festivals")
+      .select("*, settings:festival_settings(*)")
+      .or(`code.ilike.${clean},short_name.ilike.${clean},name.ilike.${clean}`)
+      .maybeSingle()
+    fest = data
   }
-  const { data: fest } = await admin
-    .from("festivals")
-    .select("*")
-    .or(`code.ilike.${clean},short_name.ilike.${clean},name.ilike.${clean}`)
-    .maybeSingle()
   return { id: fest?.id || clean, festival: fest }
 }
 

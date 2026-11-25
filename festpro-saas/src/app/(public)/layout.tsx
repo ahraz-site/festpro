@@ -1,12 +1,40 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Menu, X } from "lucide-react"
 import { AhrazFestProLogo, FestProWordmark } from "@/components/ui/logo"
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [isFestivalHost, setIsFestivalHost] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const host = window.location.hostname.toLowerCase()
+      // If hostname is a festival subdomain (e.g. optimuz.ahraz.site) and not the main platform host
+      const isSub =
+        host !== "localhost" &&
+        !host.startsWith("fespro.") &&
+        !host.startsWith("festpro.") &&
+        !host.startsWith("festpro-alpha.") &&
+        host.includes(".")
+      setIsFestivalHost(isSub)
+    }
+  }, [])
+
+  // If this is a dedicated festival website route or festival subdomain:
+  // Completely omit FesPro platform header & footer for a 100% white-labeled festival website.
+  const isFestivalSite =
+    pathname.startsWith("/festivals") ||
+    pathname.startsWith("/f/") ||
+    isFestivalHost
+
+  if (isFestivalSite) {
+    return <main>{children}</main>
+  }
 
   return (
     <div className="min-h-screen bg-white">

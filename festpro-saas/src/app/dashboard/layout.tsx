@@ -420,7 +420,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       isActive: pathname.includes("/fonts"),
     },
     {
-      label: "Website",
+      label: "Website Builder",
       href: effectiveFestivalId
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/website`
         : `/dashboard/organization/${currentOrgId}/festivals?target=website`,
