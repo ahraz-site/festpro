@@ -12,7 +12,8 @@ import {
   Tv, HelpCircle, Moon, Sun, ArrowLeft, Bookmark, LayoutGrid, Search,
   RefreshCw, ExternalLink, Sparkles, Gamepad2, Monitor, ClipboardCheck,
   Keyboard, Dices, Medal, BarChart2, Star, Gift, Award, ListFilter,
-  Printer, LayoutTemplate, Megaphone, Type, Globe, KeyRound, ShieldCheck
+  Printer, LayoutTemplate, Megaphone, Type, Globe, KeyRound, ShieldCheck,
+  DoorOpen, Camera
 } from "lucide-react"
 import type { Profile } from "@/types"
 import type { ExtendedOrganization } from "@/types/organization"
@@ -282,6 +283,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         : `/dashboard/organization/${currentOrgId}/festivals?target=tv-displays`,
       icon: Tv,
       isActive: pathname.includes("/tv-displays"),
+    },
+    {
+      label: "Judges panel",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/judges-panel`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=judges-panel`,
+      icon: ShieldCheck,
+      isActive: pathname.includes("/judges-panel"),
+    },
+    {
+      label: "Green room",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/green-room`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=green-room`,
+      icon: DoorOpen,
+      isActive: pathname.includes("/green-room"),
+    },
+    {
+      label: "Media panel",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/media-panel`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=media-panel`,
+      icon: Camera,
+      isActive: pathname.includes("/media-panel"),
     },
     {
       label: "Enter Marks",

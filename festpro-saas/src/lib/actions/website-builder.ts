@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { createAdminClient } from "@/lib/supabase/admin"
 import {
-  getDefaultWebsiteConfig,
+  normalizeWebsiteConfig,
   type FestivalWebsiteConfig,
 } from "@/types/website-studio"
 
@@ -19,68 +19,9 @@ export async function getFestivalWebsiteConfigAction(festivalId: string) {
 
     const fest = festRes.data?.[0] || null
     const settings = settingsRes.data?.[0] || null
-    const defaults = getDefaultWebsiteConfig(fest, settings)
     const customFields = (settings?.custom_fields as any) || {}
-    const saved = (customFields.website_config as FestivalWebsiteConfig) || {}
-
-    // Deep-merge saved config over defaults so newly added studio modules always have valid defaults
-    const webConfig: FestivalWebsiteConfig = {
-      ...defaults,
-      ...saved,
-      socialLinks: { ...defaults.socialLinks, ...(saved.socialLinks || {}) },
-      navPages: { ...defaults.navPages, ...(saved.navPages || {}) },
-      heroConfig: { ...defaults.heroConfig, ...(saved.heroConfig || {}) },
-      headerConfig: { ...defaults.headerConfig!, ...(saved.headerConfig || {}) },
-      footerConfig: { ...defaults.footerConfig, ...(saved.footerConfig || {}) },
-      globalDesign: {
-        palette: {
-          ...defaults.globalDesign!.palette,
-          ...(saved.globalDesign?.palette || {}),
-          ...(saved.accentColor && !saved.globalDesign?.palette?.primary
-            ? { primary: saved.accentColor }
-            : {}),
-          ...(saved.themeMode && !saved.globalDesign?.palette?.themeMode
-            ? { themeMode: saved.themeMode }
-            : {}),
-        },
-        typography: {
-          ...defaults.globalDesign!.typography,
-          ...(saved.globalDesign?.typography || {}),
-        },
-        shape: {
-          ...defaults.globalDesign!.shape,
-          ...(saved.globalDesign?.shape || {}),
-        },
-        savedCustomPalettes: saved.globalDesign?.savedCustomPalettes || [],
-      },
-      motionStudio: { ...defaults.motionStudio!, ...(saved.motionStudio || {}) },
-      sections: saved.sections && saved.sections.length > 0 ? saved.sections : defaults.sections,
-      galleryStudio: { ...defaults.galleryStudio!, ...(saved.galleryStudio || {}) },
-      videoStudio: {
-        layout: saved.videoStudio?.layout || defaults.videoStudio!.layout,
-        videos:
-          saved.videoStudio?.videos && saved.videoStudio.videos.length > 0
-            ? saved.videoStudio.videos
-            : saved.liveStreamUrl
-            ? [
-                {
-                  id: "v-live",
-                  title: "Main Stage Live Stream",
-                  platform: "youtube",
-                  url: saved.liveStreamUrl,
-                  aspectRatio: "16:9",
-                  category: "Live",
-                  featured: true,
-                },
-              ]
-            : defaults.videoStudio!.videos,
-      },
-      teamMembers: saved.teamMembers || defaults.teamMembers,
-      popupBuilder: { ...defaults.popupBuilder!, ...(saved.popupBuilder || {}) },
-      seoAndAdvanced: { ...defaults.seoAndAdvanced!, ...(saved.seoAndAdvanced || {}) },
-      gallery: saved.gallery || defaults.gallery,
-      news: saved.news || defaults.news,
-    }
+    const saved = (customFields.website_config as FestivalWebsiteConfig) || null
+    const webConfig = normalizeWebsiteConfig(saved, fest, settings)
 
     return {
       success: true,
@@ -108,7 +49,19 @@ export async function saveFestivalWebsiteConfigAction(festivalId: string, config
 
     const currentSettings = settingsRows?.[0] || null
     const customFields = (currentSettings?.custom_fields as any) || {}
-    customFields.website_config = config
+    const stampedConfig: FestivalWebsiteConfig = {
+      ...config,
+      headerConfig: {
+        ...(config.headerConfig || {
+          style: "glass",
+          sticky: true,
+          showLiveBadge: false,
+          showConsoleLogin: false,
+        }),
+        brandingVersion: 2,
+      },
+    }
+    customFields.website_config = stampedConfig
 
     const primaryColor = config.globalDesign?.palette?.primary || config.accentColor || "#4F46E5"
     const isDark = (config.globalDesign?.palette?.themeMode || config.themeMode || "dark") !== "light"

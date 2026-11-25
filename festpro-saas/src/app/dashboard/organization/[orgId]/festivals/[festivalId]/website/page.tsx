@@ -52,7 +52,10 @@ import {
   FONT_OPTIONS,
   SHAPE_PRESETS,
   READY_MADE_TEMPLATES,
+  TYPOGRAPHY_PRESETS,
   getDefaultWebsiteConfig,
+  type LogoDisplayMode,
+  type NavFontWeight,
 } from "@/types/website-studio"
 
 type StudioPanelId =
@@ -66,6 +69,44 @@ type StudioPanelId =
   | "seo"
 
 type CanvasTabType = "overview" | "results" | "schedule" | "leaderboard" | "gallery" | "videos" | "news"
+
+function compressImageFile(file: File, maxDim = 1200, onLoaded: (url: string) => void) {
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    const raw = e.target?.result as string
+    if (!raw) return
+    if (file.type === "image/gif" || file.type === "image/svg+xml") {
+      onLoaded(raw)
+      return
+    }
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement("canvas")
+      let w = img.width
+      let h = img.height
+      if (w > maxDim || h > maxDim) {
+        if (w > h) {
+          h = Math.round((h * maxDim) / w)
+          w = maxDim
+        } else {
+          w = Math.round((w * maxDim) / h)
+          h = maxDim
+        }
+      }
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext("2d")
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, w, h)
+        onLoaded(canvas.toDataURL("image/webp", 0.85))
+      } else {
+        onLoaded(raw)
+      }
+    }
+    img.src = raw
+  }
+  reader.readAsDataURL(file)
+}
 
 export default function FesProStudioPage() {
   const params = useParams()
@@ -1676,81 +1717,129 @@ export default function FesProStudioPage() {
                   )}
 
                   {designSubTab === "typography" && (
-                    <div className="space-y-3">
+                    <div className="space-y-3.5">
                       <div>
-                        <label className="text-[10px] text-slate-400">Heading Font</label>
-                        <select
-                          value={typo.headingFont}
-                          onChange={(e) =>
-                            updateConfig((p) => ({ ...p, globalDesign: { ...p.globalDesign!, typography: { ...typo, headingFont: e.target.value } } }))
-                          }
-                          className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white mt-1"
-                        >
-                          {FONT_OPTIONS.heading.map((f) => <option key={f} value={f}>{f}</option>)}
-                        </select>
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                          Curated Typography Pairings
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {TYPOGRAPHY_PRESETS.map((tp) => {
+                            const isMatch =
+                              typo.headingFont === tp.config.headingFont &&
+                              typo.bodyFont === tp.config.bodyFont
+                            return (
+                              <button
+                                key={tp.id}
+                                onClick={() =>
+                                  updateConfig((p) => ({
+                                    ...p,
+                                    globalDesign: {
+                                      ...p.globalDesign!,
+                                      typography: { ...typo, ...tp.config },
+                                    },
+                                  }))
+                                }
+                                className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                                  isMatch
+                                    ? "border-indigo-500 bg-indigo-500/15"
+                                    : "border-slate-800 bg-slate-950 hover:border-slate-700"
+                                }`}
+                              >
+                                <div className="text-xs font-bold text-white flex items-center justify-between">
+                                  <span>{tp.name}</span>
+                                  {isMatch && <Check className="h-3 w-3 text-indigo-400" />}
+                                </div>
+                                <div className="text-[10px] text-slate-400 mt-0.5 truncate">
+                                  {tp.category}
+                                </div>
+                                <div className="text-[11px] text-slate-300 mt-1 truncate italic">
+                                  {tp.sampleText}
+                                </div>
+                              </button>
+                            )
+                          })}
+                        </div>
                       </div>
-                      <div>
-                        <label className="text-[10px] text-slate-400">Body Font</label>
-                        <select
-                          value={typo.bodyFont}
-                          onChange={(e) =>
-                            updateConfig((p) => ({ ...p, globalDesign: { ...p.globalDesign!, typography: { ...typo, bodyFont: e.target.value } } }))
-                          }
-                          className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white mt-1"
-                        >
-                          {FONT_OPTIONS.body.map((f) => <option key={f} value={f}>{f}</option>)}
-                        </select>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
+
+                      <div className="pt-2 border-t border-slate-800/80 space-y-3">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          Custom Font Configuration
+                        </div>
                         <div>
-                          <label className="text-[10px] text-slate-400">Malayalam</label>
+                          <label className="text-[10px] text-slate-400">Heading Font</label>
                           <select
-                            value={typo.malayalamFont}
+                            value={typo.headingFont}
                             onChange={(e) =>
-                              updateConfig((p) => ({ ...p, globalDesign: { ...p.globalDesign!, typography: { ...typo, malayalamFont: e.target.value } } }))
+                              updateConfig((p) => ({ ...p, globalDesign: { ...p.globalDesign!, typography: { ...typo, headingFont: e.target.value } } }))
                             }
-                            className="w-full px-2 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white mt-1"
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white mt-1"
                           >
-                            {FONT_OPTIONS.malayalam.map((f) => <option key={f} value={f}>{f}</option>)}
+                            {FONT_OPTIONS.heading.map((f) => <option key={f} value={f}>{f}</option>)}
                           </select>
                         </div>
                         <div>
-                          <label className="text-[10px] text-slate-400">Arabic / Urdu</label>
+                          <label className="text-[10px] text-slate-400">Body Font</label>
                           <select
-                            value={typo.arabicFont}
+                            value={typo.bodyFont}
                             onChange={(e) =>
-                              updateConfig((p) => ({ ...p, globalDesign: { ...p.globalDesign!, typography: { ...typo, arabicFont: e.target.value } } }))
+                              updateConfig((p) => ({ ...p, globalDesign: { ...p.globalDesign!, typography: { ...typo, bodyFont: e.target.value } } }))
                             }
-                            className="w-full px-2 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white mt-1"
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white mt-1"
                           >
-                            {FONT_OPTIONS.arabic.map((f) => <option key={f} value={f}>{f}</option>)}
+                            {FONT_OPTIONS.body.map((f) => <option key={f} value={f}>{f}</option>)}
                           </select>
                         </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <select
-                          value={typo.headingSize}
-                          onChange={(e) =>
-                            updateConfig((p) => ({ ...p, globalDesign: { ...p.globalDesign!, typography: { ...typo, headingSize: e.target.value as any } } }))
-                          }
-                          className="px-2 py-1.5 rounded bg-slate-950 border border-slate-800 text-white"
-                        >
-                          <option value="compact">Compact Size</option>
-                          <option value="standard">Standard Size</option>
-                          <option value="large">Large Display</option>
-                          <option value="heroic">Heroic Display</option>
-                        </select>
-                        <select
-                          value={typo.textTransform}
-                          onChange={(e) =>
-                            updateConfig((p) => ({ ...p, globalDesign: { ...p.globalDesign!, typography: { ...typo, textTransform: e.target.value as any } } }))
-                          }
-                          className="px-2 py-1.5 rounded bg-slate-950 border border-slate-800 text-white"
-                        >
-                          <option value="none">Normal Case</option>
-                          <option value="uppercase">UPPERCASE</option>
-                          <option value="capitalize">Capitalize</option>
-                        </select>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] text-slate-400">Malayalam</label>
+                            <select
+                              value={typo.malayalamFont}
+                              onChange={(e) =>
+                                updateConfig((p) => ({ ...p, globalDesign: { ...p.globalDesign!, typography: { ...typo, malayalamFont: e.target.value } } }))
+                              }
+                              className="w-full px-2 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white mt-1"
+                            >
+                              {FONT_OPTIONS.malayalam.map((f) => <option key={f} value={f}>{f}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-slate-400">Arabic / Urdu</label>
+                            <select
+                              value={typo.arabicFont}
+                              onChange={(e) =>
+                                updateConfig((p) => ({ ...p, globalDesign: { ...p.globalDesign!, typography: { ...typo, arabicFont: e.target.value } } }))
+                              }
+                              className="w-full px-2 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white mt-1"
+                            >
+                              {FONT_OPTIONS.arabic.map((f) => <option key={f} value={f}>{f}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <select
+                            value={typo.headingSize}
+                            onChange={(e) =>
+                              updateConfig((p) => ({ ...p, globalDesign: { ...p.globalDesign!, typography: { ...typo, headingSize: e.target.value as any } } }))
+                            }
+                            className="px-2 py-1.5 rounded bg-slate-950 border border-slate-800 text-white"
+                          >
+                            <option value="compact">Compact Size</option>
+                            <option value="standard">Standard Size</option>
+                            <option value="large">Large Display</option>
+                            <option value="heroic">Heroic Display</option>
+                          </select>
+                          <select
+                            value={typo.textTransform}
+                            onChange={(e) =>
+                              updateConfig((p) => ({ ...p, globalDesign: { ...p.globalDesign!, typography: { ...typo, textTransform: e.target.value as any } } }))
+                            }
+                            className="px-2 py-1.5 rounded bg-slate-950 border border-slate-800 text-white"
+                          >
+                            <option value="none">Normal Case</option>
+                            <option value="uppercase">UPPERCASE</option>
+                            <option value="capitalize">Capitalize</option>
+                          </select>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1805,20 +1894,153 @@ export default function FesProStudioPage() {
 
               {/* ── 4. HEADER DESIGN STUDIO ── */}
               {activePanel === "header" && (
-                <div className="space-y-3.5">
+                <div className="space-y-4">
                   <div>
-                    <h3 className="text-sm font-black text-white">Header Design Studio</h3>
+                    <h3 className="text-sm font-black text-white">Header &amp; Brand Studio</h3>
                     <p className="text-[11px] text-slate-400 mt-0.5">
-                      Customize header background, logo alignment, height &amp; scroll behavior.
+                      Configure official brand mode, upload wordmark/logo, nav font styling &amp; header effects.
                     </p>
                   </div>
 
+                  {/* Brand Display Mode */}
+                  <div className="space-y-1.5 p-3 rounded-xl bg-slate-950 border border-slate-800">
+                    <label className="text-[11px] font-bold text-white uppercase tracking-wider">
+                      Brand Presentation Mode
+                    </label>
+                    <select
+                      value={hdr.logoMode || "logo_and_name"}
+                      onChange={(e) =>
+                        updateConfig((p) => ({
+                          ...p,
+                          headerConfig: { ...hdr, logoMode: e.target.value as LogoDisplayMode },
+                        }))
+                      }
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs font-medium"
+                    >
+                      <option value="logo_and_name">Logo Image + Festival Name (Typed)</option>
+                      <option value="wordmark_only">Wordmark Image Only (No typed text)</option>
+                      <option value="logo_and_wordmark">Logo Icon + Wordmark Image</option>
+                      <option value="name_only">Clean Festival Name Only (No icons)</option>
+                    </select>
+
+                    {/* Wordmark Upload & URL */}
+                    {(hdr.logoMode === "wordmark_only" || hdr.logoMode === "logo_and_wordmark") && (
+                      <div className="pt-2 border-t border-slate-800/80 space-y-2">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-semibold text-slate-300">Wordmark Image</span>
+                          {config.wordmarkUrl && (
+                            <button
+                              onClick={() => updateConfig((p) => ({ ...p, wordmarkUrl: "" }))}
+                              className="text-[10px] text-rose-400 hover:underline cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                        {config.wordmarkUrl && (
+                          <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center max-h-16 overflow-hidden">
+                            <img src={config.wordmarkUrl} alt="Wordmark" className="h-10 max-w-full object-contain" />
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <label className="flex-1 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold text-center cursor-pointer transition-all">
+                            <span>Upload Wordmark</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const f = e.target.files?.[0]
+                                if (f) compressImageFile(f, 800, (url) => updateConfig((p) => ({ ...p, wordmarkUrl: url })))
+                              }}
+                            />
+                          </label>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Or paste Wordmark Image URL"
+                          value={config.wordmarkUrl || ""}
+                          onChange={(e) => updateConfig((p) => ({ ...p, wordmarkUrl: e.target.value }))}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
+                        />
+                      </div>
+                    )}
+
+                    {/* Logo Upload & URL */}
+                    {(hdr.logoMode === "logo_and_name" || hdr.logoMode === "logo_and_wordmark" || !hdr.logoMode) && (
+                      <div className="pt-2 border-t border-slate-800/80 space-y-2">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-semibold text-slate-300">Logo Icon / Emblem</span>
+                          {config.logoUrl && (
+                            <button
+                              onClick={() => updateConfig((p) => ({ ...p, logoUrl: "" }))}
+                              className="text-[10px] text-rose-400 hover:underline cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                        {config.logoUrl && (
+                          <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center max-h-16 overflow-hidden">
+                            <img src={config.logoUrl} alt="Logo" className="h-10 max-w-full object-contain" />
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <label className="flex-1 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold text-center cursor-pointer transition-all">
+                            <span>Upload Logo</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const f = e.target.files?.[0]
+                                if (f) compressImageFile(f, 600, (url) => updateConfig((p) => ({ ...p, logoUrl: url })))
+                              }}
+                            />
+                          </label>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Or paste Logo Image URL"
+                          value={config.logoUrl || ""}
+                          onChange={(e) => updateConfig((p) => ({ ...p, logoUrl: e.target.value }))}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Nav Link Typography Weight */}
                   <div>
-                    <label className="text-[10px] text-slate-400">Header Background Mode</label>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Header Nav Links Font Weight
+                    </label>
+                    <select
+                      value={hdr.navFontWeight || "light"}
+                      onChange={(e) =>
+                        updateConfig((p) => ({
+                          ...p,
+                          headerConfig: { ...hdr, navFontWeight: e.target.value as NavFontWeight },
+                        }))
+                      }
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white mt-1 text-xs font-medium"
+                    >
+                      <option value="light">Light (Weight 300 - Clean &amp; Elegant)</option>
+                      <option value="normal">Normal (Weight 400)</option>
+                      <option value="medium">Medium (Weight 500)</option>
+                      <option value="semibold">Semibold (Weight 600)</option>
+                    </select>
+                  </div>
+
+                  {/* Background Mode */}
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Header Background Mode
+                    </label>
                     <select
                       value={hdr.bgType || "inherit"}
                       onChange={(e) => updateConfig((p) => ({ ...p, headerConfig: { ...hdr, bgType: e.target.value as any } }))}
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white mt-1 font-semibold"
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white mt-1 text-xs font-semibold"
                     >
                       <option value="inherit">Glass / Blur Default</option>
                       <option value="solid">Solid Color</option>
@@ -1855,13 +2077,27 @@ export default function FesProStudioPage() {
 
                   {(hdr.bgType === "image" || hdr.bgType === "gif" || hdr.bgType === "video") && (
                     <div className="space-y-2">
-                      <input
-                        type="text"
-                        placeholder="Header Media URL (Image / GIF / MP4)"
-                        value={hdr.bgMediaUrl || ""}
-                        onChange={(e) => updateConfig((p) => ({ ...p, headerConfig: { ...hdr, bgMediaUrl: e.target.value } }))}
-                        className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white"
-                      />
+                      <div className="flex items-center gap-2">
+                        <label className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold cursor-pointer">
+                          <span>Upload Header BG</span>
+                          <input
+                            type="file"
+                            accept="image/*,video/mp4"
+                            className="hidden"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0]
+                              if (f) compressImageFile(f, 1600, (url) => updateConfig((p) => ({ ...p, headerConfig: { ...hdr, bgMediaUrl: url } })))
+                            }}
+                          />
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Or paste Media URL"
+                          value={hdr.bgMediaUrl || ""}
+                          onChange={(e) => updateConfig((p) => ({ ...p, headerConfig: { ...hdr, bgMediaUrl: e.target.value } }))}
+                          className="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white text-xs"
+                        />
+                      </div>
                       <label className="text-[10px] text-slate-400">Overlay Opacity: {hdr.overlayOpacity ?? 50}%</label>
                       <input
                         type="range"
@@ -1876,7 +2112,7 @@ export default function FesProStudioPage() {
 
                   {hdr.bgType === "solid" && (
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-300">Header Background Color</span>
+                      <span className="text-slate-300 text-xs">Header Background Color</span>
                       <input
                         type="color"
                         value={hdr.bgColor || palette.surface}
@@ -1892,7 +2128,7 @@ export default function FesProStudioPage() {
                       <select
                         value={hdr.logoPosition || "left"}
                         onChange={(e) => updateConfig((p) => ({ ...p, headerConfig: { ...hdr, logoPosition: e.target.value as any } }))}
-                        className="w-full px-2 py-1.5 rounded bg-slate-950 border border-slate-800 text-white mt-0.5"
+                        className="w-full px-2 py-1.5 rounded bg-slate-950 border border-slate-800 text-white mt-0.5 text-xs"
                       >
                         <option value="left">Logo Left</option>
                         <option value="center">Logo Center</option>
@@ -1904,7 +2140,7 @@ export default function FesProStudioPage() {
                       <select
                         value={hdr.height || "standard"}
                         onChange={(e) => updateConfig((p) => ({ ...p, headerConfig: { ...hdr, height: e.target.value as any } }))}
-                        className="w-full px-2 py-1.5 rounded bg-slate-950 border border-slate-800 text-white mt-0.5"
+                        className="w-full px-2 py-1.5 rounded bg-slate-950 border border-slate-800 text-white mt-0.5 text-xs"
                       >
                         <option value="compact">Compact</option>
                         <option value="standard">Standard</option>
@@ -1918,7 +2154,7 @@ export default function FesProStudioPage() {
                     <select
                       value={hdr.scrollEffect || "none"}
                       onChange={(e) => updateConfig((p) => ({ ...p, headerConfig: { ...hdr, scrollEffect: e.target.value as any } }))}
-                      className="w-full px-2 py-1.5 rounded bg-slate-950 border border-slate-800 text-white mt-0.5"
+                      className="w-full px-2 py-1.5 rounded bg-slate-950 border border-slate-800 text-white mt-0.5 text-xs"
                     >
                       <option value="none">Normal Sticky</option>
                       <option value="shrink">Shrink on Scroll</option>
@@ -1927,21 +2163,65 @@ export default function FesProStudioPage() {
                     </select>
                   </div>
 
-                  <input
-                    type="text"
-                    placeholder="Tagline below festival name"
-                    value={hdr.tagline || ""}
-                    onChange={(e) => updateConfig((p) => ({ ...p, headerConfig: { ...hdr, tagline: e.target.value } }))}
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white"
-                  />
+                  <div>
+                    <label className="text-[10px] text-slate-400">Tagline / Subtext (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="Leave blank for clean title only"
+                      value={hdr.tagline || ""}
+                      onChange={(e) => updateConfig((p) => ({ ...p, headerConfig: { ...hdr, tagline: e.target.value } }))}
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white text-xs mt-0.5"
+                    />
+                  </div>
 
-                  <input
-                    type="text"
-                    placeholder="Custom Header CTA Text (Optional)"
-                    value={hdr.ctaText || ""}
-                    onChange={(e) => updateConfig((p) => ({ ...p, headerConfig: { ...hdr, ctaText: e.target.value } }))}
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white"
-                  />
+                  {/* Header Elements Toggles */}
+                  <div className="space-y-2 pt-2 border-t border-slate-800">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Header Badges &amp; Controls
+                    </span>
+                    <label className="flex items-center justify-between cursor-pointer text-xs">
+                      <span className="text-slate-300">Show LIVE Badge in Header</span>
+                      <input
+                        type="checkbox"
+                        checked={hdr.showLiveBadge === true}
+                        onChange={(e) =>
+                          updateConfig((p) => ({
+                            ...p,
+                            headerConfig: { ...hdr, showLiveBadge: e.target.checked },
+                          }))
+                        }
+                        className="accent-indigo-500 h-4 w-4"
+                      />
+                    </label>
+                    <label className="flex items-center justify-between cursor-pointer text-xs">
+                      <span className="text-slate-300">Show Console Login in Header</span>
+                      <input
+                        type="checkbox"
+                        checked={hdr.showConsoleLogin === true}
+                        onChange={(e) =>
+                          updateConfig((p) => ({
+                            ...p,
+                            headerConfig: { ...hdr, showConsoleLogin: e.target.checked },
+                          }))
+                        }
+                        className="accent-indigo-500 h-4 w-4"
+                      />
+                    </label>
+                    <label className="flex items-center justify-between cursor-pointer text-xs">
+                      <span className="text-slate-300">Show Social Media Icons in Header</span>
+                      <input
+                        type="checkbox"
+                        checked={hdr.showSocialIcons === true}
+                        onChange={(e) =>
+                          updateConfig((p) => ({
+                            ...p,
+                            headerConfig: { ...hdr, showSocialIcons: e.target.checked },
+                          }))
+                        }
+                        className="accent-indigo-500 h-4 w-4"
+                      />
+                    </label>
+                  </div>
 
                   <div className="space-y-1.5 pt-2 border-t border-slate-800">
                     <span className="text-[10px] font-bold text-slate-400 uppercase">Visible Header Pages</span>
@@ -1953,7 +2233,7 @@ export default function FesProStudioPage() {
                       { key: "showVideos", label: "Videos" },
                       { key: "showNews", label: "News & Bulletins" },
                     ].map((np) => (
-                      <label key={np.key} className="flex items-center justify-between cursor-pointer">
+                      <label key={np.key} className="flex items-center justify-between cursor-pointer text-xs">
                         <span className="text-slate-300">{np.label}</span>
                         <input
                           type="checkbox"

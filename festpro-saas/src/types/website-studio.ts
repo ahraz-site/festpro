@@ -7,7 +7,17 @@ export type PalettePresetId =
   | "sunset_orange"
   | "modern_minimal"
   | "vibrant_festival"
+  | "obsidian_gold"
+  | "ivory_editorial"
   | "custom"
+
+export type LogoDisplayMode =
+  | "logo_and_name"
+  | "wordmark_only"
+  | "logo_and_wordmark"
+  | "name_only"
+
+export type NavFontWeight = "light" | "normal" | "medium" | "semibold"
 
 export type ShapePresetId =
   | "edge"
@@ -196,6 +206,8 @@ export interface HeaderConfig {
   overlayOpacity?: number
   patternType?: "none" | "dots" | "grid"
   logoPosition?: "left" | "center" | "right"
+  logoMode?: LogoDisplayMode
+  navFontWeight?: NavFontWeight
   height?: "compact" | "standard" | "tall"
   sticky: boolean
   scrollEffect?: "none" | "shrink" | "bg_change" | "hide_on_scroll"
@@ -205,6 +217,7 @@ export interface HeaderConfig {
   ctaText?: string
   ctaUrl?: string
   tagline?: string
+  brandingVersion?: number
 }
 
 export interface GalleryItem {
@@ -248,6 +261,7 @@ export interface FestivalWebsiteConfig {
   heroSubtitle?: string
   bannerUrl?: string
   logoUrl?: string
+  wordmarkUrl?: string
   accentColor?: string
   themeMode?: ThemeMode
   liveStreamUrl?: string
@@ -420,6 +434,164 @@ export const RECOMMENDED_COLOR_PALETTES: ColorPalette[] = [
     gradientEnabled: true,
     gradientAngle: 135,
   },
+  {
+    id: "obsidian_gold",
+    name: "Obsidian & Gold",
+    primary: "#D4AF37",
+    secondary: "#F5D061",
+    accent: "#FFFFFF",
+    background: "#0A0A0C",
+    surface: "#141418",
+    text: "#FAFAFA",
+    mutedText: "#A1A1AA",
+    themeMode: "dark",
+    gradientEnabled: true,
+    gradientAngle: 135,
+  },
+  {
+    id: "ivory_editorial",
+    name: "Ivory Editorial",
+    primary: "#1E293B",
+    secondary: "#475569",
+    accent: "#B45309",
+    background: "#FAF9F6",
+    surface: "#FFFFFF",
+    text: "#0F172A",
+    mutedText: "#64748B",
+    themeMode: "light",
+    gradientEnabled: false,
+    gradientAngle: 90,
+  },
+]
+
+export interface TypographyPreset {
+  id: string
+  name: string
+  category: string
+  sampleText: string
+  config: Partial<TypographyConfig>
+}
+
+export const TYPOGRAPHY_PRESETS: TypographyPreset[] = [
+  {
+    id: "editorial_luxury",
+    name: "Editorial Luxury",
+    category: "Serif + Clean Sans",
+    sampleText: "Prestige Cultural Showcase",
+    config: {
+      headingFont: "Playfair Display",
+      bodyFont: "Inter",
+      malayalamFont: "Anek Malayalam",
+      arabicFont: "Amiri",
+      headingWeight: "700",
+      headingSize: "large",
+      lineHeight: "relaxed",
+      letterSpacing: "normal",
+      textTransform: "none",
+    },
+  },
+  {
+    id: "modern_geometric",
+    name: "Modern Geometric",
+    category: "Tech & Youth Arts",
+    sampleText: "Dynamic Stage Architecture",
+    config: {
+      headingFont: "Space Grotesk",
+      bodyFont: "Plus Jakarta Sans",
+      malayalamFont: "Anek Malayalam",
+      arabicFont: "Cairo",
+      headingWeight: "700",
+      headingSize: "heroic",
+      lineHeight: "normal",
+      letterSpacing: "tighter",
+      textTransform: "none",
+    },
+  },
+  {
+    id: "swiss_minimal",
+    name: "Swiss Minimalist",
+    category: "Clean Publication",
+    sampleText: "Clarity & Precision Grid",
+    config: {
+      headingFont: "Outfit",
+      bodyFont: "Inter",
+      malayalamFont: "Noto Sans Malayalam",
+      arabicFont: "Cairo",
+      headingWeight: "600",
+      headingSize: "standard",
+      lineHeight: "relaxed",
+      letterSpacing: "normal",
+      textTransform: "none",
+    },
+  },
+  {
+    id: "malayalam_classic",
+    name: "Malayalam Heritage",
+    category: "Regional Literature",
+    sampleText: "കലോത്സവം സാംസ്കാരിക സംഗമം",
+    config: {
+      headingFont: "Anek Malayalam",
+      bodyFont: "Noto Sans Malayalam",
+      malayalamFont: "Anek Malayalam",
+      arabicFont: "Amiri",
+      headingWeight: "800",
+      headingSize: "large",
+      lineHeight: "relaxed",
+      letterSpacing: "normal",
+      textTransform: "none",
+    },
+  },
+  {
+    id: "arabic_malayalam",
+    name: "Arabic & Malayalam Harmony",
+    category: "Sahityotsav & Classical",
+    sampleText: "أدب وفنون • സാഹിത്യോത്സവ്",
+    config: {
+      headingFont: "Playfair Display",
+      bodyFont: "Anek Malayalam",
+      malayalamFont: "Anek Malayalam",
+      arabicFont: "Amiri",
+      headingWeight: "700",
+      headingSize: "large",
+      lineHeight: "relaxed",
+      letterSpacing: "normal",
+      textTransform: "none",
+    },
+  },
+  {
+    id: "high_impact",
+    name: "High-Impact Broadcast",
+    category: "Live Scoreboards",
+    sampleText: "CHAMPIONSHIP FINALS",
+    config: {
+      headingFont: "Bebas Neue",
+      bodyFont: "DM Sans",
+      malayalamFont: "Anek Malayalam",
+      arabicFont: "Cairo",
+      headingWeight: "800",
+      headingSize: "heroic",
+      lineHeight: "tight",
+      letterSpacing: "wider",
+      textTransform: "uppercase",
+    },
+  },
+  {
+    id: "academic_clarity",
+    name: "Academic & Institutional",
+    category: "Campus Official",
+    sampleText: "University Arts Festival",
+    config: {
+      headingFont: "Poppins",
+      bodyFont: "Roboto",
+      malayalamFont: "Manjari",
+      arabicFont: "Noto Naskh Arabic",
+      headingWeight: "600",
+      headingSize: "standard",
+      lineHeight: "normal",
+      letterSpacing: "normal",
+      textTransform: "none",
+    },
+  },
 ]
 
 export const FONT_OPTIONS = {
@@ -542,7 +714,7 @@ export const DEFAULT_SECTIONS: BuilderSection[] = [
     layout: { widthMode: "full", paddingY: "compact" },
     effects: { entrance: "fade_in", hover: "none", topDivider: "none", bottomDivider: "none" },
     settings: {
-      text: "🏆 LIVE SCORE UPDATES RUNNING • STAGE 1 CLASSICAL PERFORMANCES IN PROGRESS • PARTICIPANTS REPORT 30 MINS EARLY •",
+      text: "LIVE SCORE UPDATES RUNNING • STAGE 1 CLASSICAL PERFORMANCES IN PROGRESS • PARTICIPANTS REPORT 30 MINS EARLY •",
       speedSeconds: 22,
     },
   },
@@ -924,16 +1096,118 @@ export const READY_MADE_TEMPLATES: StudioTemplatePreset[] = [
       },
     },
   },
+  {
+    id: "obsidian_gold_gala",
+    name: "Obsidian Gold Gala",
+    category: "Signature Prestige",
+    description: "Deep matte obsidian canvas paired with champagne gold accents and editorial serif",
+    previewGradient: "from-neutral-950 via-stone-900 to-amber-500",
+    patch: {
+      templateId: "obsidian_gold_gala",
+      globalDesign: {
+        palette: RECOMMENDED_COLOR_PALETTES[6],
+        typography: {
+          headingFont: "Playfair Display",
+          bodyFont: "Inter",
+          malayalamFont: "Anek Malayalam",
+          arabicFont: "Amiri",
+          headingWeight: "700",
+          headingSize: "large",
+          lineHeight: "relaxed",
+          letterSpacing: "normal",
+          textTransform: "none",
+        },
+        shape: SHAPE_PRESETS[5].config,
+      },
+    },
+  },
+  {
+    id: "swiss_editorial_light",
+    name: "Swiss Editorial Light",
+    category: "Publication Standard",
+    description: "Warm ivory canvas, razor-sharp typography, and high readability across mobile and print",
+    previewGradient: "from-stone-200 via-slate-300 to-amber-700",
+    patch: {
+      templateId: "swiss_editorial_light",
+      globalDesign: {
+        palette: RECOMMENDED_COLOR_PALETTES[7],
+        typography: {
+          headingFont: "Outfit",
+          bodyFont: "Inter",
+          malayalamFont: "Noto Sans Malayalam",
+          arabicFont: "Cairo",
+          headingWeight: "600",
+          headingSize: "large",
+          lineHeight: "relaxed",
+          letterSpacing: "normal",
+          textTransform: "none",
+        },
+        shape: SHAPE_PRESETS[5].config,
+      },
+    },
+  },
+  {
+    id: "kerala_kalotsavam_signature",
+    name: "Kerala Arts Signature",
+    category: "Kalolsavam & Regional",
+    description: "Tailored bilingual Malayalam + English typography for large district and state festivals",
+    previewGradient: "from-emerald-900 via-teal-800 to-amber-500",
+    patch: {
+      templateId: "kerala_kalotsavam_signature",
+      globalDesign: {
+        palette: RECOMMENDED_COLOR_PALETTES[2],
+        typography: {
+          headingFont: "Anek Malayalam",
+          bodyFont: "Plus Jakarta Sans",
+          malayalamFont: "Anek Malayalam",
+          arabicFont: "Amiri",
+          headingWeight: "800",
+          headingSize: "large",
+          lineHeight: "relaxed",
+          letterSpacing: "normal",
+          textTransform: "none",
+        },
+        shape: SHAPE_PRESETS[0].config,
+      },
+    },
+  },
+  {
+    id: "broadcast_live_arena",
+    name: "Broadcast Live Arena",
+    category: "Championship Media",
+    description: "High-contrast condensed display headers structured for fast live scoreboard scanning",
+    previewGradient: "from-slate-950 via-blue-900 to-cyan-600",
+    patch: {
+      templateId: "broadcast_live_arena",
+      globalDesign: {
+        palette: RECOMMENDED_COLOR_PALETTES[0],
+        typography: {
+          headingFont: "Bebas Neue",
+          bodyFont: "DM Sans",
+          malayalamFont: "Anek Malayalam",
+          arabicFont: "Cairo",
+          headingWeight: "800",
+          headingSize: "heroic",
+          lineHeight: "tight",
+          letterSpacing: "wider",
+          textTransform: "uppercase",
+        },
+        shape: SHAPE_PRESETS[1].config,
+      },
+    },
+  },
 ]
 
 export function getDefaultWebsiteConfig(fest?: any, settings?: any): FestivalWebsiteConfig {
   const defaultPalette = RECOMMENDED_COLOR_PALETTES[5]
+  const resolvedName = fest?.name || "Festival"
   return {
     templateId: "modern_festival",
-    heroTitle: fest?.name || "Festival 2026",
+    heroTitle: fest?.name || "",
     heroSubtitle: fest?.description || "Live competitions, stage schedules, house rankings, and instant results.",
     bannerUrl: fest?.banner_url || "",
     logoUrl: fest?.logo_url || "",
+    wordmarkUrl: "",
     accentColor: settings?.theme_color || defaultPalette.primary,
     themeMode: "dark",
     venueCampus: "Main Auditorium Campus",
@@ -957,7 +1231,7 @@ export function getDefaultWebsiteConfig(fest?: any, settings?: any): FestivalWeb
       showNews: true,
     },
     heroConfig: {
-      badgeText: "Official Festival Portal • Real-Time Scoring",
+      badgeText: "Live Competitions • Real-Time Results",
       primaryCtaText: "Live Results",
       primaryCtaTarget: "results",
       secondaryCtaText: "House Standings",
@@ -972,17 +1246,19 @@ export function getDefaultWebsiteConfig(fest?: any, settings?: any): FestivalWeb
       style: "glass",
       bgType: "inherit",
       logoPosition: "left",
+      logoMode: "logo_and_name",
+      navFontWeight: "light",
       height: "standard",
       sticky: true,
       scrollEffect: "none",
-      showLiveBadge: true,
-      showConsoleLogin: true,
+      showLiveBadge: false,
+      showConsoleLogin: false,
       showSocialIcons: false,
-      tagline: "OFFICIAL FESTIVAL PORTAL",
+      tagline: "",
     },
     footerConfig: {
       style: "detailed",
-      copyrightText: `© ${new Date().getFullYear()} ${fest?.name || "Festival"}. All rights reserved.`,
+      copyrightText: `© ${new Date().getFullYear()} ${resolvedName}. All rights reserved.`,
     },
     globalDesign: {
       palette: {
@@ -1066,5 +1342,96 @@ export function getDefaultWebsiteConfig(fest?: any, settings?: any): FestivalWeb
       { id: "n1", title: "Grand Inauguration Ceremony Begins at Main Stage", date: "Today, 09:00 AM", content: "The cultural fest has been officially inaugurated by dignitaries. Stage 1 programs are now live.", badge: "Live" },
       { id: "n2", title: "Stage 2 Schedule Updated for Afternoon Competitions", date: "Today, 11:30 AM", content: "Classical solo performances will commence at 02:00 PM on Stage 2.", badge: "Schedule" },
     ],
+  }
+}
+
+export function normalizeWebsiteConfig(
+  saved?: FestivalWebsiteConfig | null,
+  fest?: any,
+  settings?: any
+): FestivalWebsiteConfig {
+  const defaults = getDefaultWebsiteConfig(fest, settings)
+  if (!saved) return defaults
+
+  const migratedHeader: Partial<HeaderConfig> = { ...(saved.headerConfig || {}) }
+  if (migratedHeader.tagline === "OFFICIAL FESTIVAL PORTAL") {
+    migratedHeader.tagline = ""
+  }
+  if (!migratedHeader.brandingVersion) {
+    migratedHeader.showLiveBadge = false
+    migratedHeader.showConsoleLogin = false
+    migratedHeader.navFontWeight = migratedHeader.navFontWeight || "light"
+  }
+
+  const rawSections = saved.sections && saved.sections.length > 0 ? saved.sections : defaults.sections!
+  const migratedSections = rawSections.map((s) => {
+    if (s.type === "marquee" && typeof s.settings?.text === "string" && s.settings.text.includes("🏆")) {
+      return {
+        ...s,
+        settings: {
+          ...s.settings,
+          text: s.settings.text.replace(/🏆\s*/g, ""),
+        },
+      }
+    }
+    return s
+  })
+
+  return {
+    ...defaults,
+    ...saved,
+    heroTitle:
+      saved.heroTitle && saved.heroTitle !== "Festival 2026"
+        ? saved.heroTitle
+        : fest?.name || saved.heroTitle || "",
+    socialLinks: { ...defaults.socialLinks, ...(saved.socialLinks || {}) },
+    navPages: { ...defaults.navPages, ...(saved.navPages || {}) },
+    heroConfig: { ...defaults.heroConfig, ...(saved.heroConfig || {}) },
+    headerConfig: { ...defaults.headerConfig!, ...migratedHeader },
+    footerConfig: { ...defaults.footerConfig, ...(saved.footerConfig || {}) },
+    globalDesign: {
+      palette: {
+        ...defaults.globalDesign!.palette,
+        ...(saved.globalDesign?.palette || {}),
+        ...(saved.accentColor && !saved.globalDesign?.palette?.primary ? { primary: saved.accentColor } : {}),
+        ...(saved.themeMode && !saved.globalDesign?.palette?.themeMode ? { themeMode: saved.themeMode } : {}),
+      },
+      typography: {
+        ...defaults.globalDesign!.typography,
+        ...(saved.globalDesign?.typography || {}),
+      },
+      shape: {
+        ...defaults.globalDesign!.shape,
+        ...(saved.globalDesign?.shape || {}),
+      },
+      savedCustomPalettes: saved.globalDesign?.savedCustomPalettes || [],
+    },
+    motionStudio: { ...defaults.motionStudio!, ...(saved.motionStudio || {}) },
+    sections: migratedSections,
+    galleryStudio: { ...defaults.galleryStudio!, ...(saved.galleryStudio || {}) },
+    videoStudio: {
+      layout: saved.videoStudio?.layout || defaults.videoStudio!.layout,
+      videos:
+        saved.videoStudio?.videos && saved.videoStudio.videos.length > 0
+          ? saved.videoStudio.videos
+          : saved.liveStreamUrl
+          ? [
+              {
+                id: "v-live",
+                title: "Main Stage Live Stream",
+                platform: "youtube",
+                url: saved.liveStreamUrl,
+                aspectRatio: "16:9",
+                category: "Live",
+                featured: true,
+              },
+            ]
+          : defaults.videoStudio!.videos,
+    },
+    teamMembers: saved.teamMembers || defaults.teamMembers,
+    popupBuilder: { ...defaults.popupBuilder!, ...(saved.popupBuilder || {}) },
+    seoAndAdvanced: { ...defaults.seoAndAdvanced!, ...(saved.seoAndAdvanced || {}) },
+    gallery: saved.gallery || defaults.gallery,
+    news: saved.news || defaults.news,
   }
 }

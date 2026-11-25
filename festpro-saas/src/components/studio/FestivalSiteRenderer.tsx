@@ -15,7 +15,7 @@ import type {
   ShapeDividerType,
   SliderSlideItem,
 } from "@/types/website-studio"
-import { getDefaultWebsiteConfig } from "@/types/website-studio"
+import { normalizeWebsiteConfig } from "@/types/website-studio"
 
 export interface FestivalSiteRendererProps {
   festivalName: string
@@ -277,6 +277,92 @@ function AdvancedSliderWidget({
   )
 }
 
+function SocialIconsList({
+  socialLinks,
+  compact = false,
+  mutedColor,
+}: {
+  socialLinks?: FestivalWebsiteConfig["socialLinks"]
+  compact?: boolean
+  mutedColor?: string
+}) {
+  if (!socialLinks) return null
+  const boxCls = compact
+    ? "h-7 w-7 rounded-lg border border-white/10 flex items-center justify-center transition-all"
+    : "h-9 w-9 rounded-xl border border-white/10 flex items-center justify-center transition-all"
+  const iconCls = compact ? "h-3.5 w-3.5 fill-current" : "h-4 w-4 fill-current"
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap" style={compact ? { color: mutedColor } : undefined}>
+      {socialLinks.instagram && (
+        <a
+          href={socialLinks.instagram}
+          target="_blank"
+          rel="noreferrer"
+          className={`${boxCls} hover:bg-pink-600 hover:text-white`}
+          title="Instagram"
+        >
+          <svg className={iconCls} viewBox="0 0 24 24">
+            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+          </svg>
+        </a>
+      )}
+      {socialLinks.youtube && (
+        <a
+          href={socialLinks.youtube}
+          target="_blank"
+          rel="noreferrer"
+          className={`${boxCls} hover:bg-red-600 hover:text-white`}
+          title="YouTube"
+        >
+          <svg className={iconCls} viewBox="0 0 24 24">
+            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+          </svg>
+        </a>
+      )}
+      {socialLinks.whatsapp && (
+        <a
+          href={socialLinks.whatsapp}
+          target="_blank"
+          rel="noreferrer"
+          className={`${boxCls} hover:bg-emerald-600 hover:text-white`}
+          title="WhatsApp"
+        >
+          <svg className={iconCls} viewBox="0 0 24 24">
+            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+          </svg>
+        </a>
+      )}
+      {socialLinks.facebook && (
+        <a
+          href={socialLinks.facebook}
+          target="_blank"
+          rel="noreferrer"
+          className={`${boxCls} hover:bg-blue-600 hover:text-white`}
+          title="Facebook"
+        >
+          <svg className={iconCls} viewBox="0 0 24 24">
+            <path d="M9 8H6v4h3v12h5V12h3.642L18 8h-4V6.333C14 5.374 14.5 5 15.667 5H18V0h-3.808C10.596 0 9 1.583 9 4.615V8z" />
+          </svg>
+        </a>
+      )}
+      {socialLinks.twitter && (
+        <a
+          href={socialLinks.twitter}
+          target="_blank"
+          rel="noreferrer"
+          className={`${boxCls} hover:bg-black hover:text-white`}
+          title="Twitter / X"
+        >
+          <svg className={iconCls} viewBox="0 0 24 24">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+        </a>
+      )}
+    </div>
+  )
+}
+
 export default function FestivalSiteRenderer({
   festivalName,
   festival,
@@ -291,35 +377,7 @@ export default function FestivalSiteRenderer({
   forcedTab,
   onTabChange,
 }: FestivalSiteRendererProps) {
-  const defaults = getDefaultWebsiteConfig(festival)
-  const config: FestivalWebsiteConfig = {
-    ...defaults,
-    ...(incomingConfig || {}),
-    globalDesign: {
-      palette: {
-        ...defaults.globalDesign!.palette,
-        ...(incomingConfig?.globalDesign?.palette || {}),
-      },
-      typography: {
-        ...defaults.globalDesign!.typography,
-        ...(incomingConfig?.globalDesign?.typography || {}),
-      },
-      shape: {
-        ...defaults.globalDesign!.shape,
-        ...(incomingConfig?.globalDesign?.shape || {}),
-      },
-    },
-    motionStudio: { ...defaults.motionStudio!, ...(incomingConfig?.motionStudio || {}) },
-    heroConfig: { ...defaults.heroConfig!, ...(incomingConfig?.heroConfig || {}) },
-    headerConfig: { ...defaults.headerConfig!, ...(incomingConfig?.headerConfig || {}) },
-    footerConfig: { ...defaults.footerConfig!, ...(incomingConfig?.footerConfig || {}) },
-    galleryStudio: { ...defaults.galleryStudio!, ...(incomingConfig?.galleryStudio || {}) },
-    videoStudio: { ...defaults.videoStudio!, ...(incomingConfig?.videoStudio || {}) },
-    navPages: { ...defaults.navPages!, ...(incomingConfig?.navPages || {}) },
-    socialLinks: { ...defaults.socialLinks!, ...(incomingConfig?.socialLinks || {}) },
-    popupBuilder: { ...defaults.popupBuilder!, ...(incomingConfig?.popupBuilder || {}) },
-    seoAndAdvanced: { ...defaults.seoAndAdvanced!, ...(incomingConfig?.seoAndAdvanced || {}) },
-  }
+  const config = normalizeWebsiteConfig(incomingConfig, festival)
 
   const palette = config.globalDesign!.palette
   const typo = config.globalDesign!.typography
@@ -456,12 +514,12 @@ export default function FestivalSiteRenderer({
 
   const headingSizeClass =
     typo.headingSize === "compact"
-      ? "text-2xl sm:text-4xl"
+      ? "text-xl @2xl:text-3xl @4xl:text-4xl"
       : typo.headingSize === "standard"
-      ? "text-3xl sm:text-5xl"
+      ? "text-2xl @2xl:text-4xl @4xl:text-5xl"
       : typo.headingSize === "large"
-      ? "text-4xl sm:text-6xl"
-      : "text-4xl sm:text-7xl"
+      ? "text-2xl @2xl:text-5xl @4xl:text-6xl"
+      : "text-3xl @2xl:text-5xl @4xl:text-7xl"
 
   const letterSpacingVal =
     typo.letterSpacing === "tighter"
@@ -562,8 +620,8 @@ export default function FestivalSiteRenderer({
         : lay.paddingY === "spacious"
         ? "py-14"
         : lay.paddingY === "heroic"
-        ? "py-16 sm:py-24"
-        : "py-9"
+        ? "py-12 @2xl:py-24"
+        : "py-8 @2xl:py-10"
 
     const enterClass =
       motion.reducedMotion || eff.entrance === "none"
@@ -612,9 +670,9 @@ export default function FestivalSiteRenderer({
           lay.sticky ? "sticky top-16 z-20" : ""
         } ${
           section.visibility === "desktop"
-            ? "hidden md:block"
+            ? "hidden @3xl:block"
             : section.visibility === "mobile"
-            ? "block md:hidden"
+            ? "block @3xl:hidden"
             : ""
         } ${
           isEditorMode
@@ -687,8 +745,8 @@ export default function FestivalSiteRenderer({
 
         {/* Content Container */}
         <div
-          className={`relative z-10 ${
-            lay.widthMode === "full" && isEdgeToEdge ? "w-full" : `${containerMaxW} mx-auto px-4 sm:px-6`
+          className={`relative z-10 min-w-0 ${
+            lay.widthMode === "full" && isEdgeToEdge ? "w-full" : `${containerMaxW} mx-auto px-4 @2xl:px-6`
           } ${pyClass}`}
         >
           {innerContent}
@@ -721,22 +779,24 @@ export default function FestivalSiteRenderer({
 
         return renderSectionContainer(
           heroSection,
-          <div className={`space-y-6 ${config.heroConfig?.alignment === "left" ? "text-left" : "text-center"}`}>
-            <div
-              className="inline-flex items-center gap-2 px-4 py-1.5 text-xs font-bold border"
-              style={{
-                borderRadius: btnRadius,
-                backgroundColor: `${palette.primary}20`,
-                borderColor: `${palette.primary}50`,
-                color: isLight ? palette.primary : palette.secondary,
-              }}
-            >
-              <Sparkles className="h-3.5 w-3.5" style={{ color: palette.accent }} />
-              <span>{config.heroConfig?.badgeText || "Official Festival Portal • Real-Time Scoring"}</span>
-            </div>
+          <div className={`space-y-5 @2xl:space-y-6 min-w-0 ${config.heroConfig?.alignment === "left" ? "text-left" : "text-center"}`}>
+            {config.heroConfig?.badgeText && (
+              <div
+                className="inline-flex items-center gap-2 px-3.5 py-1.5 text-[11px] @2xl:text-xs font-medium border max-w-full"
+                style={{
+                  borderRadius: btnRadius,
+                  backgroundColor: `${palette.primary}20`,
+                  borderColor: `${palette.primary}50`,
+                  color: isLight ? palette.primary : palette.secondary,
+                }}
+              >
+                <Sparkles className="h-3.5 w-3.5 shrink-0" style={{ color: palette.accent }} />
+                <span className="break-words">{config.heroConfig.badgeText}</span>
+              </div>
+            )}
 
             <h1
-              className={`${headingSizeClass} tracking-tight leading-tight`}
+              className={`${headingSizeClass} tracking-tight leading-tight break-words`}
               style={{
                 fontFamily: `"${typo.headingFont}", "${typo.malayalamFont}", "${typo.arabicFont}", sans-serif`,
                 fontWeight: Number(typo.headingWeight),
@@ -749,7 +809,7 @@ export default function FestivalSiteRenderer({
             </h1>
 
             <p
-              className={`text-sm sm:text-lg max-w-2xl leading-relaxed ${
+              className={`text-sm @2xl:text-lg max-w-2xl leading-relaxed break-words ${
                 config.heroConfig?.alignment === "left" ? "" : "mx-auto"
               }`}
               style={{ color: palette.mutedText }}
@@ -813,12 +873,12 @@ export default function FestivalSiteRenderer({
           section,
           <div className="overflow-hidden whitespace-nowrap py-1">
             <div
-              className="inline-block fespro-marquee text-xs sm:text-sm font-black tracking-wide text-white"
+              className="inline-block fespro-marquee text-xs @2xl:text-sm font-black tracking-wide text-white"
               style={{ animationDuration: `${section.settings?.speedSeconds || 22}s` }}
             >
-              {section.settings?.text || "🏆 LIVE SCORES RUNNING NOW • CHECK STAGE SCHEDULES & WINNERS •"}
+              {section.settings?.text || "LIVE SCORES RUNNING NOW • CHECK STAGE SCHEDULES & WINNERS •"}
               &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-              {section.settings?.text || "🏆 LIVE SCORES RUNNING NOW • CHECK STAGE SCHEDULES & WINNERS •"}
+              {section.settings?.text || "LIVE SCORES RUNNING NOW • CHECK STAGE SCHEDULES & WINNERS •"}
             </div>
           </div>,
           true
@@ -913,7 +973,7 @@ export default function FestivalSiteRenderer({
         return renderSectionContainer(
           section,
           <div
-            className={`grid grid-cols-1 md:grid-cols-2 overflow-hidden ${cardClass}`}
+            className={`grid grid-cols-1 @2xl:grid-cols-2 overflow-hidden min-w-0 ${cardClass}`}
             style={{ backgroundColor: palette.surface, borderRadius: radiusVal }}
           >
             <img
@@ -922,16 +982,16 @@ export default function FestivalSiteRenderer({
                 "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=900&q=80"
               }
               alt="Promo"
-              className="w-full h-56 md:h-full object-cover"
+              className="w-full h-56 @2xl:h-full object-cover"
             />
-            <div className="p-6 sm:p-8 flex flex-col justify-center space-y-3">
-              <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: palette.accent }}>
+            <div className="p-5 @2xl:p-8 flex flex-col justify-center space-y-3 min-w-0">
+              <span className="text-[10px] font-black uppercase tracking-wider break-words" style={{ color: palette.accent }}>
                 {section.settings?.badge || "Featured Program"}
               </span>
-              <h3 className="text-xl sm:text-2xl font-black" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
+              <h3 className="text-xl @2xl:text-2xl font-black break-words" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
                 {section.settings?.title || "Cultural Evening & Prize Night"}
               </h3>
-              <p className="text-xs leading-relaxed" style={{ color: palette.mutedText }}>
+              <p className="text-xs leading-relaxed break-words" style={{ color: palette.mutedText }}>
                 {section.settings?.description ||
                   "Join us for the grand finale cultural performances and overall championship trophy ceremony."}
               </p>
@@ -978,7 +1038,7 @@ export default function FestivalSiteRenderer({
       case "testimonial_slider":
         return renderSectionContainer(
           section,
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 @2xl:grid-cols-3 gap-4">
             {(section.settings?.quotes || [
               { name: "Chief Jury Member", quote: "Incredible organization and transparent live score updates!" },
               { name: "Campus Dean", quote: "Real-time schedules kept every stage running strictly on time." },
@@ -986,13 +1046,13 @@ export default function FestivalSiteRenderer({
             ]).map((q: any, i: number) => (
               <div
                 key={i}
-                className={`p-5 space-y-2 ${cardClass}`}
+                className={`p-5 space-y-2 min-w-0 overflow-hidden ${cardClass}`}
                 style={{ backgroundColor: palette.surface, borderRadius: radiusVal }}
               >
-                <p className="text-xs italic leading-relaxed" style={{ color: palette.mutedText }}>
+                <p className="text-xs italic leading-relaxed break-words" style={{ color: palette.mutedText }}>
                   "{q.quote}"
                 </p>
-                <div className="text-xs font-black" style={{ color: palette.accent }}>
+                <div className="text-xs font-black break-words" style={{ color: palette.accent }}>
                   — {q.name}
                 </div>
               </div>
@@ -1013,13 +1073,13 @@ export default function FestivalSiteRenderer({
         return renderSectionContainer(
           section,
           <div
-            className={`p-6 sm:p-8 text-center space-y-4 ${cardClass}`}
+            className={`p-4 @2xl:p-8 text-center space-y-4 overflow-hidden min-w-0 ${cardClass}`}
             style={{ backgroundColor: palette.surface, borderRadius: radiusVal }}
           >
-            <div className="text-xs font-black uppercase tracking-widest" style={{ color: palette.accent }}>
+            <div className="text-xs font-black uppercase tracking-widest break-words" style={{ color: palette.accent }}>
               {section.settings?.title || config.heroConfig?.countdownTitle || "Festival Countdown"}
             </div>
-            <div className="grid grid-cols-4 gap-3 max-w-md mx-auto">
+            <div className="grid grid-cols-2 @lg:grid-cols-4 gap-2.5 @2xl:gap-3 max-w-md mx-auto">
               {[
                 { val: countdown.days, label: "Days" },
                 { val: countdown.hours, label: "Hours" },
@@ -1028,17 +1088,17 @@ export default function FestivalSiteRenderer({
               ].map((u) => (
                 <div
                   key={u.label}
-                  className="p-3 border"
+                  className="p-2.5 @2xl:p-3 border min-w-0 overflow-hidden flex flex-col items-center justify-center"
                   style={{
                     backgroundColor: palette.background,
                     borderRadius: radiusVal,
                     borderColor: `${palette.primary}30`,
                   }}
                 >
-                  <div className="text-2xl sm:text-4xl font-black" style={{ color: palette.text }}>
+                  <div className="text-2xl @2xl:text-4xl font-black tabular-nums leading-none" style={{ color: palette.text }}>
                     {String(u.val).padStart(2, "0")}
                   </div>
-                  <div className="text-[10px] font-bold uppercase mt-1" style={{ color: palette.mutedText }}>
+                  <div className="text-[10px] font-bold uppercase mt-1.5 tracking-wider truncate max-w-full" style={{ color: palette.mutedText }}>
                     {u.label}
                   </div>
                 </div>
@@ -1050,25 +1110,25 @@ export default function FestivalSiteRenderer({
       case "stats":
         return renderSectionContainer(
           section,
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 @3xl:grid-cols-4 gap-3 @2xl:gap-4">
             {[
               { label: "Published Results", value: results.length, sub: "Verified scores", color: palette.primary },
-              { label: "Total Competitions", value: stats.competitionsCount, sub: "On & off-stage items", color: palette.secondary },
+              { label: "Competitions", value: stats.competitionsCount, sub: "On & off-stage items", color: palette.secondary },
               { label: "Participants", value: stats.participantsCount, sub: "Registered candidates", color: palette.accent },
               { label: "Festival Stages", value: stats.stagesCount || 1, sub: "Active stage consoles", color: "#10B981" },
             ].map((s) => (
               <div
                 key={s.label}
-                className={`p-5 ${cardClass}`}
+                className={`p-4 @2xl:p-5 min-w-0 overflow-hidden ${cardClass}`}
                 style={{ backgroundColor: palette.surface, borderRadius: radiusVal }}
               >
-                <div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: palette.mutedText }}>
+                <div className="text-[10px] @2xl:text-[11px] font-bold uppercase tracking-wide break-words leading-snug" style={{ color: palette.mutedText }}>
                   {s.label}
                 </div>
-                <div className="text-3xl font-black mt-2" style={{ color: s.color }}>
+                <div className="text-2xl @2xl:text-3xl font-black mt-1.5 tabular-nums truncate" style={{ color: s.color }}>
                   {s.value}
                 </div>
-                <div className="text-xs mt-1" style={{ color: palette.mutedText }}>
+                <div className="text-[11px] @2xl:text-xs mt-1 break-words leading-snug" style={{ color: palette.mutedText }}>
                   {s.sub}
                 </div>
               </div>
@@ -1080,14 +1140,14 @@ export default function FestivalSiteRenderer({
         return renderSectionContainer(
           section,
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-black flex items-center gap-2" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
-                <Award className="h-5 w-5" style={{ color: palette.accent }} />
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-lg @2xl:text-xl font-black flex items-center gap-2 min-w-0 break-words" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
+                <Award className="h-5 w-5 shrink-0" style={{ color: palette.accent }} />
                 <span>House Championship Standings</span>
               </h2>
               <button
                 onClick={() => setActiveTab("leaderboard")}
-                className="text-xs font-bold flex items-center gap-1 cursor-pointer"
+                className="text-xs font-bold flex items-center gap-1 cursor-pointer shrink-0"
                 style={{ color: palette.secondary }}
               >
                 Full Standings <ChevronRight className="h-3.5 w-3.5" />
@@ -1101,28 +1161,28 @@ export default function FestivalSiteRenderer({
                 Standings will update live as competitions conclude.
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 @2xl:grid-cols-2 gap-4">
                 {teamPoints.slice(0, section.settings?.maxItems || 6).map((t: any, i: number) => (
                   <div
                     key={t.id || i}
-                    className={`p-4 flex items-center justify-between ${cardClass}`}
+                    className={`p-4 flex items-center justify-between gap-3 min-w-0 overflow-hidden ${cardClass}`}
                     style={{ backgroundColor: palette.surface, borderRadius: radiusVal }}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div
-                        className="h-9 w-9 rounded-xl flex items-center justify-center font-black text-sm text-white"
+                        className="h-9 w-9 rounded-xl flex items-center justify-center font-black text-sm text-white shrink-0"
                         style={{ backgroundColor: i === 0 ? "#D97706" : i === 1 ? "#64748B" : palette.primary }}
                       >
                         #{t.rank || i + 1}
                       </div>
-                      <div>
-                        <h4 className="font-bold text-sm">{t.team_name || `House ${i + 1}`}</h4>
-                        <p className="text-[11px]" style={{ color: palette.mutedText }}>
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-sm truncate">{t.team_name || `House ${i + 1}`}</h4>
+                        <p className="text-[11px] truncate" style={{ color: palette.mutedText }}>
                           Published house score
                         </p>
                       </div>
                     </div>
-                    <div className="text-xl font-black" style={{ color: palette.accent }}>
+                    <div className="text-lg @2xl:text-xl font-black shrink-0 tabular-nums" style={{ color: palette.accent }}>
                       {t.total_points || 0} <span className="text-[10px] font-bold">PTS</span>
                     </div>
                   </div>
@@ -1136,14 +1196,14 @@ export default function FestivalSiteRenderer({
         return renderSectionContainer(
           section,
           <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <h2 className="text-xl font-black flex items-center gap-2" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
-                <Trophy className="h-5 w-5" style={{ color: palette.accent }} />
+            <div className="flex flex-col @xl:flex-row @xl:items-center justify-between gap-2">
+              <h2 className="text-lg @2xl:text-xl font-black flex items-center gap-2 min-w-0 break-words" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
+                <Trophy className="h-5 w-5 shrink-0" style={{ color: palette.accent }} />
                 <span>Latest Published Results</span>
               </h2>
               <button
                 onClick={() => setActiveTab("results")}
-                className="text-xs font-bold flex items-center gap-1 cursor-pointer"
+                className="text-xs font-bold flex items-center gap-1 cursor-pointer w-fit"
                 style={{ color: palette.secondary }}
               >
                 Search All Results <ChevronRight className="h-3.5 w-3.5" />
@@ -1157,11 +1217,11 @@ export default function FestivalSiteRenderer({
                 No published results yet. Live scores appear automatically once verified.
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 @2xl:grid-cols-2 @5xl:grid-cols-3 gap-4">
                 {results.slice(0, section.settings?.maxItems || 6).map((r: any, idx: number) => (
                   <div
                     key={r.id || idx}
-                    className={`p-4 flex items-center justify-between gap-3 ${cardClass}`}
+                    className={`p-4 flex items-center justify-between gap-3 min-w-0 overflow-hidden ${cardClass}`}
                     style={{ backgroundColor: palette.surface, borderRadius: radiusVal }}
                   >
                     <div className="flex items-center gap-3 min-w-0">
@@ -1288,20 +1348,20 @@ export default function FestivalSiteRenderer({
         return renderSectionContainer(
           section,
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-black flex items-center gap-2" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
-                <ImageIcon className="h-5 w-5" style={{ color: palette.secondary }} />
-                <span>Photo Gallery Showcase</span>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-lg @2xl:text-xl font-black flex items-center gap-2 min-w-0" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
+                <ImageIcon className="h-5 w-5 shrink-0" style={{ color: palette.secondary }} />
+                <span className="truncate">Photo Gallery Showcase</span>
               </h2>
               <button
                 onClick={() => setActiveTab("gallery")}
-                className="text-xs font-bold flex items-center gap-1 cursor-pointer"
+                className="text-xs font-bold flex items-center gap-1 cursor-pointer shrink-0"
                 style={{ color: palette.secondary }}
               >
                 Explore All Photos <ChevronRight className="h-3.5 w-3.5" />
               </button>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 @2xl:grid-cols-4 gap-3">
               {galleryItems.slice(0, 4).map((g) => (
                 <div
                   key={g.id}
@@ -1320,7 +1380,7 @@ export default function FestivalSiteRenderer({
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-3">
-                    <span className="text-[10px] font-bold uppercase" style={{ color: palette.accent }}>
+                    <span className="text-[10px] font-bold uppercase truncate" style={{ color: palette.accent }}>
                       {g.category || "Event"}
                     </span>
                     <span className="text-xs font-bold text-white line-clamp-1">{g.title}</span>
@@ -1335,37 +1395,37 @@ export default function FestivalSiteRenderer({
         return renderSectionContainer(
           section,
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-black flex items-center gap-2" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
-                <Newspaper className="h-5 w-5" style={{ color: palette.accent }} />
-                <span>Official Bulletins &amp; News</span>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-lg @2xl:text-xl font-black flex items-center gap-2 min-w-0" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
+                <Newspaper className="h-5 w-5 shrink-0" style={{ color: palette.accent }} />
+                <span className="truncate">Official Bulletins &amp; News</span>
               </h2>
               <button
                 onClick={() => setActiveTab("news")}
-                className="text-xs font-bold flex items-center gap-1 cursor-pointer"
+                className="text-xs font-bold flex items-center gap-1 cursor-pointer shrink-0"
                 style={{ color: palette.secondary }}
               >
                 All Notices <ChevronRight className="h-3.5 w-3.5" />
               </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 @2xl:grid-cols-2 gap-4">
               {newsItems.slice(0, 4).map((n) => (
                 <div
                   key={n.id}
-                  className={`p-5 space-y-2 ${cardClass}`}
+                  className={`p-5 space-y-2 min-w-0 overflow-hidden ${cardClass}`}
                   style={{ backgroundColor: palette.surface, borderRadius: radiusVal }}
                 >
-                  <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center justify-between gap-2 text-xs">
                     <span
-                      className="px-2 py-0.5 rounded-full font-bold text-[10px]"
+                      className="px-2 py-0.5 rounded-full font-bold text-[10px] shrink-0"
                       style={{ backgroundColor: `${palette.primary}25`, color: palette.secondary }}
                     >
                       {n.badge || "News"}
                     </span>
-                    <span style={{ color: palette.mutedText }}>{n.date}</span>
+                    <span className="truncate" style={{ color: palette.mutedText }}>{n.date}</span>
                   </div>
-                  <h4 className="font-bold text-sm">{n.title}</h4>
-                  <p className="text-xs line-clamp-2" style={{ color: palette.mutedText }}>
+                  <h4 className="font-bold text-sm break-words">{n.title}</h4>
+                  <p className="text-xs line-clamp-2 break-words" style={{ color: palette.mutedText }}>
                     {n.content}
                   </p>
                 </div>
@@ -1378,15 +1438,15 @@ export default function FestivalSiteRenderer({
         return renderSectionContainer(
           section,
           <div className="space-y-4">
-            <h2 className="text-xl font-black flex items-center gap-2" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
-              <Users className="h-5 w-5" style={{ color: palette.secondary }} />
+            <h2 className="text-lg @2xl:text-xl font-black flex items-center gap-2" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
+              <Users className="h-5 w-5 shrink-0" style={{ color: palette.secondary }} />
               <span>{section.settings?.title || "Organizing Committee"}</span>
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 @2xl:grid-cols-3 gap-4">
               {(config.teamMembers || []).map((m) => (
                 <div
                   key={m.id}
-                  className={`p-5 flex items-center gap-3.5 ${cardClass}`}
+                  className={`p-5 flex items-center gap-3.5 min-w-0 overflow-hidden ${cardClass}`}
                   style={{ backgroundColor: palette.surface, borderRadius: radiusVal }}
                 >
                   <div
@@ -1399,9 +1459,9 @@ export default function FestivalSiteRenderer({
                       m.name.slice(0, 2).toUpperCase()
                     )}
                   </div>
-                  <div>
-                    <h4 className="font-bold text-sm">{m.name}</h4>
-                    <p className="text-xs font-semibold" style={{ color: palette.accent }}>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-sm truncate">{m.name}</h4>
+                    <p className="text-xs font-semibold truncate" style={{ color: palette.accent }}>
                       {m.role}
                     </p>
                   </div>
@@ -1415,34 +1475,34 @@ export default function FestivalSiteRenderer({
         return renderSectionContainer(
           section,
           <div
-            className={`p-6 grid grid-cols-1 md:grid-cols-3 gap-4 ${cardClass}`}
+            className={`p-5 @2xl:p-6 grid grid-cols-1 @2xl:grid-cols-3 gap-4 min-w-0 overflow-hidden ${cardClass}`}
             style={{ backgroundColor: palette.surface, borderRadius: radiusVal }}
           >
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-3 min-w-0">
               <MapPin className="h-5 w-5 shrink-0 mt-0.5" style={{ color: palette.accent }} />
-              <div>
+              <div className="min-w-0">
                 <div className="text-xs font-bold uppercase" style={{ color: palette.mutedText }}>
                   Festival Campus
                 </div>
-                <div className="text-sm font-bold mt-0.5">{config.venueCampus || "Main Auditorium"}</div>
+                <div className="text-sm font-bold mt-0.5 break-words">{config.venueCampus || "Main Auditorium"}</div>
               </div>
             </div>
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-3 min-w-0">
               <Phone className="h-5 w-5 shrink-0 mt-0.5" style={{ color: palette.secondary }} />
-              <div>
+              <div className="min-w-0">
                 <div className="text-xs font-bold uppercase" style={{ color: palette.mutedText }}>
                   Helpdesk Helpline
                 </div>
-                <div className="text-sm font-bold mt-0.5">{config.helpdeskPhone}</div>
+                <div className="text-sm font-bold mt-0.5 break-words">{config.helpdeskPhone}</div>
               </div>
             </div>
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-3 min-w-0">
               <Mail className="h-5 w-5 shrink-0 mt-0.5" style={{ color: palette.primary }} />
-              <div>
+              <div className="min-w-0">
                 <div className="text-xs font-bold uppercase" style={{ color: palette.mutedText }}>
                   Official Email
                 </div>
-                <div className="text-sm font-bold mt-0.5">{config.helpdeskEmail}</div>
+                <div className="text-sm font-bold mt-0.5 break-all">{config.helpdeskEmail}</div>
               </div>
             </div>
           </div>
@@ -1513,7 +1573,7 @@ export default function FestivalSiteRenderer({
 
   return (
     <div
-      className="min-h-screen flex flex-col relative selection:bg-indigo-500/30"
+      className="@container min-h-screen flex flex-col relative selection:bg-indigo-500/30"
       style={{
         backgroundColor: palette.background,
         color: palette.text,
@@ -1589,59 +1649,97 @@ export default function FestivalSiteRenderer({
             hdr.logoPosition === "right" ? "flex-row-reverse" : ""
           }`}
         >
-          {/* Logo Block */}
-          <button
-            onClick={() => setActiveTab("overview")}
-            className={`flex items-center gap-3 text-left cursor-pointer ${
-              hdr.logoPosition === "center" ? "lg:order-2" : ""
-            }`}
-          >
-            {config.logoUrl ? (
-              <img src={config.logoUrl} alt={festivalName} className="h-10 w-10 rounded-xl object-cover border border-white/10" />
-            ) : (
-              <div
-                className="h-10 w-10 rounded-xl flex items-center justify-center font-black text-white shadow-md text-sm"
-                style={{ background: `linear-gradient(135deg, ${palette.primary}, ${palette.accent})` }}
+          {/* Logo & Brand Block */}
+          {(() => {
+            const logoMode = hdr.logoMode || "logo_and_name"
+            const showLogoImg = (logoMode === "logo_and_name" || logoMode === "logo_and_wordmark") && !!config.logoUrl
+            const showWordmark = (logoMode === "wordmark_only" || logoMode === "logo_and_wordmark") && !!config.wordmarkUrl
+            const showName = logoMode === "logo_and_name" || logoMode === "name_only" || (!config.wordmarkUrl && !config.logoUrl)
+
+            return (
+              <button
+                onClick={() => setActiveTab("overview")}
+                className={`flex items-center gap-3 text-left cursor-pointer min-w-0 ${
+                  hdr.logoPosition === "center" ? "lg:order-2" : ""
+                }`}
               >
-                {heroTitle.slice(0, 2).toUpperCase()}
-              </div>
-            )}
-            <div>
-              <div className="text-base sm:text-lg font-black tracking-tight leading-none" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
-                {heroTitle}
-              </div>
-              <div className="text-[10px] font-bold uppercase tracking-widest mt-1" style={{ color: palette.accent }}>
-                {hdr.tagline || "OFFICIAL FESTIVAL PORTAL"}
-              </div>
-            </div>
-          </button>
+                {showLogoImg && (
+                  <img
+                    src={config.logoUrl}
+                    alt={festivalName}
+                    className="h-9 sm:h-10 w-auto max-w-[120px] object-contain shrink-0"
+                  />
+                )}
+                {showWordmark ? (
+                  <img
+                    src={config.wordmarkUrl}
+                    alt={heroTitle || festivalName}
+                    className="h-8 sm:h-10 w-auto max-w-[240px] object-contain"
+                  />
+                ) : showName ? (
+                  <div className="min-w-0">
+                    <div
+                      className="text-base sm:text-lg font-black tracking-tight leading-tight truncate"
+                      style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}
+                    >
+                      {heroTitle}
+                    </div>
+                    {hdr.tagline?.trim() ? (
+                      <div className="text-[10px] font-bold uppercase tracking-widest mt-0.5 truncate" style={{ color: palette.accent }}>
+                        {hdr.tagline}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+              </button>
+            )
+          })()}
 
           {/* Navigation Links */}
-          <nav className={`hidden lg:flex items-center gap-1 ${hdr.logoPosition === "center" ? "lg:order-1" : ""}`}>
-            {navTabs.map((t) => {
-              const Icon = t.icon
-              const isActive = activeTab === t.id
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setActiveTab(t.id as any)}
-                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition-all cursor-pointer"
-                  style={{
-                    borderRadius: btnRadius,
-                    backgroundColor: isActive ? palette.primary : "transparent",
-                    color: isActive ? "#FFFFFF" : palette.mutedText,
-                  }}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  <span>{t.label}</span>
-                </button>
-              )
-            })}
-          </nav>
+          {(() => {
+            const navWeightClass =
+              hdr.navFontWeight === "semibold"
+                ? "font-semibold"
+                : hdr.navFontWeight === "medium"
+                ? "font-medium"
+                : hdr.navFontWeight === "normal"
+                ? "font-normal"
+                : "font-light" // default light variant requested by user
 
-          {/* Right Live Badge, Custom CTA & Console Login */}
-          <div className={`hidden sm:flex items-center gap-2.5 ${hdr.logoPosition === "center" ? "lg:order-3" : ""}`}>
-            {hdr.showLiveBadge !== false && (
+            return (
+              <nav className={`hidden lg:flex items-center gap-2 xl:gap-3 ${hdr.logoPosition === "center" ? "lg:order-1" : ""}`}>
+                {navTabs.map((t) => {
+                  const Icon = t.icon
+                  const isActive = activeTab === t.id
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => setActiveTab(t.id as any)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs xl:text-[13px] ${navWeightClass} tracking-wide transition-all cursor-pointer border-b-2`}
+                      style={{
+                        borderBottomColor: isActive ? palette.primary : "transparent",
+                        color: isActive
+                          ? isLight
+                            ? palette.primary
+                            : "#FFFFFF"
+                          : palette.mutedText,
+                      }}
+                    >
+                      <Icon className={`h-3.5 w-3.5 ${isActive ? "opacity-100" : "opacity-60"}`} />
+                      <span>{t.label}</span>
+                    </button>
+                  )
+                })}
+              </nav>
+            )
+          })()}
+
+          {/* Right Section: Optional Social Icons, Live Badge, CTA Button, Console Login */}
+          <div className={`hidden sm:flex items-center gap-3 ${hdr.logoPosition === "center" ? "lg:order-3" : ""}`}>
+            {hdr.showSocialIcons && (
+              <SocialIconsList socialLinks={config.socialLinks} compact mutedColor={palette.mutedText} />
+            )}
+            {hdr.showLiveBadge === true && (
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 LIVE
@@ -1656,7 +1754,7 @@ export default function FestivalSiteRenderer({
                 {hdr.ctaText}
               </button>
             )}
-            {hdr.showConsoleLogin !== false && (
+            {hdr.showConsoleLogin === true && (
               <Link
                 href="/login"
                 className="px-3.5 py-1.5 text-xs font-bold border transition-all"
