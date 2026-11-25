@@ -36,14 +36,27 @@ export async function middleware(request: NextRequest) {
   const hostname = request.headers.get("host") || ""
 
   // Subdomain Multitenancy: Check if host is a subdomain (e.g., festivalId.festpro.ahraz.site)
-  const mainDomains = ["festpro.ahraz.site", "ahraz.site", "localhost:3000", "127.0.0.1:3000"]
-  const currentHost = hostname.replace(/:\d+$/, "") // remove port if present
-  
+  const mainDomains = ["festpro.ahraz.site", "fespro.ahraz.site", "fespro.vercel.app", "festpro.vercel.app", "festpro-alpha.vercel.app", "ahraz.site", "localhost:3000", "127.0.0.1:3000"]
+  const currentHost = hostname.replace(/:\d+$/, "").toLowerCase()
+
+  const isMain =
+    mainDomains.includes(currentHost) ||
+    mainDomains.includes(hostname) ||
+    currentHost === "fespro.vercel.app" ||
+    currentHost === "festpro.vercel.app" ||
+    currentHost.endsWith(".vercel.app")
+
   let subdomain: string | null = null
-  if (!mainDomains.includes(hostname) && !hostname.startsWith("www.")) {
-    const parts = hostname.split(".")
-    if (parts.length > 2 || (parts.length === 2 && !hostname.includes("localhost"))) {
-      subdomain = parts[0]
+  if (!isMain && !currentHost.startsWith("www.")) {
+    if (currentHost.endsWith(".fespro.ahraz.site")) {
+      subdomain = currentHost.replace(".fespro.ahraz.site", "")
+    } else if (currentHost.endsWith(".festpro.ahraz.site")) {
+      subdomain = currentHost.replace(".festpro.ahraz.site", "")
+    } else if (currentHost.endsWith(".ahraz.site")) {
+      const sub = currentHost.replace(".ahraz.site", "")
+      if (sub !== "fespro" && sub !== "festpro") {
+        subdomain = sub
+      }
     }
   }
 
