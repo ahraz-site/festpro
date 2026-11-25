@@ -219,16 +219,51 @@ async function resolveFestival(festivalIdOrSlug: string) {
       .or(`code.ilike.${clean},short_name.ilike.${clean},name.ilike.${clean}`)
       .limit(1)
     fest = data?.[0] || null
+
+    if (!fest) {
+      const { data: wildcardData } = await admin
+        .from("festivals")
+        .select("*")
+        .or(`code.ilike.%${clean}%,short_name.ilike.%${clean}%,name.ilike.%${clean}%`)
+        .order("created_at", { ascending: false })
+        .limit(1)
+      fest = wildcardData?.[0] || null
+    }
   }
 
   if (fest?.id) {
-    const { data: latestSettings } = await admin
-      .from("festival_settings")
-      .select("*")
-      .eq("festival_id", fest.id)
-      .order("updated_at", { ascending: false })
-      .limit(1)
-    fest.settings = latestSettings || []
+    const [settingsRes, hpRes] = await Promise.all([
+      admin
+        .from("festival_settings")
+        .select("*")
+        .eq("festival_id", fest.id)
+        .order("updated_at", { ascending: false })
+        .limit(1),
+      admin
+        .from("public_homepage_settings")
+        .select("*")
+        .eq("festival_id", fest.id)
+        .limit(1),
+    ])
+
+    let settings = settingsRes.data?.[0] || null
+    const cf = settings?.custom_fields
+    let websiteConfig = cf && typeof cf === "object" && !Array.isArray(cf) ? cf.website_config : null
+
+    if (!websiteConfig && hpRes.data?.[0]) {
+      const hp = hpRes.data[0]
+      websiteConfig = hp.seo_meta?.website_config || hp.featured_sections?.[0] || null
+      if (websiteConfig) {
+        settings = {
+          ...(settings || {}),
+          festival_id: fest.id,
+          theme_color: websiteConfig.globalDesign?.palette?.primary || fest.theme_color,
+          custom_fields: { ...(settings?.custom_fields || {}), website_config: websiteConfig },
+        }
+      }
+    }
+
+    fest.settings = settings ? [settings] : []
   }
 
   return { id: fest?.id || clean, festival: fest }

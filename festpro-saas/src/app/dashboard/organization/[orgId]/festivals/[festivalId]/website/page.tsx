@@ -32,6 +32,7 @@ import {
   Sparkles,
 } from "lucide-react"
 import FestivalSiteRenderer from "@/components/studio/FestivalSiteRenderer"
+import { createClient as createBrowserClient } from "@/lib/supabase/client"
 import {
   getFestivalWebsiteConfigAction,
   saveFestivalWebsiteConfigAction,
@@ -149,12 +150,23 @@ export default function FesProStudioPage() {
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>("sec-hero")
   const [draggedSectionId, setDraggedSectionId] = useState<string | null>(null)
 
-  // Atomic Studio State (Zero nested setState bugs for Undo/Redo!)
+  // Atomic Studio State (with instant LocalStorage recovery so user work is NEVER lost!)
   const [studio, setStudio] = useState<{
     config: FestivalWebsiteConfig
     history: FestivalWebsiteConfig[]
     historyIdx: number
   }>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem(`festpro_studio_draft_${festivalId}`)
+        if (cached) {
+          const parsed = JSON.parse(cached)
+          if (parsed && typeof parsed === "object" && (parsed.heroTitle || parsed.logoUrl || parsed.wordmarkUrl || parsed.sections)) {
+            return { config: parsed, history: [parsed], historyIdx: 0 }
+          }
+        }
+      } catch {}
+    }
     const initial = getDefaultWebsiteConfig()
     return { config: initial, history: [initial], historyIdx: 0 }
   })
@@ -174,6 +186,24 @@ export default function FesProStudioPage() {
   const [newBgSlideUrl, setNewBgSlideUrl] = useState("")
   const [newSlide, setNewSlide] = useState({ imageUrl: "", heading: "", description: "", ctaText: "Explore" })
   const [newQuote, setNewQuote] = useState({ name: "", quote: "" })
+
+  // Instant draft restoration on mount
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem(`festpro_studio_draft_${festivalId}`)
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        if (parsed && typeof parsed === "object" && (parsed.heroTitle || parsed.logoUrl || parsed.wordmarkUrl)) {
+          setStudio((prev) => {
+            if (!prev.config.heroTitle || prev.config.heroTitle === "Festival 2026") {
+              return { config: parsed, history: [parsed], historyIdx: 0 }
+            }
+            return prev
+          })
+        }
+      }
+    } catch {}
+  }, [festivalId])
 
   useEffect(() => {
     let active = true
@@ -197,7 +227,31 @@ export default function FesProStudioPage() {
           setFestivalData(cfgRes.value.data.festival)
           if (cfgRes.value.data.config) {
             const loaded = cfgRes.value.data.config
-            setStudio({ config: loaded, history: [loaded], historyIdx: 0 })
+
+            // Check if local storage has a customized draft
+            let localDraft: any = null
+            try {
+              const raw = localStorage.getItem(`festpro_studio_draft_${festivalId}`)
+              if (raw) localDraft = JSON.parse(raw)
+            } catch {}
+
+            const isServerDefault = !loaded.heroTitle || loaded.heroTitle === "Festival 2026" || loaded.heroTitle === "Festival Portal"
+            const hasCustomLocal = localDraft && localDraft.heroTitle && localDraft.heroTitle !== "Festival Portal" && localDraft.heroTitle !== "Festival 2026"
+
+            if (isServerDefault && hasCustomLocal) {
+              setStudio({ config: localDraft, history: [localDraft], historyIdx: 0 })
+              // Auto-sync this custom draft to server in background
+              fetch("/api/website-studio/save", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ festivalId, config: localDraft }),
+              }).catch(() => {})
+            } else {
+              setStudio({ config: loaded, history: [loaded], historyIdx: 0 })
+              try {
+                localStorage.setItem(`festpro_studio_draft_${festivalId}`, JSON.stringify(loaded))
+              } catch {}
+            }
           }
         }
         if (rRes.status === "fulfilled" && rRes.value?.data) setResults(rRes.value.data)
@@ -225,6 +279,11 @@ export default function FesProStudioPage() {
         const nextConfig = typeof updater === "function" ? updater(prev.config) : updater
         const slicedHistory = prev.history.slice(0, prev.historyIdx + 1)
         const nextHistory = [...slicedHistory, nextConfig].slice(-30)
+        try {
+          if (typeof window !== "undefined") {
+            localStorage.setItem(`festpro_studio_draft_${festivalId}`, JSON.stringify(nextConfig))
+          }
+        } catch {}
         return {
           config: nextConfig,
           history: nextHistory,
@@ -233,7 +292,7 @@ export default function FesProStudioPage() {
       })
       setHasUnsaved(true)
     },
-    []
+    [festivalId]
   )
 
   const updateSelectedSection = (patchFn: (sec: BuilderSection) => BuilderSection) => {
@@ -274,8 +333,67 @@ export default function FesProStudioPage() {
     if (isSaving || isPending) return
     setIsSaving(true)
     const toastId = toast.loading("Publishing festival website live...")
+
+    // 0. Instant LocalStorage backup
     try {
-      // 1. Primary: REST API Route (Pure JSON, immune to RSC revalidation errors)
+      localStorage.setItem(`festpro_studio_draft_${festivalId}`, JSON.stringify(config))
+    } catch {}
+
+    // 1. Direct browser client save (authenticated user session in browser)
+    try {
+      const supabase = createBrowserClient()
+      const primaryColor = config.globalDesign?.palette?.primary || config.accentColor || "#4F46E5"
+      const isDark = (config.globalDesign?.palette?.themeMode || config.themeMode || "dark") !== "light"
+      const stampedConfig = {
+        ...config,
+        headerConfig: {
+          ...(config.headerConfig || {
+            style: "glass",
+            sticky: true,
+            showLiveBadge: false,
+            showConsoleLogin: false,
+          }),
+          brandingVersion: 2,
+        },
+      }
+
+      // Upsert festival_settings
+      await supabase.from("festival_settings").upsert({
+        festival_id: festivalId,
+        theme_color: primaryColor,
+        festival_color: primaryColor,
+        dark_mode: isDark,
+        custom_fields: { website_config: stampedConfig },
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "festival_id" })
+
+      // Upsert public_homepage_settings (publicly accessible by all site visitors)
+      await supabase.from("public_homepage_settings").upsert({
+        festival_id: festivalId,
+        hero_title: config.heroTitle || "Festival",
+        hero_subtitle: config.heroSubtitle || "",
+        hero_image_url: config.bannerUrl || "",
+        featured_sections: [stampedConfig],
+        seo_meta: { website_config: stampedConfig },
+        is_published: true,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "festival_id" })
+
+      // Update festivals table
+      const updatePayload: any = {}
+      if (config.heroTitle?.trim()) updatePayload.name = config.heroTitle.trim()
+      if (config.heroSubtitle) updatePayload.description = config.heroSubtitle
+      if (config.logoUrl !== undefined) updatePayload.logo_url = config.logoUrl
+      if (config.bannerUrl !== undefined) updatePayload.banner_url = config.bannerUrl
+      if (Object.keys(updatePayload).length > 0) {
+        await supabase.from("festivals").update(updatePayload).eq("id", festivalId)
+      }
+    } catch (browserErr) {
+      console.warn("Direct browser client save warning:", browserErr)
+    }
+
+    // 2. Primary: REST API Route (Pure JSON server dual-write)
+    try {
       const res = await fetch("/api/website-studio/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -289,15 +407,13 @@ export default function FesProStudioPage() {
         return
       }
       if (result.error) {
-        toast.error(result.error, { id: toastId })
-        setIsSaving(false)
-        return
+        console.warn("REST save notice:", result.error)
       }
     } catch (apiErr) {
       console.warn("Direct API publish error, trying fallback action:", apiErr)
     }
 
-    // 2. Fallback: Clean Server Action (no revalidatePath)
+    // 3. Fallback: Clean Server Action
     try {
       const actionRes = await saveFestivalWebsiteConfigAction(festivalId, config)
       if (actionRes?.error) {
