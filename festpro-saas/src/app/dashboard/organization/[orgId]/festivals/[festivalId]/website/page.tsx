@@ -129,6 +129,7 @@ export default function FesProStudioPage() {
 
   const [loading, setLoading] = useState(true)
   const [isPending, startTransition] = useTransition()
+  const [isSaving, setIsSaving] = useState(false)
   const [festivalData, setFestivalData] = useState<any>(null)
   const [results, setResults] = useState<any[]>([])
   const [teamPoints, setTeamPoints] = useState<any[]>([])
@@ -269,21 +270,48 @@ export default function FesProStudioPage() {
     setHasUnsaved(true)
   }
 
-  const handleSavePublish = () => {
-    startTransition(async () => {
-      try {
-        const res = await saveFestivalWebsiteConfigAction(festivalId, config)
-        if (res?.error) {
-          toast.error(res.error)
-        } else {
-          setHasUnsaved(false)
-          toast.success("FesPro Studio site published live!")
-        }
-      } catch (err: any) {
-        console.error("Save publish error:", err)
-        toast.error(err?.message || "Failed to publish website. Please try again.")
+  const handleSavePublish = async () => {
+    if (isSaving || isPending) return
+    setIsSaving(true)
+    const toastId = toast.loading("Publishing festival website live...")
+    try {
+      // 1. Primary: REST API Route (Pure JSON, immune to RSC revalidation errors)
+      const res = await fetch("/api/website-studio/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ festivalId, config }),
+      })
+      const result = await res.json()
+      if (result.success) {
+        setHasUnsaved(false)
+        toast.success("FesPro Studio site published live!", { id: toastId })
+        setIsSaving(false)
+        return
       }
-    })
+      if (result.error) {
+        toast.error(result.error, { id: toastId })
+        setIsSaving(false)
+        return
+      }
+    } catch (apiErr) {
+      console.warn("Direct API publish error, trying fallback action:", apiErr)
+    }
+
+    // 2. Fallback: Clean Server Action (no revalidatePath)
+    try {
+      const actionRes = await saveFestivalWebsiteConfigAction(festivalId, config)
+      if (actionRes?.error) {
+        toast.error(actionRes.error, { id: toastId })
+      } else {
+        setHasUnsaved(false)
+        toast.success("FesPro Studio site published live!", { id: toastId })
+      }
+    } catch (err: any) {
+      console.error("Save publish error:", err)
+      toast.error(err?.message || "Failed to publish website. Please try again.", { id: toastId })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const applyTemplate = (tplId: string) => {
@@ -502,11 +530,11 @@ export default function FesProStudioPage() {
           </a>
           <button
             onClick={handleSavePublish}
-            disabled={isPending}
+            disabled={isSaving || isPending}
             className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black shadow-lg shadow-indigo-500/20 cursor-pointer disabled:opacity-50"
           >
-            {isPending ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-            <span>{isPending ? "Saving..." : "Publish"}</span>
+            {isSaving || isPending ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            <span>{isSaving || isPending ? "Publishing..." : "Publish Site"}</span>
           </button>
         </div>
       </header>

@@ -105,13 +105,6 @@ export async function saveFestivalWebsiteConfigAction(festivalId: string, config
       }
     }
 
-    try {
-      revalidatePath(`/festivals/${festivalId}`)
-      revalidatePath(`/f/${festivalId}`)
-    } catch (revErr) {
-      console.warn("Path revalidation warning:", revErr)
-    }
-
     return { success: true, message: "FesPro Studio design published to live site!" }
   } catch (err: any) {
     console.error("saveFestivalWebsiteConfigAction error:", err)
