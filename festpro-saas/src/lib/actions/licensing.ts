@@ -16,12 +16,12 @@ function readLocalLicenses(): SaasLicense[] {
     if (fs.existsSync(LOCAL_STORE_PATH)) {
       const content = fs.readFileSync(LOCAL_STORE_PATH, "utf-8")
       const parsed = JSON.parse(content)
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      if (Array.isArray(parsed)) return parsed
     }
   } catch (err) {
     console.error("Failed to read local licenses store:", err)
   }
-  return (defaultLicensesJson as unknown as SaasLicense[]) || []
+  return []
 }
 
 function writeLocalLicenses(licenses: SaasLicense[]) {
@@ -42,7 +42,7 @@ function generateReadableKey(): string {
 }
 
 /**
- * Generate a new license key with client and financial details
+ * Generate a new license key with client, financial, and quota limits
  */
 export async function generateLicense(input: GenerateLicenseInput) {
   try {
@@ -51,7 +51,12 @@ export async function generateLicense(input: GenerateLicenseInput) {
     const total_amount = Number(input.total_amount) || 0
     const paid_amount = Number(input.paid_amount) || 0
     const pending_amount = Math.max(0, total_amount - paid_amount)
-    const max_festivals = input.max_festivals ? Number(input.max_festivals) : 1
+    const max_festivals = input.max_festivals !== undefined ? Number(input.max_festivals) : 1
+    const max_participants = input.max_participants !== undefined ? Number(input.max_participants) : null
+    const max_competitions = input.max_competitions !== undefined ? Number(input.max_competitions) : null
+    const max_stages = input.max_stages !== undefined ? Number(input.max_stages) : null
+    const plan_tier = input.plan_tier || "pro"
+    const valid_until = input.valid_until || null
 
     const newRecord: SaasLicense = {
       id: crypto.randomUUID(),
@@ -65,6 +70,11 @@ export async function generateLicense(input: GenerateLicenseInput) {
       paid_amount,
       pending_amount,
       max_festivals,
+      max_participants,
+      max_competitions,
+      max_stages,
+      plan_tier,
+      valid_until,
       is_activated: false,
       activated_at: null,
       organization_id: null,
@@ -100,6 +110,100 @@ export async function generateLicense(input: GenerateLicenseInput) {
   } catch (err: any) {
     console.error("generateLicense error:", err)
     return { error: err?.message || "Failed to generate license" }
+  }
+}
+
+/**
+ * Edit existing license details and limit quotas
+ */
+export async function updateLicenseDetails(licenseId: string, updates: Partial<SaasLicense>) {
+  try {
+    const admin = createAdminClient()
+    const currentList = (await getLicenses()).data || []
+    const existing = currentList.find((l) => l.id === licenseId)
+    if (!existing) return { error: "License not found" }
+
+    const total_amount = updates.total_amount !== undefined ? Number(updates.total_amount) : existing.total_amount
+    const paid_amount = updates.paid_amount !== undefined ? Number(updates.paid_amount) : existing.paid_amount
+    const pending_amount = Math.max(0, total_amount - paid_amount)
+
+    const payload = {
+      ...updates,
+      total_amount,
+      paid_amount,
+      pending_amount,
+      updated_at: new Date().toISOString(),
+    }
+
+    try {
+      const { data, error } = await admin
+        .from("saas_licenses")
+        .update(payload)
+        .eq("id", licenseId)
+        .select()
+        .single()
+
+      if (!error && data) {
+        revalidatePath("/dashboard/licensing")
+        revalidatePath("/dashboard/admin/licenses")
+        return { success: true, license: data as SaasLicense }
+      }
+    } catch {}
+
+    const local = readLocalLicenses()
+    const idx = local.findIndex((l) => l.id === licenseId)
+    if (idx !== -1) {
+      local[idx] = { ...local[idx], ...payload }
+      writeLocalLicenses(local)
+      revalidatePath("/dashboard/licensing")
+      return { success: true, license: local[idx] }
+    }
+
+    return { error: "License not found in store" }
+  } catch (err: any) {
+    return { error: err?.message || "Failed to update license" }
+  }
+}
+
+/**
+ * Delete a license completely
+ */
+export async function deleteLicenseAction(licenseId: string) {
+  try {
+    const admin = createAdminClient()
+    try {
+      await admin.from("saas_licenses").delete().eq("id", licenseId)
+    } catch {}
+
+    const local = readLocalLicenses()
+    const updated = local.filter((l) => l.id !== licenseId)
+    writeLocalLicenses(updated)
+
+    revalidatePath("/dashboard/licensing")
+    revalidatePath("/dashboard/admin/licenses")
+    return { success: true }
+  } catch (err: any) {
+    return { error: err?.message || "Failed to delete license" }
+  }
+}
+
+/**
+ * Clear all demo/sample licenses and reset store to clean production state
+ */
+export async function clearAllDemoLicensesAction() {
+  try {
+    const admin = createAdminClient()
+    try {
+      await admin.from("saas_licenses").delete().neq("id", "none")
+    } catch {}
+
+    writeLocalLicenses([])
+
+    revalidatePath("/dashboard/licensing")
+    revalidatePath("/dashboard/admin/licenses")
+    return { success: true }
+  } catch (err: any) {
+    return { error: err?.message || "Failed to clear demo licenses" }
   }
 }
 

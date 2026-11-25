@@ -162,6 +162,11 @@ export interface SaasLicense {
   paid_amount: number;
   pending_amount: number;
   max_festivals: number;
+  max_participants?: number | null;
+  max_competitions?: number | null;
+  max_stages?: number | null;
+  plan_tier?: "starter" | "pro" | "enterprise";
+  valid_until?: string | null;
   is_activated: boolean;
   activated_at?: string | null;
   organization_id?: string | null;
@@ -172,10 +177,15 @@ export interface SaasLicense {
 
 export interface GenerateLicenseInput {
   client_name: string;
-  client_phone?: string;
-  client_email?: string;
+  client_phone?: string | null;
+  client_email?: string | null;
   total_amount?: number;
   paid_amount?: number;
   max_festivals?: number;
-  notes?: string;
+  max_participants?: number | null;
+  max_competitions?: number | null;
+  max_stages?: number | null;
+  plan_tier?: "starter" | "pro" | "enterprise";
+  valid_until?: string | null;
+  notes?: string | null;
 }
