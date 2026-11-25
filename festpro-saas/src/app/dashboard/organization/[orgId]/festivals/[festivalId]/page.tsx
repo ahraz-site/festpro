@@ -11,7 +11,8 @@ import type { FestivalDashboardData } from "@/types/festival"
 import {
   Users, Trophy, Settings, Radio, Layers, RefreshCw,
   Download, ArrowRight, Edit3, Play, Flag, CheckCircle2,
-  Calendar, Clock, ExternalLink, ChevronRight, Plus
+  Calendar, Clock, ExternalLink, ChevronRight, Plus,
+  ShieldCheck, DoorOpen, Camera, Globe, Sparkles
 } from "lucide-react"
 
 export default function FestivalOperationsDashboard() {
@@ -206,7 +207,106 @@ export default function FestivalOperationsDashboard() {
         </div>
       </div>
 
-      {/* ── 2. LIVE STAGE MONITORING + QUICK NAVIGATION (QUAF Central Admin Layout) ── */}
+      {/* ── 2. CORE OPERATIONAL CONTROL HUBS (Quaf Standard Fast Access) ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* JUDGES PANEL */}
+        <Link
+          href={`/dashboard/organization/${orgId}/festivals/${festivalId}/judges-panel`}
+          className="group bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md hover:border-emerald-300 transition-all flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between">
+            <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <span className="px-2 py-0.5 rounded text-[10px] font-black tracking-wider uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+              JURY LOGINS
+            </span>
+          </div>
+          <div className="mt-4">
+            <h3 className="font-black text-sm text-slate-900 group-hover:text-emerald-700 transition-colors flex items-center gap-1.5">
+              <span>Judges Panel &amp; Passwords</span>
+              <ArrowRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+            </h3>
+            <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+              Tablet passwords, blind codes &amp; score verification console.
+            </p>
+          </div>
+        </Link>
+
+        {/* GREEN ROOM */}
+        <Link
+          href={`/dashboard/organization/${orgId}/festivals/${festivalId}/green-room`}
+          className="group bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md hover:border-blue-300 transition-all flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between">
+            <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+              <DoorOpen className="h-5 w-5" />
+            </div>
+            <span className="px-2 py-0.5 rounded text-[10px] font-black tracking-wider uppercase bg-blue-50 text-blue-700 border border-blue-200">
+              STAGE CALLS
+            </span>
+          </div>
+          <div className="mt-4">
+            <h3 className="font-black text-sm text-slate-900 group-hover:text-blue-700 transition-colors flex items-center gap-1.5">
+              <span>Green Room &amp; Stage Calls</span>
+              <ArrowRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+            </h3>
+            <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+              Candidate audio calls, code letter lots &amp; stage reporting desk.
+            </p>
+          </div>
+        </Link>
+
+        {/* MEDIA PANEL */}
+        <Link
+          href={`/dashboard/organization/${orgId}/festivals/${festivalId}/media-panel`}
+          className="group bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md hover:border-rose-300 transition-all flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between">
+            <div className="h-10 w-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+              <Camera className="h-5 w-5" />
+            </div>
+            <span className="px-2 py-0.5 rounded text-[10px] font-black tracking-wider uppercase bg-rose-50 text-rose-700 border border-rose-200">
+              BROADCAST
+            </span>
+          </div>
+          <div className="mt-4">
+            <h3 className="font-black text-sm text-slate-900 group-hover:text-rose-700 transition-colors flex items-center gap-1.5">
+              <span>Media &amp; Press Panel</span>
+              <ArrowRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+            </h3>
+            <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+              Photo compression uploads, live stream embed &amp; news bulletins.
+            </p>
+          </div>
+        </Link>
+
+        {/* FESPRO WEBSITE STUDIO */}
+        <Link
+          href={`/dashboard/organization/${orgId}/festivals/${festivalId}/website`}
+          className="group bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md hover:border-indigo-300 transition-all flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between">
+            <div className="h-10 w-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <Globe className="h-5 w-5" />
+            </div>
+            <span className="px-2 py-0.5 rounded text-[10px] font-black tracking-wider uppercase bg-indigo-50 text-indigo-700 border border-indigo-200">
+              WEBSITE BUILDER
+            </span>
+          </div>
+          <div className="mt-4">
+            <h3 className="font-black text-sm text-slate-900 group-hover:text-indigo-700 transition-colors flex items-center gap-1.5">
+              <span>FesPro Website Studio</span>
+              <ArrowRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+            </h3>
+            <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+              Visual festival portal designer, typography, shapes &amp; domain sync.
+            </p>
+          </div>
+        </Link>
+      </div>
+
+      {/* ── 3. LIVE STAGE MONITORING + QUICK NAVIGATION (QUAF Central Admin Layout) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* LEFT (2 Cols): Live Stage Monitoring */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-4">
@@ -267,29 +367,49 @@ export default function FestivalOperationsDashboard() {
             </h3>
             <div className="space-y-2">
               <Link
+                href={`/dashboard/organization/${orgId}/festivals/${festivalId}/judges-panel`}
+                className="flex items-center justify-between p-2.5 rounded-xl border border-emerald-100 bg-emerald-50/40 hover:bg-emerald-50 text-xs font-bold text-emerald-950 transition-all group"
+              >
+                <span className="flex items-center gap-2">
+                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>Judges &amp; Logins</span>
+                </span>
+                <ArrowRight className="h-3.5 w-3.5 text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+              <Link
+                href={`/dashboard/organization/${orgId}/festivals/${festivalId}/green-room`}
+                className="flex items-center justify-between p-2.5 rounded-xl border border-blue-100 bg-blue-50/40 hover:bg-blue-50 text-xs font-bold text-blue-950 transition-all group"
+              >
+                <span className="flex items-center gap-2">
+                  <DoorOpen className="h-3.5 w-3.5 text-blue-600" />
+                  <span>Green Room Calls</span>
+                </span>
+                <ArrowRight className="h-3.5 w-3.5 text-blue-600 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+              <Link
                 href={`/dashboard/organization/${orgId}/festivals/${festivalId}/results`}
-                className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-800 transition-all group"
+                className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-800 transition-all group"
               >
                 <span>Programs to Verify</span>
                 <ArrowRight className="h-3.5 w-3.5 text-red-500 group-hover:translate-x-0.5 transition-transform" />
               </Link>
               <Link
                 href={`/dashboard/organization/${orgId}/festivals/${festivalId}/result-planner`}
-                className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-800 transition-all group"
+                className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-800 transition-all group"
               >
                 <span>Declare Results</span>
                 <ArrowRight className="h-3.5 w-3.5 text-red-500 group-hover:translate-x-0.5 transition-transform" />
               </Link>
               <Link
                 href={`/dashboard/organization/${orgId}/festivals/${festivalId}/stage-desk`}
-                className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-800 transition-all group"
+                className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-800 transition-all group"
               >
                 <span>Stage Call Sheets</span>
                 <ArrowRight className="h-3.5 w-3.5 text-red-500 group-hover:translate-x-0.5 transition-transform" />
               </Link>
               <Link
                 href={`/dashboard/organization/${orgId}/festivals/${festivalId}/code-letters`}
-                className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-800 transition-all group"
+                className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-800 transition-all group"
               >
                 <span>Code Letters Handler</span>
                 <ArrowRight className="h-3.5 w-3.5 text-red-500 group-hover:translate-x-0.5 transition-transform" />

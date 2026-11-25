@@ -482,6 +482,7 @@ export default function FestivalSiteRenderer({
       : "12px"
 
   const cardClass = [
+    "overflow-hidden break-words min-w-0 max-w-full box-border",
     shape.stylePreset === "brutalist"
       ? `border-2 ${isLight ? "border-black shadow-[4px_4px_0px_#000]" : "border-white shadow-[4px_4px_0px_#fff]"}`
       : shape.stylePreset === "glassmorphism"
@@ -758,6 +759,83 @@ export default function FestivalSiteRenderer({
     )
   }
 
+  // Seamless URL / Anchor / Tab Click Handler
+  const handleCtaClick = (
+    url?: string,
+    defaultTab: "overview" | "results" | "schedule" | "leaderboard" | "gallery" | "videos" | "news" = "results"
+  ) => {
+    if (!url || !url.trim()) {
+      setActiveTab(defaultTab)
+      return
+    }
+    const clean = url.trim()
+    if (clean.startsWith("#")) {
+      const target = clean.replace(/^#/, "").toLowerCase()
+      if (["overview", "results", "schedule", "leaderboard", "gallery", "videos", "news"].includes(target)) {
+        setActiveTab(target as any)
+        window.scrollTo({ top: 0, behavior: "smooth" })
+        return
+      }
+      const el = document.getElementById(target)
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth" })
+        return
+      }
+    } else if (clean.startsWith("http://") || clean.startsWith("https://")) {
+      window.open(clean, "_blank", "noopener,noreferrer")
+      return
+    } else if (clean.startsWith("/")) {
+      window.location.href = clean
+      return
+    }
+    setActiveTab(defaultTab)
+  }
+
+  // Realistic mock data for Studio Canvas when festival database is still being configured
+  const displayResults =
+    results.length > 0
+      ? results
+      : isEditorMode
+      ? [
+          {
+            id: "mock-r1",
+            rank: 1,
+            grade: "A+",
+            total_points: 10,
+            participant: { first_name: "Aadhya", last_name: "Menon", chest_number: "101" },
+            competition: { name: "Classical Bharatanatyam" },
+          },
+          {
+            id: "mock-r2",
+            rank: 2,
+            grade: "A",
+            total_points: 8,
+            participant: { first_name: "Farhan", last_name: "Ahmed", chest_number: "114" },
+            competition: { name: "Mappilapattu Solo" },
+          },
+          {
+            id: "mock-r3",
+            rank: 3,
+            grade: "B+",
+            total_points: 5,
+            participant: { first_name: "Devika", last_name: "Nair", chest_number: "108" },
+            competition: { name: "Elocution English" },
+          },
+        ]
+      : []
+
+  const displayTeamPoints =
+    teamPoints.length > 0
+      ? teamPoints
+      : isEditorMode
+      ? [
+          { id: "mock-t1", rank: 1, team_name: "Emerald House", total_points: 142 },
+          { id: "mock-t2", rank: 2, team_name: "Ruby House", total_points: 128 },
+          { id: "mock-t3", rank: 3, team_name: "Sapphire House", total_points: 115 },
+          { id: "mock-t4", rank: 4, team_name: "Topaz House", total_points: 98 },
+        ]
+      : []
+
   // Render Individual Widget / Section Content
   const renderSectionWidget = (section: BuilderSection) => {
     if (!section.enabled) return null
@@ -826,8 +904,8 @@ export default function FestivalSiteRenderer({
                 onClick={(e) => {
                   e.stopPropagation()
                   const t = config.heroConfig?.primaryCtaTarget
-                  if (t === "custom" && config.heroConfig?.primaryCtaUrl) {
-                    window.open(config.heroConfig.primaryCtaUrl, "_blank")
+                  if (t === "custom" || config.heroConfig?.primaryCtaUrl) {
+                    handleCtaClick(config.heroConfig?.primaryCtaUrl, (t as any) || "results")
                   } else {
                     setActiveTab((t as any) || "results")
                   }
@@ -846,8 +924,8 @@ export default function FestivalSiteRenderer({
                 onClick={(e) => {
                   e.stopPropagation()
                   const t = config.heroConfig?.secondaryCtaTarget
-                  if (t === "custom" && config.heroConfig?.secondaryCtaUrl) {
-                    window.open(config.heroConfig.secondaryCtaUrl, "_blank")
+                  if (t === "custom" || config.heroConfig?.secondaryCtaUrl) {
+                    handleCtaClick(config.heroConfig?.secondaryCtaUrl, (t as any) || "leaderboard")
                   } else {
                     setActiveTab((t as any) || "leaderboard")
                   }
@@ -959,7 +1037,7 @@ export default function FestivalSiteRenderer({
             </div>
             {section.settings?.ctaText && (
               <button
-                onClick={() => setActiveTab("schedule")}
+                onClick={() => handleCtaClick(section.settings?.ctaUrl, "schedule")}
                 className="px-3.5 py-1.5 text-xs font-bold text-white shrink-0 cursor-pointer"
                 style={{ backgroundColor: palette.primary, borderRadius: btnRadius }}
               >
@@ -997,7 +1075,7 @@ export default function FestivalSiteRenderer({
               </p>
               <div>
                 <button
-                  onClick={() => setActiveTab("results")}
+                  onClick={() => handleCtaClick(section.settings?.ctaUrl, "results")}
                   className="px-4 py-2 text-xs font-bold text-white cursor-pointer"
                   style={{ backgroundColor: palette.primary, borderRadius: btnRadius }}
                 >
@@ -1153,7 +1231,7 @@ export default function FestivalSiteRenderer({
                 Full Standings <ChevronRight className="h-3.5 w-3.5" />
               </button>
             </div>
-            {teamPoints.length === 0 ? (
+            {displayTeamPoints.length === 0 ? (
               <div
                 className={`p-8 text-center text-xs ${cardClass}`}
                 style={{ backgroundColor: palette.surface, borderRadius: radiusVal, color: palette.mutedText }}
@@ -1162,7 +1240,7 @@ export default function FestivalSiteRenderer({
               </div>
             ) : (
               <div className="grid grid-cols-1 @2xl:grid-cols-2 gap-4">
-                {teamPoints.slice(0, section.settings?.maxItems || 6).map((t: any, i: number) => (
+                {displayTeamPoints.slice(0, section.settings?.maxItems || 6).map((t: any, i: number) => (
                   <div
                     key={t.id || i}
                     className={`p-4 flex items-center justify-between gap-3 min-w-0 overflow-hidden ${cardClass}`}
@@ -1209,7 +1287,7 @@ export default function FestivalSiteRenderer({
                 Search All Results <ChevronRight className="h-3.5 w-3.5" />
               </button>
             </div>
-            {results.length === 0 ? (
+            {displayResults.length === 0 ? (
               <div
                 className={`p-8 text-center text-xs ${cardClass}`}
                 style={{ backgroundColor: palette.surface, borderRadius: radiusVal, color: palette.mutedText }}
@@ -1218,7 +1296,7 @@ export default function FestivalSiteRenderer({
               </div>
             ) : (
               <div className="grid grid-cols-1 @2xl:grid-cols-2 @5xl:grid-cols-3 gap-4">
-                {results.slice(0, section.settings?.maxItems || 6).map((r: any, idx: number) => (
+                {displayResults.slice(0, section.settings?.maxItems || 6).map((r: any, idx: number) => (
                   <div
                     key={r.id || idx}
                     className={`p-4 flex items-center justify-between gap-3 min-w-0 overflow-hidden ${cardClass}`}
@@ -1658,7 +1736,10 @@ export default function FestivalSiteRenderer({
 
             return (
               <button
-                onClick={() => setActiveTab("overview")}
+                onClick={() => {
+                  setActiveTab("overview")
+                  window.scrollTo({ top: 0, behavior: "smooth" })
+                }}
                 className={`flex items-center gap-3 text-left cursor-pointer min-w-0 ${
                   hdr.logoPosition === "center" ? "lg:order-2" : ""
                 }`}
@@ -1747,7 +1828,7 @@ export default function FestivalSiteRenderer({
             )}
             {hdr.ctaText && (
               <button
-                onClick={() => setActiveTab("results")}
+                onClick={() => handleCtaClick(hdr.ctaUrl, "results")}
                 className="px-3.5 py-1.5 text-xs font-bold text-white cursor-pointer"
                 style={{ backgroundColor: palette.accent, borderRadius: btnRadius }}
               >

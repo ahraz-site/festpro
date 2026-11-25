@@ -103,6 +103,10 @@ export default async function PublicFestivalPage({
     festivalId.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
   )
 
+  if (webConfig && (!webConfig.heroTitle || !webConfig.heroTitle.trim() || webConfig.heroTitle === "Festival Portal")) {
+    webConfig.heroTitle = festivalName
+  }
+
   return (
     <FestivalSiteRenderer
       festivalName={festivalName}

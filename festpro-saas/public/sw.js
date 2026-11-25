@@ -1,7 +1,7 @@
-const CACHE_NAME = "festpro-v3"
-const STATIC_CACHE = "festpro-static-v3"
-const DYNAMIC_CACHE = "festpro-dynamic-v3"
-const API_CACHE = "festpro-api-v3"
+const CACHE_NAME = "festpro-v5"
+const STATIC_CACHE = "festpro-static-v5"
+const DYNAMIC_CACHE = "festpro-dynamic-v5"
+const API_CACHE = "festpro-api-v5"
 
 const STATIC_ASSETS = [
   "/manifest.json",
@@ -47,6 +47,16 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (request.headers.get("Accept")?.includes("text/html")) {
+    // Live festival portals and custom subdomains must always fetch real-time fresh HTML
+    if (url.pathname.startsWith("/festivals/") || url.hostname.includes(".ahraz.site") || url.pathname === "/") {
+      event.respondWith(
+        fetch(request).catch(async () => {
+          const cached = await caches.match(request)
+          return cached || new Response("Offline", { status: 503 })
+        })
+      )
+      return
+    }
     event.respondWith(networkFirstStrategy(request))
     return
   }

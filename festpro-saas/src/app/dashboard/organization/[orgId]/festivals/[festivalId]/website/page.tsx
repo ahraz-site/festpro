@@ -433,13 +433,32 @@ export default function FesProStudioPage() {
   const applyTemplate = (tplId: string) => {
     const tpl = READY_MADE_TEMPLATES.find((t) => t.id === tplId)
     if (!tpl) return
+    const patchDesign: any = tpl.patch.globalDesign || {}
+    const palette = patchDesign.palette || RECOMMENDED_COLOR_PALETTES[0]
     updateConfig((prev) => ({
       ...prev,
       templateId: tpl.id,
-      globalDesign: { ...prev.globalDesign!, ...(tpl.patch.globalDesign || {}) },
+      accentColor: palette.primary,
+      themeMode: palette.themeMode || prev.themeMode || "dark",
+      globalDesign: {
+        ...prev.globalDesign!,
+        ...patchDesign,
+        palette: {
+          ...prev.globalDesign?.palette,
+          ...palette,
+        },
+        typography: {
+          ...prev.globalDesign?.typography,
+          ...(patchDesign.typography || {}),
+        },
+        shape: {
+          ...prev.globalDesign?.shape,
+          ...(patchDesign.shape || {}),
+        },
+      },
     }))
     setCanvasTab("overview")
-    toast.success(`Applied "${tpl.name}" template!`)
+    toast.success(`Applied "${tpl.name}" template kit!`)
   }
 
   const addSectionWidget = (type: SectionWidgetType, label: string, insertAfterSelected = true) => {
@@ -2915,7 +2934,7 @@ export default function FesProStudioPage() {
               }`}
             >
               <FestivalSiteRenderer
-                festivalName={festivalData?.name || "Festival Portal"}
+                festivalName={festivalData?.name || config.heroTitle || "Festival"}
                 festival={festivalData}
                 config={config}
                 results={results}

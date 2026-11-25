@@ -237,22 +237,27 @@ async function resolveFestival(festivalIdOrSlug: string) {
         .from("festival_settings")
         .select("*")
         .eq("festival_id", fest.id)
-        .order("updated_at", { ascending: false })
-        .limit(1),
+        .order("updated_at", { ascending: false }),
       admin
         .from("public_homepage_settings")
         .select("*")
         .eq("festival_id", fest.id)
-        .limit(1),
+        .order("updated_at", { ascending: false }),
     ])
 
-    let settings = settingsRes.data?.[0] || null
+    // Find the newest settings row that actually contains website_config
+    let settings = settingsRes.data?.find((s: any) => {
+      const c = s?.custom_fields
+      return c && typeof c === "object" && !Array.isArray(c) && c.website_config
+    }) || settingsRes.data?.[0] || null
+
     const cf = settings?.custom_fields
     let websiteConfig = cf && typeof cf === "object" && !Array.isArray(cf) ? cf.website_config : null
 
-    if (!websiteConfig && hpRes.data?.[0]) {
-      const hp = hpRes.data[0]
-      websiteConfig = hp.seo_meta?.website_config || hp.featured_sections?.[0] || null
+    // Fallback: Check public_homepage_settings if festival_settings didn't have website_config
+    const hpRow = hpRes.data?.find((h: any) => h.seo_meta?.website_config || h.featured_sections?.[0]) || hpRes.data?.[0]
+    if (!websiteConfig && hpRow) {
+      websiteConfig = hpRow.seo_meta?.website_config || hpRow.featured_sections?.[0] || null
       if (websiteConfig) {
         settings = {
           ...(settings || {}),
@@ -261,6 +266,11 @@ async function resolveFestival(festivalIdOrSlug: string) {
           custom_fields: { ...(settings?.custom_fields || {}), website_config: websiteConfig },
         }
       }
+    }
+
+    // Ensure heroTitle defaults to fest.name if empty
+    if (websiteConfig && (!websiteConfig.heroTitle || !websiteConfig.heroTitle.trim() || websiteConfig.heroTitle === "Festival Portal")) {
+      websiteConfig.heroTitle = fest.name || "Festival"
     }
 
     fest.settings = settings ? [settings] : []
