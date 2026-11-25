@@ -30,7 +30,7 @@ export async function getFestivalWebsiteConfigAction(festivalId: string) {
       socialLinks: { ...defaults.socialLinks, ...(saved.socialLinks || {}) },
       navPages: { ...defaults.navPages, ...(saved.navPages || {}) },
       heroConfig: { ...defaults.heroConfig, ...(saved.heroConfig || {}) },
-      headerConfig: { ...defaults.headerConfig, ...(saved.headerConfig || {}) },
+      headerConfig: { ...defaults.headerConfig!, ...(saved.headerConfig || {}) },
       footerConfig: { ...defaults.footerConfig, ...(saved.footerConfig || {}) },
       globalDesign: {
         palette: {
@@ -54,7 +54,6 @@ export async function getFestivalWebsiteConfigAction(festivalId: string) {
         savedCustomPalettes: saved.globalDesign?.savedCustomPalettes || [],
       },
       motionStudio: { ...defaults.motionStudio!, ...(saved.motionStudio || {}) },
-      stickers: saved.stickers || defaults.stickers,
       sections: saved.sections && saved.sections.length > 0 ? saved.sections : defaults.sections,
       galleryStudio: { ...defaults.galleryStudio!, ...(saved.galleryStudio || {}) },
       videoStudio: {

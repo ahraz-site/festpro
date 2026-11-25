@@ -26,11 +26,21 @@ export type EntranceAnimationType =
   | "slide_left"
   | "slide_right"
   | "blur_reveal"
-  | "flip"
 
-export type HoverAnimationType = "none" | "lift" | "glow" | "scale" | "tilt" | "shine"
+export type HoverAnimationType = "none" | "lift" | "glow" | "scale"
 
-export type StickerAnimationType = "none" | "float" | "spin_slow" | "pulse" | "bounce"
+export type SectionBackgroundType =
+  | "inherit"
+  | "solid"
+  | "gradient"
+  | "image"
+  | "gif"
+  | "slider"
+  | "video"
+  | "pattern"
+  | "glass"
+
+export type ShapeDividerType = "none" | "wave" | "curve" | "angle" | "triangle"
 
 export type SectionWidgetType =
   | "hero"
@@ -47,8 +57,19 @@ export type SectionWidgetType =
   | "heading_banner"
   | "divider"
   | "custom_html"
+  // Between-Section Creative Components
+  | "image_banner"
+  | "gif_banner"
+  | "slider_banner"
+  | "video_banner"
+  | "announcement_bar"
+  | "promo_banner"
+  | "marquee"
+  | "logo_carousel"
+  | "shape_divider"
+  | "testimonial_slider"
 
-export type GalleryLayoutType = "grid" | "masonry" | "metro" | "carousel" | "justified"
+export type GalleryLayoutType = "grid" | "masonry" | "metro" | "carousel"
 export type GalleryAspectRatio = "original" | "1:1" | "4:3" | "16:9" | "3:4" | "9:16"
 export type VideoDisplayLayout = "featured_playlist" | "grid" | "reels_vertical" | "carousel"
 export type VideoPlatform = "youtube" | "youtube_shorts" | "instagram_reel" | "facebook" | "vimeo" | "mp4"
@@ -96,26 +117,58 @@ export interface MotionConfig {
   reducedMotion: boolean
   defaultEntrance: EntranceAnimationType
   defaultHover: HoverAnimationType
-  duration: number // 0.2 to 2.5s
+  duration: number
   scrollProgressBar: boolean
   parallaxHero: boolean
 }
 
-export interface CreativeSticker {
+export interface SectionBackgroundConfig {
+  type: SectionBackgroundType
+  solidColor?: string
+  gradientFrom?: string
+  gradientTo?: string
+  gradientAngle?: number
+  imageUrl?: string // Supports static JPG/PNG/WebP and animated GIF
+  videoUrl?: string // MP4 background video loop
+  sliderImages?: string[] // Multiple images for background auto-slider
+  sliderSpeedMs?: number
+  patternType?: "none" | "dots" | "grid" | "diagonal"
+  imagePosition?: "center" | "top" | "bottom"
+  imageSize?: "cover" | "contain" | "auto"
+  imageRepeat?: "no-repeat" | "repeat"
+  attachment?: "scroll" | "fixed"
+  overlayColor?: string
+  overlayOpacity?: number // 0 - 100
+  bgAnimation?: "none" | "zoom" | "pan" | "ken_burns"
+}
+
+export interface SectionLayoutConfig {
+  widthMode: "boxed" | "full" | "custom"
+  minHeight?: string // e.g. "auto", "280px", "420px", "580px"
+  paddingY?: "compact" | "normal" | "spacious" | "heroic"
+  borderRadius?: "inherit" | "0px" | "12px" | "24px"
+  boxShadow?: "none" | "soft" | "elevated" | "neon"
+  sticky?: boolean
+  overflowHidden?: boolean
+}
+
+export interface SectionEffectsConfig {
+  entrance: "inherit" | EntranceAnimationType
+  hover: "inherit" | HoverAnimationType
+  topDivider: ShapeDividerType
+  bottomDivider: ShapeDividerType
+  backdropBlur?: number // 0 - 24
+  opacity?: number // 10 - 100
+}
+
+export interface SliderSlideItem {
   id: string
-  name: string
-  type: "emoji" | "svg_badge" | "gif" | "image"
-  source: string
-  section: "hero" | "global"
-  x: number // 0 - 100%
-  y: number // 0 - 100%
-  size: number // px (32 - 200)
-  rotation: number // -180 to 180
-  opacity: number // 0.1 to 1
-  animation: StickerAnimationType
-  layer: "front" | "back"
-  visibility: "all" | "desktop" | "mobile"
-  clickUrl?: string
+  imageUrl: string
+  heading?: string
+  description?: string
+  ctaText?: string
+  ctaUrl?: string
+  overlayOpacity?: number
 }
 
 export interface BuilderSection {
@@ -123,10 +176,35 @@ export interface BuilderSection {
   type: SectionWidgetType
   label: string
   enabled: boolean
+  visibility?: "all" | "desktop" | "mobile"
+  // Legacy compatibility + Rich Elementor-style modules
   animation?: "inherit" | EntranceAnimationType
   bgOverride?: string
-  visibility?: "all" | "desktop" | "mobile"
+  background?: SectionBackgroundConfig
+  layout?: SectionLayoutConfig
+  effects?: SectionEffectsConfig
   settings: Record<string, any>
+}
+
+export interface HeaderConfig {
+  style: "glass" | "solid" | "transparent"
+  bgType?: "inherit" | "solid" | "gradient" | "image" | "gif" | "video" | "transparent"
+  bgColor?: string
+  gradientFrom?: string
+  gradientTo?: string
+  bgMediaUrl?: string
+  overlayOpacity?: number
+  patternType?: "none" | "dots" | "grid"
+  logoPosition?: "left" | "center" | "right"
+  height?: "compact" | "standard" | "tall"
+  sticky: boolean
+  scrollEffect?: "none" | "shrink" | "bg_change" | "hide_on_scroll"
+  showLiveBadge: boolean
+  showConsoleLogin: boolean
+  showSocialIcons?: boolean
+  ctaText?: string
+  ctaUrl?: string
+  tagline?: string
 }
 
 export interface GalleryItem {
@@ -147,9 +225,6 @@ export interface VideoItem {
   aspectRatio?: "16:9" | "9:16" | "1:1"
   category?: string
   featured?: boolean
-  autoplay?: boolean
-  muted?: boolean
-  loop?: boolean
 }
 
 export interface NewsItem {
@@ -169,7 +244,6 @@ export interface TeamMemberItem {
 }
 
 export interface FestivalWebsiteConfig {
-  // Backwards-compatible top-level basics
   heroTitle?: string
   heroSubtitle?: string
   bannerUrl?: string
@@ -199,7 +273,6 @@ export interface FestivalWebsiteConfig {
   gallery?: GalleryItem[]
   news?: NewsItem[]
 
-  // FesPro Studio Extended Architecture
   templateId?: string
   heroConfig?: {
     badgeText?: string
@@ -216,13 +289,7 @@ export interface FestivalWebsiteConfig {
     countdownTargetDate?: string
     countdownTitle?: string
   }
-  headerConfig?: {
-    style?: "glass" | "solid" | "transparent"
-    sticky?: boolean
-    showLiveBadge?: boolean
-    showConsoleLogin?: boolean
-    tagline?: string
-  }
+  headerConfig?: HeaderConfig
   footerConfig?: {
     style?: "detailed" | "compact" | "centered"
     copyrightText?: string
@@ -234,7 +301,6 @@ export interface FestivalWebsiteConfig {
     savedCustomPalettes?: ColorPalette[]
   }
   motionStudio?: MotionConfig
-  stickers?: CreativeSticker[]
   sections?: BuilderSection[]
   galleryStudio?: {
     layout: GalleryLayoutType
@@ -357,27 +423,13 @@ export const RECOMMENDED_COLOR_PALETTES: ColorPalette[] = [
 ]
 
 export const FONT_OPTIONS = {
-  heading: [
-    "Space Grotesk",
-    "Poppins",
-    "Montserrat",
-    "Playfair Display",
-    "Bebas Neue",
-    "Inter",
-    "Syne",
-    "Outfit",
-  ],
+  heading: ["Space Grotesk", "Poppins", "Montserrat", "Playfair Display", "Bebas Neue", "Inter", "Syne", "Outfit"],
   body: ["Inter", "Plus Jakarta Sans", "DM Sans", "Roboto", "Poppins"],
   malayalam: ["Anek Malayalam", "Noto Sans Malayalam", "Manjari", "Gayathri"],
   arabic: ["Amiri", "Cairo", "Noto Naskh Arabic"],
 }
 
-export const SHAPE_PRESETS: Array<{
-  id: ShapePresetId
-  name: string
-  desc: string
-  config: ShapeAndThemeConfig
-}> = [
+export const SHAPE_PRESETS: Array<{ id: ShapePresetId; name: string; desc: string; config: ShapeAndThemeConfig }> = [
   {
     id: "rounded",
     name: "Soft Rounded",
@@ -409,7 +461,7 @@ export const SHAPE_PRESETS: Array<{
   {
     id: "glassmorphism",
     name: "Glassmorphism",
-    desc: "Frosted translucent cards & vibrant glow",
+    desc: "Frosted translucent cards & glow",
     config: {
       stylePreset: "glassmorphism",
       borderRadius: "24px",
@@ -423,7 +475,7 @@ export const SHAPE_PRESETS: Array<{
   {
     id: "brutalist",
     name: "Brutalist Bold",
-    desc: "High-contrast borders & hard drop shadows",
+    desc: "High-contrast borders & hard shadows",
     config: {
       stylePreset: "brutalist",
       borderRadius: "0px",
@@ -437,7 +489,7 @@ export const SHAPE_PRESETS: Array<{
   {
     id: "retro",
     name: "Retro Heritage",
-    desc: "Classic warm aesthetic & framed cards",
+    desc: "Warm framed heritage styling",
     config: {
       stylePreset: "retro",
       borderRadius: "8px",
@@ -451,7 +503,7 @@ export const SHAPE_PRESETS: Array<{
   {
     id: "minimal",
     name: "Quiet Minimal",
-    desc: "Ultra-clean breathing room & refined lines",
+    desc: "Clean breathing room & minimal lines",
     config: {
       stylePreset: "minimal",
       borderRadius: "8px",
@@ -464,58 +516,44 @@ export const SHAPE_PRESETS: Array<{
   },
 ]
 
-export const STICKER_PRESET_LIBRARY: Array<{
-  name: string
-  type: CreativeSticker["type"]
-  source: string
-  defaultAnim: StickerAnimationType
-}> = [
-  { name: "Golden Trophy", type: "emoji", source: "🏆", defaultAnim: "float" },
-  { name: "Celebration Sparkles", type: "emoji", source: "✨", defaultAnim: "pulse" },
-  { name: "Stage Spotlight", type: "emoji", source: "🎭", defaultAnim: "float" },
-  { name: "Music Vibe", type: "emoji", source: "🎶", defaultAnim: "bounce" },
-  { name: "Confetti Pop", type: "emoji", source: "🎉", defaultAnim: "pulse" },
-  { name: "Fire Flame", type: "emoji", source: "🔥", defaultAnim: "pulse" },
-  { name: "Championship Crown", type: "emoji", source: "👑", defaultAnim: "float" },
-  { name: "Shooting Star", type: "emoji", source: "🌟", defaultAnim: "spin_slow" },
-  { name: "Megaphone Alert", type: "emoji", source: "📣", defaultAnim: "bounce" },
-  { name: "Live Broadcast Badge", type: "svg_badge", source: "LIVE_PULSE", defaultAnim: "pulse" },
-  { name: "Certified Fest Seal", type: "svg_badge", source: "GOLD_SEAL", defaultAnim: "spin_slow" },
-  {
-    name: "Fireworks Burst (GIF)",
-    type: "gif",
-    source: "https://media.giphy.com/media/26tOZ42Mg6pbTUPHW/giphy.gif",
-    defaultAnim: "none",
-  },
-  {
-    name: "Golden Confetti (GIF)",
-    type: "gif",
-    source: "https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif",
-    defaultAnim: "none",
-  },
-  {
-    name: "Trophy Shine (GIF)",
-    type: "gif",
-    source: "https://media.giphy.com/media/3oz8xAFtqoOUUrsh7W/giphy.gif",
-    defaultAnim: "float",
-  },
-]
-
 export const DEFAULT_SECTIONS: BuilderSection[] = [
   {
     id: "sec-hero",
     type: "hero",
-    label: "Hero Banner",
+    label: "Hero Showcase",
     enabled: true,
-    animation: "fade_up",
+    background: {
+      type: "gradient",
+      overlayOpacity: 55,
+      bgAnimation: "ken_burns",
+      imageSize: "cover",
+      imagePosition: "center",
+    },
+    layout: { widthMode: "full", paddingY: "heroic", minHeight: "480px" },
+    effects: { entrance: "fade_up", hover: "none", topDivider: "none", bottomDivider: "wave", opacity: 100 },
     settings: { alignment: "center", showCtas: true },
+  },
+  {
+    id: "sec-marquee",
+    type: "marquee",
+    label: "Live Ticker Marquee",
+    enabled: true,
+    background: { type: "solid", solidColor: "#1D4ED8" },
+    layout: { widthMode: "full", paddingY: "compact" },
+    effects: { entrance: "fade_in", hover: "none", topDivider: "none", bottomDivider: "none" },
+    settings: {
+      text: "🏆 LIVE SCORE UPDATES RUNNING • STAGE 1 CLASSICAL PERFORMANCES IN PROGRESS • PARTICIPANTS REPORT 30 MINS EARLY •",
+      speedSeconds: 22,
+    },
   },
   {
     id: "sec-countdown",
     type: "countdown",
-    label: "Event Countdown Timer",
+    label: "Festival Countdown Strip",
     enabled: true,
-    animation: "zoom_in",
+    background: { type: "inherit" },
+    layout: { widthMode: "boxed", paddingY: "normal" },
+    effects: { entrance: "zoom_in", hover: "none", topDivider: "none", bottomDivider: "none" },
     settings: { title: "Grand Finale Countdown" },
   },
   {
@@ -523,31 +561,75 @@ export const DEFAULT_SECTIONS: BuilderSection[] = [
     type: "stats",
     label: "Festival Live Counters",
     enabled: true,
-    animation: "fade_up",
+    background: { type: "inherit" },
+    layout: { widthMode: "boxed", paddingY: "normal" },
+    effects: { entrance: "fade_up", hover: "lift", topDivider: "none", bottomDivider: "none" },
     settings: {},
+  },
+  {
+    id: "sec-slider-promo",
+    type: "slider_banner",
+    label: "Highlights Image Slider",
+    enabled: false,
+    background: { type: "inherit" },
+    layout: { widthMode: "boxed", paddingY: "normal" },
+    effects: { entrance: "fade_up", hover: "none", topDivider: "none", bottomDivider: "none" },
+    settings: {
+      autoplay: true,
+      transition: "fade",
+      intervalMs: 4500,
+      showArrows: true,
+      showDots: true,
+      slides: [
+        {
+          id: "sl-1",
+          imageUrl: "https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1200&q=80",
+          heading: "Grand Cultural Stage Showcase",
+          description: "Catch live performances across all festival stages.",
+          ctaText: "View Schedules",
+          ctaUrl: "#schedule",
+          overlayOpacity: 50,
+        },
+        {
+          id: "sl-2",
+          imageUrl: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1200&q=80",
+          heading: "Real-Time Leaderboard & Results",
+          description: "Track your house points and instant results live.",
+          ctaText: "Live Results",
+          ctaUrl: "#results",
+          overlayOpacity: 50,
+        },
+      ],
+    },
   },
   {
     id: "sec-leaderboard",
     type: "leaderboard",
     label: "House Points Standings",
     enabled: true,
-    animation: "fade_up",
-    settings: { maxItems: 5 },
+    background: { type: "inherit" },
+    layout: { widthMode: "boxed", paddingY: "normal" },
+    effects: { entrance: "fade_up", hover: "lift", topDivider: "none", bottomDivider: "none" },
+    settings: { maxItems: 6 },
   },
   {
     id: "sec-results",
     type: "results",
     label: "Latest Published Results",
     enabled: true,
-    animation: "fade_up",
+    background: { type: "inherit" },
+    layout: { widthMode: "boxed", paddingY: "normal" },
+    effects: { entrance: "fade_up", hover: "lift", topDivider: "none", bottomDivider: "none" },
     settings: { maxItems: 6 },
   },
   {
     id: "sec-videos",
     type: "videos",
-    label: "Live Stream & Reels",
+    label: "Live Stream & Video Studio",
     enabled: true,
-    animation: "fade_up",
+    background: { type: "inherit" },
+    layout: { widthMode: "boxed", paddingY: "normal" },
+    effects: { entrance: "fade_up", hover: "none", topDivider: "none", bottomDivider: "none" },
     settings: {},
   },
   {
@@ -555,7 +637,9 @@ export const DEFAULT_SECTIONS: BuilderSection[] = [
     type: "gallery",
     label: "Photo Gallery Showcase",
     enabled: true,
-    animation: "fade_up",
+    background: { type: "inherit" },
+    layout: { widthMode: "boxed", paddingY: "normal" },
+    effects: { entrance: "fade_up", hover: "scale", topDivider: "none", bottomDivider: "none" },
     settings: {},
   },
   {
@@ -563,23 +647,19 @@ export const DEFAULT_SECTIONS: BuilderSection[] = [
     type: "news",
     label: "Official Bulletins & News",
     enabled: true,
-    animation: "fade_up",
+    background: { type: "inherit" },
+    layout: { widthMode: "boxed", paddingY: "normal" },
+    effects: { entrance: "fade_up", hover: "lift", topDivider: "none", bottomDivider: "none" },
     settings: {},
-  },
-  {
-    id: "sec-team",
-    type: "team",
-    label: "Organizing Committee",
-    enabled: false,
-    animation: "fade_up",
-    settings: { title: "Festival Organizing Team" },
   },
   {
     id: "sec-contact",
     type: "contact",
     label: "Campus Venue & Helpdesk",
     enabled: true,
-    animation: "fade_up",
+    background: { type: "inherit" },
+    layout: { widthMode: "boxed", paddingY: "normal" },
+    effects: { entrance: "fade_up", hover: "none", topDivider: "none", bottomDivider: "none" },
     settings: {},
   },
 ]
@@ -598,7 +678,7 @@ export const READY_MADE_TEMPLATES: StudioTemplatePreset[] = [
     id: "modern_festival",
     name: "Modern Festival",
     category: "Arts & Cultural",
-    description: "Vibrant festival aesthetic with glass cards and animated highlights",
+    description: "Vibrant festival aesthetic with glass surfaces and wave dividers",
     previewGradient: "from-blue-600 via-violet-600 to-pink-500",
     patch: {
       templateId: "modern_festival",
@@ -617,21 +697,13 @@ export const READY_MADE_TEMPLATES: StudioTemplatePreset[] = [
         },
         shape: SHAPE_PRESETS[2].config,
       },
-      motionStudio: {
-        reducedMotion: false,
-        defaultEntrance: "fade_up",
-        defaultHover: "lift",
-        duration: 0.6,
-        scrollProgressBar: true,
-        parallaxHero: true,
-      },
     },
   },
   {
     id: "academic_fest",
     name: "Academic Fest",
     category: "School / University",
-    description: "Clean, light, high-legibility layout tailored for educational institutions",
+    description: "Clean light layout designed for high-clarity campus portals",
     previewGradient: "from-slate-800 via-blue-700 to-cyan-500",
     patch: {
       templateId: "academic_fest",
@@ -731,7 +803,7 @@ export const READY_MADE_TEMPLATES: StudioTemplatePreset[] = [
     id: "literary_fest",
     name: "Literary Festival",
     category: "Books & Debate",
-    description: "Warm sunset tones with editorial serif headings and reading spacing",
+    description: "Warm sunset tones with editorial serif headings",
     previewGradient: "from-orange-700 via-amber-600 to-yellow-400",
     patch: {
       templateId: "literary_fest",
@@ -756,7 +828,7 @@ export const READY_MADE_TEMPLATES: StudioTemplatePreset[] = [
     id: "youth_festival",
     name: "Youth Festival Brutal",
     category: "Campus Energy",
-    description: "High-energy Brutalist blocks with hard borders and Bebas Neue display",
+    description: "High-energy Brutalist blocks with Bebas Neue display",
     previewGradient: "from-fuchsia-600 via-rose-600 to-amber-500",
     patch: {
       templateId: "youth_festival",
@@ -781,7 +853,7 @@ export const READY_MADE_TEMPLATES: StudioTemplatePreset[] = [
     id: "minimal_pro",
     name: "Minimal Professional",
     category: "Corporate / Clean",
-    description: "Quiet luxury monochrome elegance with crisp spacing",
+    description: "Quiet monochrome elegance with crisp spacing",
     previewGradient: "from-neutral-800 via-neutral-600 to-neutral-400",
     patch: {
       templateId: "minimal_pro",
@@ -806,7 +878,7 @@ export const READY_MADE_TEMPLATES: StudioTemplatePreset[] = [
     id: "premium_dark",
     name: "Premium Dark",
     category: "Flagship Night",
-    description: "Deep midnight slate with gold accents and frosted glass surfaces",
+    description: "Deep midnight slate with gold accents",
     previewGradient: "from-slate-900 via-indigo-950 to-amber-500",
     patch: {
       templateId: "premium_dark",
@@ -831,7 +903,7 @@ export const READY_MADE_TEMPLATES: StudioTemplatePreset[] = [
     id: "retro_cultural",
     name: "Retro Cultural",
     category: "Vintage Arts",
-    description: "Classic textured nostalgia with sunset warmth and crisp frames",
+    description: "Classic textured nostalgia with sunset warmth",
     previewGradient: "from-amber-800 via-orange-700 to-stone-700",
     patch: {
       templateId: "retro_cultural",
@@ -888,7 +960,7 @@ export function getDefaultWebsiteConfig(fest?: any, settings?: any): FestivalWeb
       badgeText: "Official Festival Portal • Real-Time Scoring",
       primaryCtaText: "Live Results",
       primaryCtaTarget: "results",
-      secondaryCtaText: "Leaderboard",
+      secondaryCtaText: "House Standings",
       secondaryCtaTarget: "leaderboard",
       alignment: "center",
       overlayOpacity: 0.65,
@@ -898,9 +970,14 @@ export function getDefaultWebsiteConfig(fest?: any, settings?: any): FestivalWeb
     },
     headerConfig: {
       style: "glass",
+      bgType: "inherit",
+      logoPosition: "left",
+      height: "standard",
       sticky: true,
+      scrollEffect: "none",
       showLiveBadge: true,
       showConsoleLogin: true,
+      showSocialIcons: false,
       tagline: "OFFICIAL FESTIVAL PORTAL",
     },
     footerConfig: {
@@ -934,38 +1011,6 @@ export function getDefaultWebsiteConfig(fest?: any, settings?: any): FestivalWeb
       scrollProgressBar: true,
       parallaxHero: true,
     },
-    stickers: [
-      {
-        id: "stk-1",
-        name: "Championship Trophy",
-        type: "emoji",
-        source: "🏆",
-        section: "hero",
-        x: 12,
-        y: 25,
-        size: 56,
-        rotation: -12,
-        opacity: 0.85,
-        animation: "float",
-        layer: "front",
-        visibility: "desktop",
-      },
-      {
-        id: "stk-2",
-        name: "Festival Sparkles",
-        type: "emoji",
-        source: "✨",
-        section: "hero",
-        x: 86,
-        y: 22,
-        size: 52,
-        rotation: 15,
-        opacity: 0.9,
-        animation: "pulse",
-        layer: "front",
-        visibility: "desktop",
-      },
-    ],
     sections: DEFAULT_SECTIONS,
     galleryStudio: {
       layout: "grid",

@@ -1,19 +1,19 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect } from "react"
 import Link from "next/link"
 import {
   Trophy, Calendar, MapPin, Users, Award, Globe, Sparkles, Clock,
   Search, Video, Image as ImageIcon, Newspaper, Play, Phone, Mail,
-  ChevronRight, Menu, X, Download, Maximize2, Radio, ShieldCheck,
-  AlertTriangle, ExternalLink
+  ChevronRight, ChevronLeft, Menu, X, Download, AlertTriangle, Megaphone
 } from "lucide-react"
 import type {
   FestivalWebsiteConfig,
   BuilderSection,
-  CreativeSticker,
   VideoItem,
   GalleryAspectRatio,
+  ShapeDividerType,
+  SliderSlideItem,
 } from "@/types/website-studio"
 import { getDefaultWebsiteConfig } from "@/types/website-studio"
 
@@ -26,14 +26,11 @@ export interface FestivalSiteRendererProps {
   schedules?: any[]
   stats?: { competitionsCount: number; participantsCount: number; stagesCount: number }
   isEditorMode?: boolean
-  selectedStickerId?: string | null
-  onSelectSticker?: (id: string | null) => void
-  onUpdateStickerPos?: (id: string, x: number, y: number) => void
   selectedSectionId?: string | null
   onSelectSection?: (sectionId: string) => void
 }
 
-// Convert any pasted YouTube, Shorts, Vimeo, Instagram, or FB link into a clean iframe URL
+// Smart Video URL Resolver (YouTube, Shorts, Live, Instagram Reels, FB, Vimeo, MP4)
 function resolveVideoEmbed(video: VideoItem): { kind: "iframe" | "mp4"; src: string } {
   const raw = (video.url || "").trim()
   if (!raw) return { kind: "iframe", src: "" }
@@ -93,6 +90,191 @@ function getRatioClass(ratio?: GalleryAspectRatio): string {
   }
 }
 
+function ShapeDividerSvg({
+  type,
+  position,
+  color,
+}: {
+  type: ShapeDividerType
+  position: "top" | "bottom"
+  color: string
+}) {
+  if (!type || type === "none") return null
+  const flip = position === "top" ? "rotate-180" : ""
+  const posClass = position === "top" ? "top-0" : "bottom-0"
+
+  return (
+    <div className={`absolute left-0 right-0 ${posClass} overflow-hidden leading-none pointer-events-none z-10 ${flip}`}>
+      {type === "wave" && (
+        <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-8 sm:h-12 fill-current" style={{ color }}>
+          <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" />
+        </svg>
+      )}
+      {type === "curve" && (
+        <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-8 sm:h-12 fill-current" style={{ color }}>
+          <path d="M0,0V6c0,21.6,291,111.46,741,110.26,445.39,3.6,459-88.3,459-110.26V0Z" />
+        </svg>
+      )}
+      {type === "angle" && (
+        <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-8 sm:h-12 fill-current" style={{ color }}>
+          <path d="M1200 120L0 16.48V120z" />
+        </svg>
+      )}
+      {type === "triangle" && (
+        <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-8 sm:h-10 fill-current" style={{ color }}>
+          <path d="M600,120L0,0V120H1200V0Z" />
+        </svg>
+      )}
+    </div>
+  )
+}
+
+// Reusable Advanced Slider Widget Component
+function AdvancedSliderWidget({
+  slides,
+  autoplay,
+  intervalMs = 4500,
+  transition = "fade",
+  showArrows = true,
+  showDots = true,
+  radiusVal,
+  btnRadius,
+  primaryColor,
+  onNavigateTab,
+}: {
+  slides: SliderSlideItem[]
+  autoplay?: boolean
+  intervalMs?: number
+  transition?: string
+  showArrows?: boolean
+  showDots?: boolean
+  radiusVal: string
+  btnRadius: string
+  primaryColor: string
+  onNavigateTab: (target: any) => void
+}) {
+  const [idx, setIdx] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const list = slides.length > 0 ? slides : []
+
+  useEffect(() => {
+    if (!autoplay || paused || list.length <= 1) return
+    const timer = setInterval(() => {
+      setIdx((c) => (c + 1) % list.length)
+    }, intervalMs)
+    return () => clearInterval(timer)
+  }, [autoplay, paused, list.length, intervalMs])
+
+  if (list.length === 0) return null
+  const activeSlide = list[idx % list.length]
+
+  return (
+    <div
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      className="relative overflow-hidden aspect-[16/7] min-h-[260px] sm:min-h-[380px] shadow-2xl border border-white/10"
+      style={{ borderRadius: radiusVal }}
+    >
+      {list.map((sl, i) => {
+        const isCurrent = i === idx % list.length
+        return (
+          <div
+            key={sl.id || i}
+            className={`absolute inset-0 transition-all duration-700 ${
+              isCurrent
+                ? "opacity-100 scale-100 z-10"
+                : transition === "zoom"
+                ? "opacity-0 scale-105 z-0 pointer-events-none"
+                : "opacity-0 z-0 pointer-events-none"
+            }`}
+          >
+            <img
+              src={sl.imageUrl}
+              alt={sl.heading || "Slide"}
+              className={`w-full h-full object-cover ${transition === "ken_burns" && isCurrent ? "fespro-ken-burns" : ""}`}
+            />
+            <div
+              className="absolute inset-0 bg-slate-950"
+              style={{ opacity: (sl.overlayOpacity ?? 45) / 100 }}
+            />
+          </div>
+        )
+      })}
+
+      {/* Slide Content */}
+      <div className="absolute inset-0 z-20 flex flex-col justify-end p-6 sm:p-10 bg-gradient-to-t from-black/80 via-black/25 to-transparent text-white">
+        {activeSlide.heading && (
+          <h3 className="text-xl sm:text-3xl font-black tracking-tight max-w-2xl">
+            {activeSlide.heading}
+          </h3>
+        )}
+        {activeSlide.description && (
+          <p className="text-xs sm:text-sm text-slate-200 mt-1.5 max-w-xl">
+            {activeSlide.description}
+          </p>
+        )}
+        {activeSlide.ctaText && (
+          <div className="mt-4">
+            <button
+              onClick={() => {
+                if (activeSlide.ctaUrl?.startsWith("#")) {
+                  onNavigateTab(activeSlide.ctaUrl.replace("#", ""))
+                }
+              }}
+              className="px-5 py-2 text-xs font-bold text-white cursor-pointer hover:opacity-90"
+              style={{ backgroundColor: primaryColor, borderRadius: btnRadius }}
+            >
+              {activeSlide.ctaText}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Navigation Arrows */}
+      {showArrows && list.length > 1 && (
+        <>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setIdx((c) => (c - 1 + list.length) % list.length)
+            }}
+            className="absolute left-3 top-1/2 -translate-y-1/2 z-30 h-9 w-9 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center backdrop-blur-sm cursor-pointer"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setIdx((c) => (c + 1) % list.length)
+            }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 z-30 h-9 w-9 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center backdrop-blur-sm cursor-pointer"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </>
+      )}
+
+      {/* Pagination Dots */}
+      {showDots && list.length > 1 && (
+        <div className="absolute bottom-3 right-6 z-30 flex items-center gap-1.5">
+          {list.map((_, i) => (
+            <button
+              key={i}
+              onClick={(e) => {
+                e.stopPropagation()
+                setIdx(i)
+              }}
+              className={`h-2 rounded-full transition-all cursor-pointer ${
+                i === idx % list.length ? "w-6 bg-white" : "w-2 bg-white/40"
+              }`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function FestivalSiteRenderer({
   festivalName,
   festival,
@@ -102,9 +284,6 @@ export default function FestivalSiteRenderer({
   schedules = [],
   stats = { competitionsCount: 0, participantsCount: 0, stagesCount: 0 },
   isEditorMode = false,
-  selectedStickerId = null,
-  onSelectSticker,
-  onUpdateStickerPos,
   selectedSectionId = null,
   onSelectSection,
 }: FestivalSiteRendererProps) {
@@ -142,6 +321,7 @@ export default function FestivalSiteRenderer({
   const typo = config.globalDesign!.typography
   const shape = config.globalDesign!.shape
   const motion = config.motionStudio!
+  const hdr = config.headerConfig!
   const isLight = palette.themeMode === "light"
 
   const [activeTab, setActiveTab] = useState<
@@ -150,15 +330,20 @@ export default function FestivalSiteRenderer({
   const [search, setSearch] = useState("")
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrollProgress, setScrollProgress] = useState(0)
+  const [isScrolled, setIsScrolled] = useState(false)
+  const [headerHidden, setHeaderHidden] = useState(false)
   const [lightboxImage, setLightboxImage] = useState<{ url: string; title: string } | null>(null)
   const [selectedAlbum, setSelectedAlbum] = useState<string>("All")
   const [activeVideoId, setActiveVideoId] = useState<string>(config.videoStudio?.videos?.[0]?.id || "")
   const [showPopup, setShowPopup] = useState(false)
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
+  const [bgSliderTick, setBgSliderTick] = useState(0)
 
-  // Dragging sticker state inside Editor Mode
-  const heroRef = useRef<HTMLDivElement>(null)
-  const [draggingSticker, setDraggingSticker] = useState<string | null>(null)
+  // Background slider global tick for any section using background.type === "slider"
+  useEffect(() => {
+    const timer = setInterval(() => setBgSliderTick((t) => t + 1), 4000)
+    return () => clearInterval(timer)
+  }, [])
 
   useEffect(() => {
     if (config.popupBuilder?.enabled && !isEditorMode) {
@@ -168,15 +353,26 @@ export default function FestivalSiteRenderer({
   }, [config.popupBuilder?.enabled, isEditorMode])
 
   useEffect(() => {
-    if (!motion.scrollProgressBar || isEditorMode) return
+    if (isEditorMode) return
+    let lastY = window.scrollY
     const handleScroll = () => {
-      const scrollTop = window.scrollY
-      const docHeight = document.documentElement.scrollHeight - window.innerHeight
-      setScrollProgress(docHeight > 0 ? Math.min(100, (scrollTop / docHeight) * 100) : 0)
+      const currY = window.scrollY
+      setIsScrolled(currY > 40)
+      if (hdr.scrollEffect === "hide_on_scroll") {
+        setHeaderHidden(currY > lastY && currY > 120)
+      } else {
+        setHeaderHidden(false)
+      }
+      lastY = currY
+
+      if (motion.scrollProgressBar) {
+        const docHeight = document.documentElement.scrollHeight - window.innerHeight
+        setScrollProgress(docHeight > 0 ? Math.min(100, (currY / docHeight) * 100) : 0)
+      }
     }
     window.addEventListener("scroll", handleScroll, { passive: true })
     return () => window.removeEventListener("scroll", handleScroll)
-  }, [motion.scrollProgressBar, isEditorMode])
+  }, [motion.scrollProgressBar, hdr.scrollEffect, isEditorMode])
 
   // Countdown tick
   useEffect(() => {
@@ -200,14 +396,14 @@ export default function FestivalSiteRenderer({
     return () => clearInterval(iv)
   }, [config.heroConfig?.countdownTargetDate])
 
-  // Dynamic Font URLs
+  // Dynamic Google Fonts Loader
   const googleFontsList = Array.from(
     new Set([typo.headingFont, typo.bodyFont, typo.malayalamFont, typo.arabicFont].filter(Boolean))
   )
     .map((f) => `family=${f.replace(/\s+/g, "+")}:wght@300;400;500;600;700;800;900`)
     .join("&")
 
-  // Style helpers based on Shape & Theme Studio
+  // Style helpers
   const radiusVal = shape.borderRadius || "16px"
   const btnRadius =
     shape.buttonShape === "sharp"
@@ -249,13 +445,6 @@ export default function FestivalSiteRenderer({
       ? "max-w-full px-6"
       : "max-w-6xl"
 
-  const sectionPy =
-    shape.sectionSpacing === "compact"
-      ? "py-6"
-      : shape.sectionSpacing === "spacious"
-      ? "py-14"
-      : "py-10"
-
   const headingSizeClass =
     typo.headingSize === "compact"
       ? "text-2xl sm:text-4xl"
@@ -273,13 +462,6 @@ export default function FestivalSiteRenderer({
       : typo.letterSpacing === "wider"
       ? "0.1em"
       : "0em"
-
-  const backgroundPatternCss =
-    shape.backgroundTexture === "dots"
-      ? `radial-gradient(${isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"} 1px, transparent 1px)`
-      : shape.backgroundTexture === "grid"
-      ? `linear-gradient(to right, ${isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.05)"} 1px, transparent 1px), linear-gradient(to bottom, ${isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.05)"} 1px, transparent 1px)`
-      : "none"
 
   // Maintenance Screen Check
   if (config.seoAndAdvanced?.maintenanceMode && !isEditorMode) {
@@ -304,8 +486,7 @@ export default function FestivalSiteRenderer({
           </div>
           <h1 className="text-2xl font-black">{config.heroTitle || festivalName}</h1>
           <p className="text-sm opacity-80">
-            {config.seoAndAdvanced.maintenanceMessage ||
-              "We are updating live schedules & scores. Back shortly!"}
+            {config.seoAndAdvanced.maintenanceMessage || "We are updating live schedules & scores. Back shortly!"}
           </p>
           <Link
             href="/login"
@@ -321,8 +502,7 @@ export default function FestivalSiteRenderer({
 
   const heroTitle = config.heroTitle || festivalName
   const heroSubtitle =
-    config.heroSubtitle ||
-    "Track live scores, stage schedules, house points, and instant result announcements."
+    config.heroSubtitle || "Track live scores, stage schedules, house points, and instant result announcements."
 
   const galleryItems = config.gallery || []
   const albums = ["All", ...Array.from(new Set(galleryItems.map((g) => g.album || g.category || "Event")))]
@@ -333,8 +513,8 @@ export default function FestivalSiteRenderer({
 
   const videos = config.videoStudio?.videos || []
   const currentVideo = videos.find((v) => v.id === activeVideoId) || videos[0]
-
   const newsItems = config.news || []
+
   const filteredResults = results.filter(
     (r) =>
       !search ||
@@ -354,276 +534,459 @@ export default function FestivalSiteRenderer({
     config.navPages?.showNews !== false && { id: "news", label: "News", icon: Newspaper },
   ].filter(Boolean) as Array<{ id: string; label: string; icon: any }>
 
-  // Dragging sticker pointer handlers inside Hero
-  const handleHeroPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isEditorMode || !draggingSticker || !heroRef.current || !onUpdateStickerPos) return
-    const rect = heroRef.current.getBoundingClientRect()
-    const x = Math.max(2, Math.min(96, ((e.clientX - rect.left) / rect.width) * 100))
-    const y = Math.max(2, Math.min(94, ((e.clientY - rect.top) / rect.height) * 100))
-    onUpdateStickerPos(draggingSticker, Math.round(x), Math.round(y))
-  }
-
-  const handleHeroPointerUp = () => {
-    if (draggingSticker) setDraggingSticker(null)
-  }
-
-  // Render Creative Sticker Element
-  const renderSticker = (stk: CreativeSticker) => {
-    const isSelected = isEditorMode && selectedStickerId === stk.id
-    const animClass =
-      motion.reducedMotion || stk.animation === "none"
-        ? ""
-        : stk.animation === "float"
-        ? "fespro-anim-float"
-        : stk.animation === "spin_slow"
-        ? "fespro-anim-spin"
-        : stk.animation === "pulse"
-        ? "animate-pulse"
-        : "animate-bounce"
-
-    const visClass =
-      stk.visibility === "desktop"
-        ? "hidden md:flex"
-        : stk.visibility === "mobile"
-        ? "flex md:hidden"
-        : "flex"
-
-    return (
-      <div
-        key={stk.id}
-        onPointerDown={(e) => {
-          if (isEditorMode) {
-            e.stopPropagation()
-            onSelectSticker?.(stk.id)
-            setDraggingSticker(stk.id)
-          }
-        }}
-        className={`absolute select-none items-center justify-center ${visClass} ${animClass} ${
-          isEditorMode ? "cursor-move hover:ring-2 hover:ring-amber-400 rounded-lg p-1" : "pointer-events-auto"
-        } ${isSelected ? "ring-2 ring-amber-400 bg-black/20 rounded-lg p-1" : ""}`}
-        style={{
-          left: `${stk.x}%`,
-          top: `${stk.y}%`,
-          width: `${stk.size}px`,
-          height: `${stk.size}px`,
-          transform: `translate(-50%, -50%) rotate(${stk.rotation}deg)`,
-          opacity: stk.opacity,
-          zIndex: stk.layer === "back" ? 5 : 25,
-        }}
-        title={isEditorMode ? `Drag to move: ${stk.name}` : stk.name}
-      >
-        {stk.type === "emoji" && (
-          <span style={{ fontSize: `${Math.round(stk.size * 0.78)}px`, lineHeight: 1 }}>
-            {stk.source}
-          </span>
-        )}
-        {(stk.type === "gif" || stk.type === "image") && (
-          <img
-            src={stk.source}
-            alt={stk.name}
-            className="w-full h-full object-contain pointer-events-none"
-          />
-        )}
-        {stk.type === "svg_badge" && stk.source === "LIVE_PULSE" && (
-          <div className="px-3 py-1 rounded-full bg-rose-600 text-white font-black text-xs shadow-lg flex items-center gap-1.5 border border-white/30">
-            <span className="h-2 w-2 rounded-full bg-white animate-ping" />
-            LIVE NOW
-          </div>
-        )}
-        {stk.type === "svg_badge" && stk.source === "GOLD_SEAL" && (
-          <div className="w-full h-full rounded-full border-2 border-amber-400 bg-amber-500/20 backdrop-blur-md flex flex-col items-center justify-center text-amber-300 font-black text-[10px] text-center leading-tight shadow-xl">
-            <Sparkles className="h-4 w-4 mb-0.5" />
-            OFFICIAL
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  // Render Individual Widget / Section
-  const renderSectionWidget = (section: BuilderSection) => {
-    if (!section.enabled) return null
+  // Section Container Engine (Background Studio + Layout + Effects + Shape Dividers)
+  const renderSectionContainer = (section: BuilderSection, innerContent: React.ReactNode, isEdgeToEdge = false) => {
+    const bg = section.background || { type: "inherit" }
+    const lay = section.layout || { widthMode: isEdgeToEdge ? "full" : "boxed", paddingY: "normal" }
+    const eff = section.effects || {
+      entrance: section.animation || "inherit",
+      hover: "inherit",
+      topDivider: "none",
+      bottomDivider: "none",
+    }
 
     const isSelected = isEditorMode && selectedSectionId === section.id
-    const wrapClass = `${
-      isEditorMode
-        ? `relative transition-all ${
-            isSelected ? "ring-2 ring-indigo-500 ring-offset-2 ring-offset-slate-950" : "hover:ring-1 hover:ring-indigo-400/50"
-          }`
-        : ""
-    }`
+
+    const pyClass =
+      lay.paddingY === "compact"
+        ? "py-4"
+        : lay.paddingY === "spacious"
+        ? "py-14"
+        : lay.paddingY === "heroic"
+        ? "py-16 sm:py-24"
+        : "py-9"
 
     const enterClass =
-      motion.reducedMotion || section.animation === "none"
+      motion.reducedMotion || eff.entrance === "none"
         ? ""
-        : section.animation === "zoom_in" || (!section.animation && motion.defaultEntrance === "zoom_in")
+        : eff.entrance === "zoom_in"
         ? "fespro-enter-zoom"
         : "fespro-enter-fadeup"
 
-    const sectionWrapper = (content: React.ReactNode, skipContainer = false) => (
-      <div
+    // Resolve background color / gradient
+    let sectionStyle: React.CSSProperties = {
+      opacity: eff.opacity !== undefined ? eff.opacity / 100 : 1,
+      minHeight: lay.minHeight && lay.minHeight !== "auto" ? lay.minHeight : undefined,
+      borderRadius: lay.borderRadius && lay.borderRadius !== "inherit" ? lay.borderRadius : undefined,
+    }
+
+    if (bg.type === "solid" && bg.solidColor) {
+      sectionStyle.backgroundColor = bg.solidColor
+    } else if (bg.type === "gradient") {
+      sectionStyle.background = `linear-gradient(${bg.gradientAngle ?? palette.gradientAngle}deg, ${
+        bg.gradientFrom || `${palette.primary}40`
+      }, ${bg.gradientTo || palette.background})`
+    } else if (bg.type === "glass") {
+      sectionStyle.backgroundColor = `${palette.surface}88`
+      sectionStyle.backdropFilter = `blur(${eff.backdropBlur ?? 16}px)`
+    } else if (bg.type === "pattern") {
+      sectionStyle.backgroundImage =
+        bg.patternType === "grid"
+          ? `linear-gradient(to right, rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.06) 1px, transparent 1px)`
+          : `radial-gradient(rgba(255,255,255,0.12) 1px, transparent 1px)`
+      sectionStyle.backgroundSize = bg.patternType === "grid" ? "28px 28px" : "20px 20px"
+    } else if (section.bgOverride) {
+      sectionStyle.backgroundColor = section.bgOverride
+    }
+
+    const activeBgSliderUrl =
+      bg.type === "slider" && bg.sliderImages && bg.sliderImages.length > 0
+        ? bg.sliderImages[bgSliderTick % bg.sliderImages.length]
+        : null
+
+    return (
+      <section
         key={section.id}
         onClick={() => isEditorMode && onSelectSection?.(section.id)}
-        style={section.bgOverride ? { backgroundColor: section.bgOverride } : undefined}
-        className={`${wrapClass} ${enterClass} ${
+        style={sectionStyle}
+        className={`relative overflow-hidden transition-all ${enterClass} ${
+          lay.sticky ? "sticky top-16 z-20" : ""
+        } ${
           section.visibility === "desktop"
             ? "hidden md:block"
             : section.visibility === "mobile"
             ? "block md:hidden"
             : ""
+        } ${
+          isEditorMode
+            ? `cursor-pointer ${
+                isSelected
+                  ? "ring-2 ring-indigo-500 ring-inset"
+                  : "hover:ring-1 hover:ring-indigo-400/40"
+              }`
+            : ""
         }`}
       >
+        {/* Background Media Layer: Static Image or Animated GIF */}
+        {(bg.type === "image" || bg.type === "gif") && bg.imageUrl && (
+          <div
+            className={`absolute inset-0 z-0 pointer-events-none ${
+              bg.bgAnimation === "ken_burns" ? "fespro-ken-burns" : bg.bgAnimation === "zoom" ? "scale-105" : ""
+            }`}
+            style={{
+              backgroundImage: `url("${bg.imageUrl}")`,
+              backgroundPosition: bg.imagePosition || "center",
+              backgroundSize: bg.imageSize || "cover",
+              backgroundRepeat: bg.imageRepeat || "no-repeat",
+              backgroundAttachment: bg.attachment || "scroll",
+            }}
+          />
+        )}
+
+        {/* Background Media Layer: Background Image Slider */}
+        {activeBgSliderUrl && (
+          <img
+            src={activeBgSliderUrl}
+            alt="Section background"
+            className="absolute inset-0 w-full h-full object-cover z-0 transition-opacity duration-700"
+          />
+        )}
+
+        {/* Background Media Layer: Loop Video */}
+        {bg.type === "video" && bg.videoUrl && (
+          <video
+            src={bg.videoUrl}
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover z-0"
+          />
+        )}
+
+        {/* Color Overlay Layer */}
+        {(bg.type === "image" || bg.type === "gif" || bg.type === "video" || bg.type === "slider" || config.bannerUrl) &&
+          (bg.overlayOpacity ?? 0) > 0 && (
+            <div
+              className="absolute inset-0 z-0 pointer-events-none"
+              style={{
+                backgroundColor: bg.overlayColor || palette.background,
+                opacity: (bg.overlayOpacity ?? 50) / 100,
+              }}
+            />
+          )}
+
+        {/* SVG Shape Divider Top */}
+        <ShapeDividerSvg type={eff.topDivider || "none"} position="top" color={palette.background} />
+
+        {/* Editor Section Indicator */}
         {isEditorMode && (
-          <div className="absolute top-2 right-3 z-30 px-2 py-0.5 rounded bg-indigo-600/90 text-white text-[10px] font-bold uppercase tracking-wider pointer-events-none">
+          <div className="absolute top-2 right-3 z-30 px-2 py-0.5 rounded bg-indigo-600/90 text-white text-[9px] font-bold uppercase tracking-wider pointer-events-none">
             {section.label}
           </div>
         )}
-        {skipContainer ? content : <div className={`${containerMaxW} mx-auto px-4 sm:px-6 ${sectionPy}`}>{content}</div>}
-      </div>
+
+        {/* Content Container */}
+        <div
+          className={`relative z-10 ${
+            lay.widthMode === "full" && isEdgeToEdge ? "w-full" : `${containerMaxW} mx-auto px-4 sm:px-6`
+          } ${pyClass}`}
+        >
+          {innerContent}
+        </div>
+
+        {/* SVG Shape Divider Bottom */}
+        <ShapeDividerSvg type={eff.bottomDivider || "none"} position="bottom" color={palette.background} />
+      </section>
     )
+  }
+
+  // Render Individual Widget / Section Content
+  const renderSectionWidget = (section: BuilderSection) => {
+    if (!section.enabled) return null
 
     switch (section.type) {
       case "hero": {
-        const heroGradient = palette.gradientEnabled
-          ? `linear-gradient(${palette.gradientAngle}deg, ${palette.primary}38, ${palette.secondary}20, ${palette.background})`
-          : palette.background
+        const heroSection = section.background?.imageUrl
+          ? section
+          : {
+              ...section,
+              background: {
+                ...section.background,
+                type: config.bannerUrl ? "image" : section.background?.type || "gradient",
+                imageUrl: config.bannerUrl || section.background?.imageUrl,
+                videoUrl: config.heroConfig?.bgVideoUrl || section.background?.videoUrl,
+                overlayOpacity: section.background?.overlayOpacity ?? Math.round((config.heroConfig?.overlayOpacity ?? 0.65) * 100),
+              } as any,
+            }
 
-        return sectionWrapper(
-          <section
-            ref={heroRef}
-            onPointerMove={handleHeroPointerMove}
-            onPointerUp={handleHeroPointerUp}
-            onPointerLeave={handleHeroPointerUp}
-            className="relative py-16 sm:py-24 px-4 sm:px-8 overflow-hidden border-b"
-            style={{
-              background: config.bannerUrl ? undefined : heroGradient,
-              borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)",
-            }}
-          >
-            {/* Optional Background Video */}
-            {config.heroConfig?.bgVideoUrl && (
-              <video
-                src={config.heroConfig.bgVideoUrl}
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="absolute inset-0 w-full h-full object-cover z-0 opacity-45"
-              />
-            )}
+        return renderSectionContainer(
+          heroSection,
+          <div className={`space-y-6 ${config.heroConfig?.alignment === "left" ? "text-left" : "text-center"}`}>
+            <div
+              className="inline-flex items-center gap-2 px-4 py-1.5 text-xs font-bold border"
+              style={{
+                borderRadius: btnRadius,
+                backgroundColor: `${palette.primary}20`,
+                borderColor: `${palette.primary}50`,
+                color: isLight ? palette.primary : palette.secondary,
+              }}
+            >
+              <Sparkles className="h-3.5 w-3.5" style={{ color: palette.accent }} />
+              <span>{config.heroConfig?.badgeText || "Official Festival Portal • Real-Time Scoring"}</span>
+            </div>
 
-            {/* Optional Background Banner Photo */}
-            {config.bannerUrl && (
-              <>
-                <img
-                  src={config.bannerUrl}
-                  alt={heroTitle}
-                  className="absolute inset-0 w-full h-full object-cover z-0"
-                />
-                <div
-                  className="absolute inset-0 z-0"
-                  style={{
-                    backgroundColor: palette.background,
-                    opacity: config.heroConfig?.overlayOpacity ?? 0.65,
-                  }}
-                />
-              </>
-            )}
+            <h1
+              className={`${headingSizeClass} tracking-tight leading-tight`}
+              style={{
+                fontFamily: `"${typo.headingFont}", "${typo.malayalamFont}", "${typo.arabicFont}", sans-serif`,
+                fontWeight: Number(typo.headingWeight),
+                letterSpacing: letterSpacingVal,
+                textTransform: typo.textTransform,
+                color: palette.text,
+              }}
+            >
+              {heroTitle}
+            </h1>
 
-            {/* Mesh Texture Accent */}
-            {shape.backgroundTexture === "mesh" && (
-              <div
-                className="absolute inset-0 pointer-events-none z-0 opacity-40"
-                style={{
-                  backgroundImage: `radial-gradient(at 20% 20%, ${palette.primary}55 0px, transparent 50%), radial-gradient(at 80% 30%, ${palette.accent}44 0px, transparent 50%)`,
-                }}
-              />
-            )}
-
-            {/* Creative Stickers & GIFs Overlay Layer */}
-            {(config.stickers || [])
-              .filter((s) => s.section === "hero")
-              .map((stk) => renderSticker(stk))}
+            <p
+              className={`text-sm sm:text-lg max-w-2xl leading-relaxed ${
+                config.heroConfig?.alignment === "left" ? "" : "mx-auto"
+              }`}
+              style={{ color: palette.mutedText }}
+            >
+              {heroSubtitle}
+            </p>
 
             <div
-              className={`${containerMaxW} mx-auto relative z-10 space-y-6 ${
-                config.heroConfig?.alignment === "left" ? "text-left" : "text-center"
+              className={`flex flex-wrap items-center gap-3 pt-2 ${
+                config.heroConfig?.alignment === "left" ? "justify-start" : "justify-center"
               }`}
             >
-              <div
-                className="inline-flex items-center gap-2 px-4 py-1.5 text-xs font-bold border"
+              <button
+                onClick={() => setActiveTab((config.heroConfig?.primaryCtaTarget as any) || "results")}
+                className="px-6 py-3 font-bold text-sm text-white shadow-lg transition-transform hover:scale-105 cursor-pointer"
                 style={{
+                  background: palette.gradientEnabled
+                    ? `linear-gradient(135deg, ${palette.primary}, ${palette.accent})`
+                    : palette.primary,
                   borderRadius: btnRadius,
-                  backgroundColor: `${palette.primary}20`,
-                  borderColor: `${palette.primary}50`,
-                  color: isLight ? palette.primary : palette.secondary,
                 }}
               >
-                <Sparkles className="h-3.5 w-3.5" style={{ color: palette.accent }} />
-                <span>{config.heroConfig?.badgeText || "Official Festival Portal • Real-Time Scoring"}</span>
-              </div>
-
-              <h1
-                className={`${headingSizeClass} tracking-tight leading-tight`}
+                {config.heroConfig?.primaryCtaText || "Live Results"}
+              </button>
+              <button
+                onClick={() => setActiveTab((config.heroConfig?.secondaryCtaTarget as any) || "leaderboard")}
+                className="px-6 py-3 font-bold text-sm border transition-all cursor-pointer hover:opacity-90"
                 style={{
-                  fontFamily: `"${typo.headingFont}", "${typo.malayalamFont}", "${typo.arabicFont}", sans-serif`,
-                  fontWeight: Number(typo.headingWeight),
-                  letterSpacing: letterSpacingVal,
-                  textTransform: typo.textTransform,
+                  backgroundColor: `${palette.surface}cc`,
+                  borderColor: isLight ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.2)",
                   color: palette.text,
+                  borderRadius: btnRadius,
                 }}
               >
-                {heroTitle}
-              </h1>
-
-              <p
-                className={`text-sm sm:text-lg max-w-2xl leading-relaxed ${
-                  config.heroConfig?.alignment === "left" ? "" : "mx-auto"
-                }`}
-                style={{ color: palette.mutedText }}
-              >
-                {heroSubtitle}
-              </p>
-
-              {/* CTA Buttons */}
-              <div
-                className={`flex flex-wrap items-center gap-3 pt-2 ${
-                  config.heroConfig?.alignment === "left" ? "justify-start" : "justify-center"
-                }`}
-              >
-                <button
-                  onClick={() => setActiveTab((config.heroConfig?.primaryCtaTarget as any) || "results")}
-                  className="px-6 py-3 font-bold text-sm text-white shadow-lg transition-transform hover:scale-105 cursor-pointer"
-                  style={{
-                    background: palette.gradientEnabled
-                      ? `linear-gradient(135deg, ${palette.primary}, ${palette.accent})`
-                      : palette.primary,
-                    borderRadius: btnRadius,
-                  }}
-                >
-                  {config.heroConfig?.primaryCtaText || "Live Results"}
-                </button>
-                <button
-                  onClick={() => setActiveTab((config.heroConfig?.secondaryCtaTarget as any) || "leaderboard")}
-                  className="px-6 py-3 font-bold text-sm border transition-all cursor-pointer hover:opacity-90"
-                  style={{
-                    backgroundColor: `${palette.surface}cc`,
-                    borderColor: isLight ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.2)",
-                    color: palette.text,
-                    borderRadius: btnRadius,
-                  }}
-                >
-                  {config.heroConfig?.secondaryCtaText || "House Standings"}
-                </button>
-              </div>
+                {config.heroConfig?.secondaryCtaText || "House Standings"}
+              </button>
             </div>
-          </section>,
-          true
+          </div>
         )
       }
 
+      // ── BETWEEN-SECTION CREATIVE COMPONENTS ──
+      case "marquee":
+        return renderSectionContainer(
+          section,
+          <div className="overflow-hidden whitespace-nowrap py-1">
+            <div
+              className="inline-block fespro-marquee text-xs sm:text-sm font-black tracking-wide text-white"
+              style={{ animationDuration: `${section.settings?.speedSeconds || 22}s` }}
+            >
+              {section.settings?.text || "🏆 LIVE SCORES RUNNING NOW • CHECK STAGE SCHEDULES & WINNERS •"}
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              {section.settings?.text || "🏆 LIVE SCORES RUNNING NOW • CHECK STAGE SCHEDULES & WINNERS •"}
+            </div>
+          </div>,
+          true
+        )
+
+      case "image_banner":
+      case "gif_banner":
+        return renderSectionContainer(
+          section,
+          <div className="relative overflow-hidden shadow-2xl border border-white/10" style={{ borderRadius: radiusVal }}>
+            <img
+              src={
+                section.settings?.mediaUrl ||
+                (section.type === "gif_banner"
+                  ? "https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif"
+                  : "https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1200&q=80")
+              }
+              alt={section.settings?.title || "Festival Banner"}
+              className="w-full max-h-[380px] object-cover"
+            />
+            {(section.settings?.title || section.settings?.subtitle) && (
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent flex flex-col justify-end p-6 sm:p-8 text-white">
+                {section.settings?.title && <h3 className="text-xl sm:text-3xl font-black">{section.settings.title}</h3>}
+                {section.settings?.subtitle && <p className="text-xs sm:text-sm text-slate-200 mt-1">{section.settings.subtitle}</p>}
+              </div>
+            )}
+          </div>
+        )
+
+      case "slider_banner":
+        return renderSectionContainer(
+          section,
+          <AdvancedSliderWidget
+            slides={section.settings?.slides || []}
+            autoplay={section.settings?.autoplay !== false}
+            intervalMs={section.settings?.intervalMs || 4500}
+            transition={section.settings?.transition || "fade"}
+            showArrows={section.settings?.showArrows !== false}
+            showDots={section.settings?.showDots !== false}
+            radiusVal={radiusVal}
+            btnRadius={btnRadius}
+            primaryColor={palette.primary}
+            onNavigateTab={setActiveTab}
+          />
+        )
+
+      case "video_banner": {
+        const vidUrl = section.settings?.videoUrl || "https://www.youtube.com/embed/live_stream"
+        const emb = resolveVideoEmbed({ id: "vb", title: "Banner", platform: vidUrl.endsWith(".mp4") ? "mp4" : "youtube", url: vidUrl })
+        return renderSectionContainer(
+          section,
+          <div className={`overflow-hidden aspect-video max-h-[420px] ${cardClass}`} style={{ borderRadius: radiusVal }}>
+            {emb.kind === "mp4" ? (
+              <video src={emb.src} autoPlay loop muted playsInline controls className="w-full h-full object-cover" />
+            ) : (
+              <iframe src={emb.src} title="Video Banner" className="w-full h-full border-0" allowFullScreen />
+            )}
+          </div>
+        )
+      }
+
+      case "announcement_bar":
+        return renderSectionContainer(
+          section,
+          <div
+            className="p-4 flex flex-col sm:flex-row items-center justify-between gap-3 border"
+            style={{
+              backgroundColor: `${palette.accent}18`,
+              borderColor: `${palette.accent}50`,
+              borderRadius: radiusVal,
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <Megaphone className="h-5 w-5 shrink-0" style={{ color: palette.accent }} />
+              <span className="text-xs sm:text-sm font-bold">
+                {section.settings?.text || "Important Festival Notice: Reporting desks open at 08:30 AM sharp!"}
+              </span>
+            </div>
+            {section.settings?.ctaText && (
+              <button
+                onClick={() => setActiveTab("schedule")}
+                className="px-3.5 py-1.5 text-xs font-bold text-white shrink-0 cursor-pointer"
+                style={{ backgroundColor: palette.primary, borderRadius: btnRadius }}
+              >
+                {section.settings.ctaText}
+              </button>
+            )}
+          </div>
+        )
+
+      case "promo_banner":
+        return renderSectionContainer(
+          section,
+          <div
+            className={`grid grid-cols-1 md:grid-cols-2 overflow-hidden ${cardClass}`}
+            style={{ backgroundColor: palette.surface, borderRadius: radiusVal }}
+          >
+            <img
+              src={
+                section.settings?.imageUrl ||
+                "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=900&q=80"
+              }
+              alt="Promo"
+              className="w-full h-56 md:h-full object-cover"
+            />
+            <div className="p-6 sm:p-8 flex flex-col justify-center space-y-3">
+              <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: palette.accent }}>
+                {section.settings?.badge || "Featured Program"}
+              </span>
+              <h3 className="text-xl sm:text-2xl font-black" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
+                {section.settings?.title || "Cultural Evening & Prize Night"}
+              </h3>
+              <p className="text-xs leading-relaxed" style={{ color: palette.mutedText }}>
+                {section.settings?.description ||
+                  "Join us for the grand finale cultural performances and overall championship trophy ceremony."}
+              </p>
+              <div>
+                <button
+                  onClick={() => setActiveTab("results")}
+                  className="px-4 py-2 text-xs font-bold text-white cursor-pointer"
+                  style={{ backgroundColor: palette.primary, borderRadius: btnRadius }}
+                >
+                  {section.settings?.ctaText || "Explore Live Scores"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+
+      case "logo_carousel":
+        return renderSectionContainer(
+          section,
+          <div className="space-y-3 text-center">
+            <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: palette.mutedText }}>
+              {section.settings?.title || "Official Festival Partners & Sponsors"}
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10 py-2 opacity-80">
+              {(section.settings?.logos || ["MAIN CAMPUS", "ARTS COUNCIL", "YOUTH WING", "ALUMNI TRUST", "MEDIA PARTNER"]).map(
+                (name: string, idx: number) => (
+                  <div
+                    key={idx}
+                    className="px-4 py-2 rounded-lg border text-xs font-black tracking-wider"
+                    style={{
+                      backgroundColor: palette.surface,
+                      borderColor: `${palette.primary}30`,
+                      color: palette.text,
+                    }}
+                  >
+                    {name}
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+        )
+
+      case "testimonial_slider":
+        return renderSectionContainer(
+          section,
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {(section.settings?.quotes || [
+              { name: "Chief Jury Member", quote: "Incredible organization and transparent live score updates!" },
+              { name: "Campus Dean", quote: "Real-time schedules kept every stage running strictly on time." },
+              { name: "Arts Secretary", quote: "A wonderful celebration of youth talent and creativity." },
+            ]).map((q: any, i: number) => (
+              <div
+                key={i}
+                className={`p-5 space-y-2 ${cardClass}`}
+                style={{ backgroundColor: palette.surface, borderRadius: radiusVal }}
+              >
+                <p className="text-xs italic leading-relaxed" style={{ color: palette.mutedText }}>
+                  "{q.quote}"
+                </p>
+                <div className="text-xs font-black" style={{ color: palette.accent }}>
+                  — {q.name}
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+
+      case "shape_divider":
+        return renderSectionContainer(
+          section,
+          <div className="py-4 flex items-center justify-center">
+            <div className="h-1 w-24 rounded-full" style={{ backgroundColor: palette.accent }} />
+          </div>
+        )
+
+      // ── STANDARD DYNAMIC FESTIVAL WIDGETS ──
       case "countdown":
-        return sectionWrapper(
+        return renderSectionContainer(
+          section,
           <div
             className={`p-6 sm:p-8 text-center space-y-4 ${cardClass}`}
             style={{ backgroundColor: palette.surface, borderRadius: radiusVal }}
@@ -660,7 +1023,8 @@ export default function FestivalSiteRenderer({
         )
 
       case "stats":
-        return sectionWrapper(
+        return renderSectionContainer(
+          section,
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               { label: "Published Results", value: results.length, sub: "Verified scores", color: palette.primary },
@@ -688,13 +1052,11 @@ export default function FestivalSiteRenderer({
         )
 
       case "leaderboard":
-        return sectionWrapper(
+        return renderSectionContainer(
+          section,
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2
-                className="text-xl font-black flex items-center gap-2"
-                style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}
-              >
+              <h2 className="text-xl font-black flex items-center gap-2" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
                 <Award className="h-5 w-5" style={{ color: palette.accent }} />
                 <span>House Championship Standings</span>
               </h2>
@@ -724,9 +1086,7 @@ export default function FestivalSiteRenderer({
                     <div className="flex items-center gap-3">
                       <div
                         className="h-9 w-9 rounded-xl flex items-center justify-center font-black text-sm text-white"
-                        style={{
-                          backgroundColor: i === 0 ? "#D97706" : i === 1 ? "#64748B" : palette.primary,
-                        }}
+                        style={{ backgroundColor: i === 0 ? "#D97706" : i === 1 ? "#64748B" : palette.primary }}
                       >
                         #{t.rank || i + 1}
                       </div>
@@ -748,13 +1108,11 @@ export default function FestivalSiteRenderer({
         )
 
       case "results":
-        return sectionWrapper(
+        return renderSectionContainer(
+          section,
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <h2
-                className="text-xl font-black flex items-center gap-2"
-                style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}
-              >
+              <h2 className="text-xl font-black flex items-center gap-2" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
                 <Trophy className="h-5 w-5" style={{ color: palette.accent }} />
                 <span>Latest Published Results</span>
               </h2>
@@ -813,13 +1171,11 @@ export default function FestivalSiteRenderer({
         )
 
       case "schedule":
-        return sectionWrapper(
+        return renderSectionContainer(
+          section,
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2
-                className="text-xl font-black flex items-center gap-2"
-                style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}
-              >
+              <h2 className="text-xl font-black flex items-center gap-2" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
                 <Clock className="h-5 w-5" style={{ color: palette.secondary }} />
                 <span>Stage Schedules</span>
               </h2>
@@ -863,13 +1219,11 @@ export default function FestivalSiteRenderer({
         )
 
       case "videos":
-        return sectionWrapper(
+        return renderSectionContainer(
+          section,
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2
-                className="text-xl font-black flex items-center gap-2"
-                style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}
-              >
+              <h2 className="text-xl font-black flex items-center gap-2" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
                 <Video className="h-5 w-5 text-rose-500" />
                 <span>Live Stream &amp; Video Studio</span>
               </h2>
@@ -906,13 +1260,11 @@ export default function FestivalSiteRenderer({
         )
 
       case "gallery":
-        return sectionWrapper(
+        return renderSectionContainer(
+          section,
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2
-                className="text-xl font-black flex items-center gap-2"
-                style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}
-              >
+              <h2 className="text-xl font-black flex items-center gap-2" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
                 <ImageIcon className="h-5 w-5" style={{ color: palette.secondary }} />
                 <span>Photo Gallery Showcase</span>
               </h2>
@@ -942,11 +1294,6 @@ export default function FestivalSiteRenderer({
                     loading="lazy"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  {config.galleryStudio?.watermarkText && (
-                    <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/50 text-white text-[9px] font-bold">
-                      {config.galleryStudio.watermarkText}
-                    </div>
-                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-3">
                     <span className="text-[10px] font-bold uppercase" style={{ color: palette.accent }}>
                       {g.category || "Event"}
@@ -960,13 +1307,11 @@ export default function FestivalSiteRenderer({
         )
 
       case "news":
-        return sectionWrapper(
+        return renderSectionContainer(
+          section,
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2
-                className="text-xl font-black flex items-center gap-2"
-                style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}
-              >
+              <h2 className="text-xl font-black flex items-center gap-2" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
                 <Newspaper className="h-5 w-5" style={{ color: palette.accent }} />
                 <span>Official Bulletins &amp; News</span>
               </h2>
@@ -1005,12 +1350,10 @@ export default function FestivalSiteRenderer({
         )
 
       case "team":
-        return sectionWrapper(
+        return renderSectionContainer(
+          section,
           <div className="space-y-4">
-            <h2
-              className="text-xl font-black flex items-center gap-2"
-              style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}
-            >
+            <h2 className="text-xl font-black flex items-center gap-2" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
               <Users className="h-5 w-5" style={{ color: palette.secondary }} />
               <span>{section.settings?.title || "Organizing Committee"}</span>
             </h2>
@@ -1036,11 +1379,6 @@ export default function FestivalSiteRenderer({
                     <p className="text-xs font-semibold" style={{ color: palette.accent }}>
                       {m.role}
                     </p>
-                    {m.department && (
-                      <p className="text-[11px]" style={{ color: palette.mutedText }}>
-                        {m.department}
-                      </p>
-                    )}
                   </div>
                 </div>
               ))}
@@ -1049,7 +1387,8 @@ export default function FestivalSiteRenderer({
         )
 
       case "contact":
-        return sectionWrapper(
+        return renderSectionContainer(
+          section,
           <div
             className={`p-6 grid grid-cols-1 md:grid-cols-3 gap-4 ${cardClass}`}
             style={{ backgroundColor: palette.surface, borderRadius: radiusVal }}
@@ -1085,12 +1424,10 @@ export default function FestivalSiteRenderer({
         )
 
       case "heading_banner":
-        return sectionWrapper(
-          <div className="text-center space-y-2 py-4">
-            <h2
-              className="text-2xl sm:text-4xl font-black"
-              style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}
-            >
+        return renderSectionContainer(
+          section,
+          <div className="text-center space-y-2 py-2">
+            <h2 className="text-2xl sm:text-4xl font-black" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
               {section.settings?.heading || "Featured Festival Highlight"}
             </h2>
             <p className="text-sm" style={{ color: palette.mutedText }}>
@@ -1100,17 +1437,19 @@ export default function FestivalSiteRenderer({
         )
 
       case "divider":
-        return sectionWrapper(
+        return renderSectionContainer(
+          section,
           <hr style={{ borderColor: isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.12)" }} />
         )
 
       case "custom_html":
-        return sectionWrapper(
+        return renderSectionContainer(
+          section,
           <div
             className={`p-4 ${cardClass}`}
             style={{ backgroundColor: palette.surface, borderRadius: radiusVal }}
             dangerouslySetInnerHTML={{
-              __html: section.settings?.html || "<div class='text-center text-xs'>Custom HTML Block</div>",
+              __html: section.settings?.html || "<div class='text-center text-xs'>Custom HTML Embed</div>",
             }}
           />
         )
@@ -1120,6 +1459,33 @@ export default function FestivalSiteRenderer({
     }
   }
 
+  // Header Background Styling Resolver
+  const headerHeightClass =
+    hdr.scrollEffect === "shrink" && isScrolled
+      ? "h-14"
+      : hdr.height === "compact"
+      ? "h-14"
+      : hdr.height === "tall"
+      ? "h-24"
+      : "h-16 sm:h-20"
+
+  const headerStyleObj: React.CSSProperties = {
+    borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)",
+  }
+
+  if (hdr.bgType === "solid" && hdr.bgColor) {
+    headerStyleObj.backgroundColor = hdr.bgColor
+  } else if (hdr.bgType === "gradient") {
+    headerStyleObj.background = `linear-gradient(90deg, ${hdr.gradientFrom || palette.primary}, ${hdr.gradientTo || palette.secondary})`
+  } else if (hdr.bgType === "transparent" && !isScrolled) {
+    headerStyleObj.backgroundColor = "transparent"
+  } else if (hdr.style === "solid") {
+    headerStyleObj.backgroundColor = palette.surface
+  } else {
+    headerStyleObj.backgroundColor = isScrolled && hdr.scrollEffect === "bg_change" ? palette.surface : `${palette.background}e6`
+    headerStyleObj.backdropFilter = "blur(14px)"
+  }
+
   return (
     <div
       className="min-h-screen flex flex-col relative selection:bg-indigo-500/30"
@@ -1127,28 +1493,22 @@ export default function FestivalSiteRenderer({
         backgroundColor: palette.background,
         color: palette.text,
         fontFamily: `"${typo.bodyFont}", "${typo.malayalamFont}", "${typo.arabicFont}", sans-serif`,
-        backgroundImage: backgroundPatternCss,
-        backgroundSize: shape.backgroundTexture === "dots" ? "20px 20px" : shape.backgroundTexture === "grid" ? "32px 32px" : undefined,
       }}
     >
-      {/* Dynamic Google Fonts Loader */}
+      {/* Dynamic Google Fonts */}
       {googleFontsList && (
-        <link
-          rel="stylesheet"
-          href={`https://fonts.googleapis.com/css2?${googleFontsList}&display=swap`}
-        />
+        <link rel="stylesheet" href={`https://fonts.googleapis.com/css2?${googleFontsList}&display=swap`} />
       )}
       {typo.customFontUrl && typo.customFontName && (
         <style>{`@font-face { font-family: "${typo.customFontName}"; src: url("${typo.customFontUrl}"); }`}</style>
       )}
-      {/* Studio CSS Keyframes */}
       <style>{`
-        @keyframes fesproFloat { 0%, 100% { transform: translate(-50%, -50%) translateY(0px); } 50% { transform: translate(-50%, -50%) translateY(-10px); } }
-        @keyframes fesproSpinSlow { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+        @keyframes fesproMarquee { 0% { transform: translateX(0%); } 100% { transform: translateX(-50%); } }
+        @keyframes fesproKenBurns { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
         @keyframes fesproFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fesproZoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        .fespro-anim-float { animation: fesproFloat 3.5s ease-in-out infinite; }
-        .fespro-anim-spin { animation: fesproSpinSlow 14s linear infinite; }
+        .fespro-marquee { animation: fesproMarquee linear infinite; }
+        .fespro-ken-burns { animation: fesproKenBurns 18s ease-in-out infinite; }
         .fespro-enter-fadeup { animation: fesproFadeUp ${motion.duration}s ease-out both; }
         .fespro-enter-zoom { animation: fesproZoomIn ${motion.duration}s ease-out both; }
         ${config.seoAndAdvanced?.customCss || ""}
@@ -1165,59 +1525,74 @@ export default function FestivalSiteRenderer({
         />
       )}
 
-      {/* ── WHITE-LABELED HEADER ── */}
+      {/* ── WHITE-LABELED HEADER DESIGN STUDIO ── */}
       <header
-        className={`${config.headerConfig?.sticky !== false && !isEditorMode ? "sticky top-0" : "relative"} z-40 border-b transition-all`}
-        style={{
-          backgroundColor:
-            config.headerConfig?.style === "solid"
-              ? palette.surface
-              : config.headerConfig?.style === "transparent"
-              ? "transparent"
-              : `${palette.background}e6`,
-          backdropFilter: config.headerConfig?.style === "glass" ? "blur(14px)" : undefined,
-          borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)",
-        }}
+        className={`${hdr.sticky !== false && !isEditorMode ? "sticky top-0" : "relative"} z-40 border-b overflow-hidden transition-all duration-300 ${
+          headerHidden ? "-translate-y-full" : "translate-y-0"
+        }`}
+        style={headerStyleObj}
       >
-        <div className={`${containerMaxW} mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-4`}>
+        {/* Header Image / GIF Background */}
+        {(hdr.bgType === "image" || hdr.bgType === "gif") && hdr.bgMediaUrl && (
+          <img
+            src={hdr.bgMediaUrl}
+            alt="Header BG"
+            className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
+          />
+        )}
+        {/* Header Video Background */}
+        {hdr.bgType === "video" && hdr.bgMediaUrl && (
+          <video
+            src={hdr.bgMediaUrl}
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
+          />
+        )}
+        {/* Header Overlay */}
+        {(hdr.bgType === "image" || hdr.bgType === "gif" || hdr.bgType === "video") && (
+          <div
+            className="absolute inset-0 bg-slate-950 z-0 pointer-events-none"
+            style={{ opacity: (hdr.overlayOpacity ?? 50) / 100 }}
+          />
+        )}
+
+        <div
+          className={`relative z-10 ${containerMaxW} mx-auto px-4 sm:px-6 ${headerHeightClass} flex items-center justify-between gap-4 transition-all duration-300 ${
+            hdr.logoPosition === "right" ? "flex-row-reverse" : ""
+          }`}
+        >
+          {/* Logo Block */}
           <button
             onClick={() => setActiveTab("overview")}
-            className="flex items-center gap-3 text-left group cursor-pointer"
+            className={`flex items-center gap-3 text-left cursor-pointer ${
+              hdr.logoPosition === "center" ? "lg:order-2" : ""
+            }`}
           >
             {config.logoUrl ? (
-              <img
-                src={config.logoUrl}
-                alt={festivalName}
-                className="h-10 w-10 rounded-xl object-cover border border-white/10"
-              />
+              <img src={config.logoUrl} alt={festivalName} className="h-10 w-10 rounded-xl object-cover border border-white/10" />
             ) : (
               <div
                 className="h-10 w-10 rounded-xl flex items-center justify-center font-black text-white shadow-md text-sm"
-                style={{
-                  background: `linear-gradient(135deg, ${palette.primary}, ${palette.accent})`,
-                }}
+                style={{ background: `linear-gradient(135deg, ${palette.primary}, ${palette.accent})` }}
               >
                 {heroTitle.slice(0, 2).toUpperCase()}
               </div>
             )}
             <div>
-              <div
-                className="text-base sm:text-lg font-black tracking-tight leading-none"
-                style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}
-              >
+              <div className="text-base sm:text-lg font-black tracking-tight leading-none" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
                 {heroTitle}
               </div>
-              <div
-                className="text-[10px] font-bold uppercase tracking-widest mt-1"
-                style={{ color: palette.accent }}
-              >
-                {config.headerConfig?.tagline || "OFFICIAL FESTIVAL PORTAL"}
+              <div className="text-[10px] font-bold uppercase tracking-widest mt-1" style={{ color: palette.accent }}>
+                {hdr.tagline || "OFFICIAL FESTIVAL PORTAL"}
               </div>
             </div>
           </button>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-1">
+          {/* Navigation Links */}
+          <nav className={`hidden lg:flex items-center gap-1 ${hdr.logoPosition === "center" ? "lg:order-1" : ""}`}>
             {navTabs.map((t) => {
               const Icon = t.icon
               const isActive = activeTab === t.id
@@ -1239,15 +1614,24 @@ export default function FestivalSiteRenderer({
             })}
           </nav>
 
-          {/* Right Live Badge & Console Login */}
-          <div className="hidden sm:flex items-center gap-2.5">
-            {config.headerConfig?.showLiveBadge !== false && (
+          {/* Right Live Badge, Custom CTA & Console Login */}
+          <div className={`hidden sm:flex items-center gap-2.5 ${hdr.logoPosition === "center" ? "lg:order-3" : ""}`}>
+            {hdr.showLiveBadge !== false && (
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 LIVE
               </div>
             )}
-            {config.headerConfig?.showConsoleLogin !== false && (
+            {hdr.ctaText && (
+              <button
+                onClick={() => setActiveTab("results")}
+                className="px-3.5 py-1.5 text-xs font-bold text-white cursor-pointer"
+                style={{ backgroundColor: palette.accent, borderRadius: btnRadius }}
+              >
+                {hdr.ctaText}
+              </button>
+            )}
+            {hdr.showConsoleLogin !== false && (
               <Link
                 href="/login"
                 className="px-3.5 py-1.5 text-xs font-bold border transition-all"
@@ -1274,7 +1658,7 @@ export default function FestivalSiteRenderer({
         {/* Mobile Nav Drawer */}
         {mobileMenuOpen && (
           <div
-            className="lg:hidden border-t px-4 py-3 space-y-1.5"
+            className="relative z-20 lg:hidden border-t px-4 py-3 space-y-1.5"
             style={{ backgroundColor: palette.surface, borderColor: "rgba(255,255,255,0.08)" }}
           >
             {navTabs.map((t) => {
@@ -1306,9 +1690,7 @@ export default function FestivalSiteRenderer({
       {/* ── MAIN CONTENT AREA ── */}
       <main className="flex-1">
         {activeTab === "overview" && (
-          <div>
-            {(config.sections || []).map((section) => renderSectionWidget(section))}
-          </div>
+          <div>{(config.sections || []).map((section) => renderSectionWidget(section))}</div>
         )}
 
         {/* Standalone Results Page */}
@@ -1603,11 +1985,6 @@ export default function FestivalSiteRenderer({
                       {currentVideo.platform.replace("_", " ")}
                     </span>
                     <h3 className="text-lg font-black">{currentVideo.title}</h3>
-                    {currentVideo.description && (
-                      <p className="text-xs" style={{ color: palette.mutedText }}>
-                        {currentVideo.description}
-                      </p>
-                    )}
                   </div>
                 </div>
 
@@ -1827,10 +2204,7 @@ export default function FestivalSiteRenderer({
             <div className="flex items-center gap-4">
               <Link href="/login" className="hover:underline">Staff Login</Link>
               <span>•</span>
-              <button
-                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                className="hover:underline cursor-pointer"
-              >
+              <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="hover:underline cursor-pointer">
                 Back to top ↑
               </button>
             </div>
@@ -1838,7 +2212,7 @@ export default function FestivalSiteRenderer({
         </div>
       </footer>
 
-      {/* ── LIGHTBOX IMAGE ZOOM MODAL ── */}
+      {/* ── LIGHTBOX MODAL ── */}
       {lightboxImage && (
         <div
           className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-4"
@@ -1855,24 +2229,16 @@ export default function FestivalSiteRenderer({
                     target="_blank"
                     rel="noreferrer"
                     className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white"
-                    title="Open / Download Image"
                   >
                     <Download className="h-4 w-4" />
                   </a>
                 )}
-                <button
-                  onClick={() => setLightboxImage(null)}
-                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white"
-                >
+                <button onClick={() => setLightboxImage(null)} className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white">
                   <X className="h-4 w-4" />
                 </button>
               </div>
             </div>
-            <img
-              src={lightboxImage.url}
-              alt={lightboxImage.title}
-              className="w-full max-h-[80vh] object-contain rounded-xl"
-            />
+            <img src={lightboxImage.url} alt={lightboxImage.title} className="w-full max-h-[80vh] object-contain rounded-xl" />
           </div>
         </div>
       )}
@@ -1882,24 +2248,13 @@ export default function FestivalSiteRenderer({
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
           <div
             className="max-w-md w-full p-6 space-y-4 border shadow-2xl relative"
-            style={{
-              backgroundColor: palette.surface,
-              borderColor: palette.primary,
-              borderRadius: radiusVal,
-            }}
+            style={{ backgroundColor: palette.surface, borderColor: palette.primary, borderRadius: radiusVal }}
           >
-            <button
-              onClick={() => setShowPopup(false)}
-              className="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-white/10"
-            >
+            <button onClick={() => setShowPopup(false)} className="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-white/10">
               <X className="h-4 w-4" />
             </button>
             {config.popupBuilder.imageUrl && (
-              <img
-                src={config.popupBuilder.imageUrl}
-                alt={config.popupBuilder.title}
-                className="w-full h-40 object-cover rounded-xl"
-              />
+              <img src={config.popupBuilder.imageUrl} alt={config.popupBuilder.title} className="w-full h-40 object-cover rounded-xl" />
             )}
             <div className="space-y-1.5">
               <div className="text-[10px] font-black uppercase tracking-wider" style={{ color: palette.accent }}>
