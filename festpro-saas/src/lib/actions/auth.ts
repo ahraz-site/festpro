@@ -7,6 +7,14 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { getDashboardForRole } from "@/config/roles"
 import type { UserRole } from "@/types"
 
+export const ADMIN_EMAILS = [
+  "ahraz.site@gmail.com",
+  "ahraza272@gmail.com",
+  "admin@fespro.com",
+  "admin@festpro.com",
+  "ahrazfestpro@gmail.com",
+]
+
 export async function ensureUserProfile() {
   try {
     const supabase = await createServerClient()
@@ -23,11 +31,6 @@ export async function ensureUserProfile() {
       .single()
 
     const userEmail = (user.email || "").toLowerCase().trim()
-    const ADMIN_EMAILS = [
-      "ahrazfestpro@gmail.com",
-      "ahraza272@gmail.com",
-      "admin@festpro.com",
-    ]
     const isSuperAdminEmail =
       ADMIN_EMAILS.includes(userEmail) ||
       userEmail.startsWith("admin@")
@@ -108,11 +111,6 @@ export async function signUp(formData: {
   try {
     const cleanKey = String(formData.license_key || "").trim().toUpperCase()
     const userEmail = String(formData.email || "").trim().toLowerCase()
-    const ADMIN_EMAILS = [
-      "ahrazfestpro@gmail.com",
-      "ahraza272@gmail.com",
-      "admin@festpro.com",
-    ]
     const isMasterAdmin =
       cleanKey === "ADMIN-MASTER-KEY" ||
       cleanKey === "SUPER-ADMIN-2026" ||
@@ -281,11 +279,17 @@ export async function signIn(formData: { email: string; password: string }) {
 
     revalidatePath("/", "layout")
 
-    const isAdmin = profile.role === "platform_owner" || profile.role === "platform_admin"
+    const userEmail = (formData.email || "").toLowerCase().trim()
+    const isAdmin =
+      profile.role === "platform_owner" ||
+      profile.role === "platform_admin" ||
+      ADMIN_EMAILS.includes(userEmail) ||
+      userEmail.startsWith("admin@")
+
     return {
       success: true,
       role: profile.role as UserRole,
-      redirectTo: isAdmin ? "/dashboard/licensing" : getDashboardForRole(profile.role as UserRole),
+      redirectTo: isAdmin ? "/dashboard/admin" : getDashboardForRole(profile.role as UserRole),
     }
   } catch (err: any) {
     console.error("signIn error:", err)

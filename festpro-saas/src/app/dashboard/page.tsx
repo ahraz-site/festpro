@@ -29,6 +29,20 @@ export default function DashboardRoot() {
         profile = await ensureUserProfile()
       }
 
+      const email = (user.email || "").toLowerCase().trim()
+      const isSuperAdmin =
+        profile?.role === "platform_owner" ||
+        profile?.role === "platform_admin" ||
+        email === "ahraz.site@gmail.com" ||
+        email === "ahraza272@gmail.com" ||
+        email === "ahrazfestpro@gmail.com" ||
+        email.startsWith("admin@")
+
+      if (isSuperAdmin) {
+        router.replace("/dashboard/admin")
+        return
+      }
+
       let orgId = profile?.organization_id
 
       if (!orgId) {

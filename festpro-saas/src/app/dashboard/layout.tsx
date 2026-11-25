@@ -12,7 +12,7 @@ import {
   Tv, HelpCircle, Moon, Sun, ArrowLeft, Bookmark, LayoutGrid, Search,
   RefreshCw, ExternalLink, Sparkles, Gamepad2, Monitor, ClipboardCheck,
   Keyboard, Dices, Medal, BarChart2, Star, Gift, Award, ListFilter,
-  Printer, LayoutTemplate, Megaphone, Type, Globe, KeyRound
+  Printer, LayoutTemplate, Megaphone, Type, Globe, KeyRound, ShieldCheck
 } from "lucide-react"
 import type { Profile } from "@/types"
 import type { ExtendedOrganization } from "@/types/organization"
@@ -180,6 +180,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const festSlug = currentFestival?.code || currentFestival?.short_name || effectiveFestivalId || "fest"
   const publicWebUrl = `/festivals/${effectiveFestivalId || festSlug}`
+
+  const userEmail = (profile?.email || "").toLowerCase().trim()
+  const isSuperAdminUser =
+    profile?.role === "platform_owner" ||
+    profile?.role === "platform_admin" ||
+    userEmail === "ahraz.site@gmail.com" ||
+    userEmail === "ahraza272@gmail.com" ||
+    userEmail === "admin@fespro.com" ||
+    userEmail === "ahrazfestpro@gmail.com"
 
   // 1. OVERVIEW
   // 2. PEOPLE & PROGRAM (With individual distinct active checks)
@@ -499,6 +508,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Right Header Badges & Actions */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Super Admin Shortcut Badge */}
+            {isSuperAdminUser && (
+              <Link
+                href="/dashboard/admin"
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-xs ${
+                  pathname === "/dashboard/admin"
+                    ? "bg-amber-100 text-amber-900 border border-amber-300"
+                    : "bg-slate-900 hover:bg-black text-white"
+                }`}
+                title="Platform Super Admin Control Center"
+              >
+                <ShieldCheck className="h-3.5 w-3.5 text-amber-400" />
+                <span>Admin Portal</span>
+              </Link>
+            )}
+
             {/* Refreshing Live Data Indicator (Screenshot Reference) */}
             <button
               onClick={triggerRefresh}
@@ -542,6 +567,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       <p className="text-slate-500 truncate text-[11px]">{profile?.email}</p>
                     </div>
 
+                    {isSuperAdminUser && (
+                      <>
+                        <Link
+                          href="/dashboard/admin"
+                          className="flex items-center gap-2 px-4 py-2 text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100 font-bold"
+                          onClick={() => setProfileDropdownOpen(false)}
+                        >
+                          <ShieldCheck className="h-4 w-4 text-indigo-600" /> Super Admin Portal
+                        </Link>
+                        <Link
+                          href="/dashboard/licensing"
+                          className="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-slate-50 font-medium"
+                          onClick={() => setProfileDropdownOpen(false)}
+                        >
+                          <KeyRound className="h-4 w-4 text-slate-400" /> Licensing &amp; Keys
+                        </Link>
+                        <div className="border-t border-slate-100 my-1" />
+                      </>
+                    )}
+
                     <Link
                       href="/profile"
                       className="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-slate-50 font-medium"
@@ -579,6 +624,50 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* ── DESKTOP & MOBILE SLIDE-OVER SIDEBAR (Clean 3-Section FestPro Navigation) ── */}
       <aside className={`fixed left-0 top-16 z-40 h-[calc(100vh-4rem)] w-64 border-r border-slate-200/80 bg-white transform transition-transform duration-200 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 overflow-y-auto flex flex-col justify-between shadow-xs`}>
         <nav className="p-3.5 space-y-1">
+          {/* SUPER ADMIN SHORTCUT */}
+          {isSuperAdminUser && (
+            <div className="mb-3 pb-3 border-b border-slate-100">
+              <div className="pt-1 pb-1.5 px-3">
+                <span className="text-[10px] font-bold text-amber-600 tracking-wider uppercase flex items-center gap-1.5">
+                  <ShieldCheck className="h-3 w-3" />
+                  SUPER ADMIN
+                </span>
+              </div>
+              <Link
+                prefetch={true}
+                href="/dashboard/admin"
+                className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold transition-all ${
+                  pathname === "/dashboard/admin"
+                    ? "bg-amber-50 text-amber-900 border border-amber-200"
+                    : "text-slate-700 hover:bg-slate-100"
+                }`}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <div className="flex items-center gap-2.5">
+                  <ShieldCheck className={`h-4 w-4 ${pathname === "/dashboard/admin" ? "text-amber-600" : "text-slate-400"}`} />
+                  <span>Control Center</span>
+                </div>
+                {pathname === "/dashboard/admin" && <span className="h-1.5 w-1.5 rounded-full bg-amber-600" />}
+              </Link>
+              <Link
+                prefetch={true}
+                href="/dashboard/licensing"
+                className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold transition-all ${
+                  pathname === "/dashboard/licensing"
+                    ? "bg-amber-50 text-amber-900 border border-amber-200"
+                    : "text-slate-700 hover:bg-slate-100"
+                }`}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <div className="flex items-center gap-2.5">
+                  <KeyRound className={`h-4 w-4 ${pathname === "/dashboard/licensing" ? "text-amber-600" : "text-slate-400"}`} />
+                  <span>Licenses &amp; Keys</span>
+                </div>
+                {pathname === "/dashboard/licensing" && <span className="h-1.5 w-1.5 rounded-full bg-amber-600" />}
+              </Link>
+            </div>
+          )}
+
           {/* 1. OVERVIEW */}
           <div className="pt-2 pb-1.5 px-3">
             <span className="text-[11px] font-bold text-slate-400 tracking-wider uppercase block">
