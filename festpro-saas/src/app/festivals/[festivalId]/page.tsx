@@ -92,8 +92,22 @@ export default function PublicFestivalPage() {
     )
   }
 
-  const customSettings = festival?.settings?.[0] || festival?.settings || {}
-  const customFields = (customSettings?.custom_fields as any) || {}
+  let customSettings: any = null
+  if (Array.isArray(festival?.settings) && festival.settings.length > 0) {
+    customSettings =
+      festival.settings.find((s: any) => {
+        const cf = s?.custom_fields
+        return cf && typeof cf === "object" && !Array.isArray(cf) && cf.website_config
+      }) || festival.settings[0]
+  } else if (festival?.settings && typeof festival.settings === "object") {
+    customSettings = festival.settings
+  }
+
+  const rawFields = customSettings?.custom_fields
+  const customFields: Record<string, any> =
+    rawFields && typeof rawFields === "object" && !Array.isArray(rawFields)
+      ? rawFields
+      : {}
   const webConfig = customFields.website_config || undefined
 
   return (

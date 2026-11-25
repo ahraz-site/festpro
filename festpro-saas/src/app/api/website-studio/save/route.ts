@@ -25,7 +25,12 @@ export async function POST(request: NextRequest) {
       .limit(1)
 
     const currentSettings = settingsRows?.[0] || null
-    const customFields = (currentSettings?.custom_fields as any) || {}
+    const rawFields = currentSettings?.custom_fields
+    const customFields: Record<string, any> =
+      rawFields && typeof rawFields === "object" && !Array.isArray(rawFields)
+        ? { ...rawFields }
+        : {}
+
     const stampedConfig: FestivalWebsiteConfig = {
       ...config,
       headerConfig: {
@@ -52,18 +57,26 @@ export async function POST(request: NextRequest) {
       updated_at: new Date().toISOString(),
     }
 
-    // 2. Update or Insert settings
-    if (currentSettings?.id) {
-      const { error } = await admin
-        .from("festival_settings")
-        .update(settingsPayload)
-        .eq("id", currentSettings.id)
-      if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-    } else {
-      const { error } = await admin
+    // 2. Update all festival_settings rows for this festival_id (preventing any stale row being served)
+    const { data: updatedRows, error: updateErr } = await admin
+      .from("festival_settings")
+      .update(settingsPayload)
+      .eq("festival_id", festivalId)
+      .select("id")
+
+    if (updateErr) {
+      console.error("Update festival_settings error:", updateErr)
+      return NextResponse.json({ error: updateErr.message }, { status: 400 })
+    }
+
+    if (!updatedRows || updatedRows.length === 0) {
+      const { error: insertErr } = await admin
         .from("festival_settings")
         .insert(settingsPayload)
-      if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+      if (insertErr) {
+        console.error("Insert festival_settings error:", insertErr)
+        return NextResponse.json({ error: insertErr.message }, { status: 400 })
+      }
     }
 
     // 3. Update festival basics if provided

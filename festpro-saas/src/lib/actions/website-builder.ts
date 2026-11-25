@@ -19,7 +19,11 @@ export async function getFestivalWebsiteConfigAction(festivalId: string) {
 
     const fest = festRes.data?.[0] || null
     const settings = settingsRes.data?.[0] || null
-    const customFields = (settings?.custom_fields as any) || {}
+    const rawFields = settings?.custom_fields
+    const customFields: Record<string, any> =
+      rawFields && typeof rawFields === "object" && !Array.isArray(rawFields)
+        ? rawFields
+        : {}
     const saved = (customFields.website_config as FestivalWebsiteConfig) || null
     const webConfig = normalizeWebsiteConfig(saved, fest, settings)
 
@@ -48,7 +52,12 @@ export async function saveFestivalWebsiteConfigAction(festivalId: string, config
       .limit(1)
 
     const currentSettings = settingsRows?.[0] || null
-    const customFields = (currentSettings?.custom_fields as any) || {}
+    const rawFields = currentSettings?.custom_fields
+    const customFields: Record<string, any> =
+      rawFields && typeof rawFields === "object" && !Array.isArray(rawFields)
+        ? { ...rawFields }
+        : {}
+
     const stampedConfig: FestivalWebsiteConfig = {
       ...config,
       headerConfig: {
@@ -75,18 +84,20 @@ export async function saveFestivalWebsiteConfigAction(festivalId: string, config
       updated_at: new Date().toISOString(),
     }
 
-    // 2. Update or Insert settings
-    if (currentSettings?.id) {
-      const { error } = await admin
-        .from("festival_settings")
-        .update(settingsPayload)
-        .eq("id", currentSettings.id)
-      if (error) return { error: error.message }
-    } else {
-      const { error } = await admin
+    // 2. Update all festival_settings rows for this festival_id
+    const { data: updatedRows, error: updateErr } = await admin
+      .from("festival_settings")
+      .update(settingsPayload)
+      .eq("festival_id", festivalId)
+      .select("id")
+
+    if (updateErr) return { error: updateErr.message }
+
+    if (!updatedRows || updatedRows.length === 0) {
+      const { error: insertErr } = await admin
         .from("festival_settings")
         .insert(settingsPayload)
-      if (error) return { error: error.message }
+      if (insertErr) return { error: insertErr.message }
     }
 
     // 3. Update festival basics if provided (safely caught)

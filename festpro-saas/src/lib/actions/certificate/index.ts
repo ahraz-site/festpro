@@ -210,16 +210,27 @@ async function resolveFestival(festivalIdOrSlug: string) {
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clean)
   let fest: any = null
   if (isUuid) {
-    const { data } = await admin.from("festivals").select("*, settings:festival_settings(*)").eq("id", clean).limit(1)
+    const { data } = await admin.from("festivals").select("*").eq("id", clean).limit(1)
     fest = data?.[0] || null
   } else {
     const { data } = await admin
       .from("festivals")
-      .select("*, settings:festival_settings(*)")
+      .select("*")
       .or(`code.ilike.${clean},short_name.ilike.${clean},name.ilike.${clean}`)
       .limit(1)
     fest = data?.[0] || null
   }
+
+  if (fest?.id) {
+    const { data: latestSettings } = await admin
+      .from("festival_settings")
+      .select("*")
+      .eq("festival_id", fest.id)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+    fest.settings = latestSettings || []
+  }
+
   return { id: fest?.id || clean, festival: fest }
 }
 
