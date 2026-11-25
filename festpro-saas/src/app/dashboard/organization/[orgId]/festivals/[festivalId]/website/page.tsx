@@ -71,11 +71,17 @@ type StudioPanelId =
 type CanvasTabType = "overview" | "results" | "schedule" | "leaderboard" | "gallery" | "videos" | "news"
 
 function compressImageFile(file: File, maxDim = 1200, onLoaded: (url: string) => void) {
+  if (file.size > 5 * 1024 * 1024) {
+    toast.warning("File is larger than 5MB. Compressing for optimum web performance...")
+  }
   const reader = new FileReader()
   reader.onload = (e) => {
     const raw = e.target?.result as string
     if (!raw) return
     if (file.type === "image/gif" || file.type === "image/svg+xml") {
+      if (raw.length > 2_500_000) {
+        toast.warning("GIF/SVG file is large (>2MB). Consider using an external URL if publishing takes time.")
+      }
       onLoaded(raw)
       return
     }
@@ -97,13 +103,21 @@ function compressImageFile(file: File, maxDim = 1200, onLoaded: (url: string) =>
       canvas.height = h
       const ctx = canvas.getContext("2d")
       if (ctx) {
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = "high"
         ctx.drawImage(img, 0, 0, w, h)
-        onLoaded(canvas.toDataURL("image/webp", 0.85))
+        onLoaded(canvas.toDataURL("image/webp", 0.8))
       } else {
         onLoaded(raw)
       }
     }
+    img.onerror = () => {
+      toast.error("Could not process this image. Please try another file.")
+    }
     img.src = raw
+  }
+  reader.onerror = () => {
+    toast.error("Failed to read image file.")
   }
   reader.readAsDataURL(file)
 }
@@ -257,12 +271,17 @@ export default function FesProStudioPage() {
 
   const handleSavePublish = () => {
     startTransition(async () => {
-      const res = await saveFestivalWebsiteConfigAction(festivalId, config)
-      if (res.error) {
-        toast.error(res.error)
-      } else {
-        setHasUnsaved(false)
-        toast.success("FesPro Studio site published live!")
+      try {
+        const res = await saveFestivalWebsiteConfigAction(festivalId, config)
+        if (res?.error) {
+          toast.error(res.error)
+        } else {
+          setHasUnsaved(false)
+          toast.success("FesPro Studio site published live!")
+        }
+      } catch (err: any) {
+        console.error("Save publish error:", err)
+        toast.error(err?.message || "Failed to publish website. Please try again.")
       }
     })
   }

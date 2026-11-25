@@ -89,21 +89,32 @@ export async function saveFestivalWebsiteConfigAction(festivalId: string, config
       if (error) return { error: error.message }
     }
 
-    // 3. Update festival basics if provided
+    // 3. Update festival basics if provided (safely caught)
     const updatePayload: any = {}
-    if (config.heroTitle) updatePayload.name = config.heroTitle
+    if (config.heroTitle?.trim()) updatePayload.name = config.heroTitle.trim()
     if (config.heroSubtitle) updatePayload.description = config.heroSubtitle
     if (config.logoUrl !== undefined) updatePayload.logo_url = config.logoUrl
     if (config.bannerUrl !== undefined) updatePayload.banner_url = config.bannerUrl
 
     if (Object.keys(updatePayload).length > 0) {
-      await admin.from("festivals").update(updatePayload).eq("id", festivalId)
+      try {
+        const { error: festErr } = await admin.from("festivals").update(updatePayload).eq("id", festivalId)
+        if (festErr) console.warn("Festivals table update warning:", festErr.message)
+      } catch (fErr) {
+        console.warn("Festivals table update exception:", fErr)
+      }
     }
 
-    revalidatePath(`/festivals/${festivalId}`)
-    revalidatePath(`/dashboard/organization`)
+    try {
+      revalidatePath(`/festivals/${festivalId}`)
+      revalidatePath(`/f/${festivalId}`)
+    } catch (revErr) {
+      console.warn("Path revalidation warning:", revErr)
+    }
+
     return { success: true, message: "FesPro Studio design published to live site!" }
   } catch (err: any) {
+    console.error("saveFestivalWebsiteConfigAction error:", err)
     return { error: err.message || "Failed to save website configuration" }
   }
 }

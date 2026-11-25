@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
+    serverActions: {
+      bodySizeLimit: "10mb",
+      allowedOrigins: ["*.ahraz.site", "ahraz.site", "fespro.ahraz.site", "localhost:3000"],
+    },
     optimizePackageImports: [
       "lucide-react",
       "recharts",
