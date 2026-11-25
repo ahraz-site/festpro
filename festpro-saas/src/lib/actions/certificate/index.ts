@@ -206,17 +206,18 @@ export async function getVerificationLogs(certificateId: string) {
 
 async function resolveFestival(festivalIdOrSlug: string) {
   const admin = createAdminClient()
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(festivalIdOrSlug)
+  const clean = String(festivalIdOrSlug || "").trim()
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clean)
   if (isUuid) {
-    const { data: fest } = await admin.from("festivals").select("*").eq("id", festivalIdOrSlug).maybeSingle()
-    return { id: festivalIdOrSlug, festival: fest }
+    const { data: fest } = await admin.from("festivals").select("*").eq("id", clean).maybeSingle()
+    return { id: clean, festival: fest }
   }
   const { data: fest } = await admin
     .from("festivals")
     .select("*")
-    .or(`code.eq.${festivalIdOrSlug},short_name.eq.${festivalIdOrSlug}`)
+    .or(`code.ilike.${clean},short_name.ilike.${clean},name.ilike.${clean}`)
     .maybeSingle()
-  return { id: fest?.id || festivalIdOrSlug, festival: fest }
+  return { id: fest?.id || clean, festival: fest }
 }
 
 export async function getPublicFestivalInfo(festivalId: string) {

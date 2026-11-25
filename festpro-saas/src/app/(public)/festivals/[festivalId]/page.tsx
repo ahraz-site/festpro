@@ -27,7 +27,26 @@ export default function PublicFestivalPage() {
         .replace(/-/g, " ")
         .replace(/\b\w/g, (c) => c.toUpperCase())
       setFestivalName(cleanName.includes("Fest") ? cleanName : `${cleanName} Festival`)
-      getPublicFestivalInfo(festivalId).then((fRes) => { if (fRes.data?.name) setFestivalName(fRes.data.name) }).catch(() => {})
+      getPublicFestivalInfo(festivalId).then((fRes) => {
+        if (fRes.data?.name) {
+          setFestivalName(fRes.data.name)
+        }
+        const fest = fRes.data
+        if (fest) {
+          const slug =
+            fest.short_name?.toLowerCase() ||
+            fest.code?.toLowerCase() ||
+            (fest.name ? fest.name.toLowerCase().replace(/[^a-z0-9]/g, "") : "")
+          if (slug && typeof window !== "undefined") {
+            const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(festivalId)
+            const host = window.location.hostname
+            if (host.includes("ahraz.site") && isUuid) {
+              // Redirect to clean custom subdomain https://optimuz.ahraz.site
+              window.location.replace(`https://${slug}.ahraz.site`)
+            }
+          }
+        }
+      }).catch(() => {})
 
       Promise.all([
         getPublicResults(festivalId),

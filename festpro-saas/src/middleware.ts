@@ -126,7 +126,7 @@ export async function middleware(request: NextRequest) {
 
     const userPromise = supabase.auth.getUser()
     const timeoutPromise = new Promise<any>((resolve) =>
-      setTimeout(() => resolve({ data: { user: null } }), 2000)
+      setTimeout(() => resolve({ data: { user: null } }), 4500)
     )
     const {
       data: { user },

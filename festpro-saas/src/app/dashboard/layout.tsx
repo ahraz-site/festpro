@@ -178,8 +178,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     : currentOrgId ? `/dashboard/organization/${currentOrgId}` : "/dashboard"
   const isDashboardActive = pathname === dashboardHref
 
-  const festSlug = currentFestival?.code || currentFestival?.short_name || effectiveFestivalId || "fest"
-  const publicWebUrl = `/festivals/${effectiveFestivalId || festSlug}`
+  const festSlug =
+    currentFestival?.short_name?.toLowerCase() ||
+    currentFestival?.code?.toLowerCase() ||
+    (currentFestival?.name ? currentFestival.name.toLowerCase().replace(/[^a-z0-9]/g, "") : "") ||
+    "optimuz"
+
+  const publicWebUrl =
+    typeof window !== "undefined" && window.location.hostname.includes("ahraz.site")
+      ? `https://${festSlug}.ahraz.site`
+      : `/festivals/${festSlug}`
 
   const userEmail = (profile?.email || "").toLowerCase().trim()
   const isSuperAdminUser =

@@ -32,16 +32,21 @@ export default function LoginPage() {
     if (!validate()) return
 
     setIsLoading(true)
-    const result = await signIn({ email: form.email, password: form.password })
+    try {
+      const result = await signIn({ email: form.email, password: form.password })
 
-    if (result.error) {
-      toast.error(result.error)
+      if (result.error) {
+        toast.error(result.error)
+        setIsLoading(false)
+        return
+      }
+
+      toast.success("Welcome back!")
+      window.location.href = result.redirectTo || "/dashboard/admin"
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to sign in")
       setIsLoading(false)
-      return
     }
-
-    toast.success("Welcome back!")
-    router.push(result.redirectTo || "/dashboard")
   }
 
   return (

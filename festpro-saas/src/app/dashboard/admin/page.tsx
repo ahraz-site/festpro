@@ -416,9 +416,14 @@ export default function SuperAdminDashboard() {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {festivals.map((fest: any) => {
-                      const festSlug = fest.code || fest.short_name || fest.id.slice(0, 8)
+                      const festSlug =
+                        fest.short_name?.toLowerCase() ||
+                        fest.code?.toLowerCase() ||
+                        (fest.name ? fest.name.toLowerCase().replace(/[^a-z0-9]/g, "") : "") ||
+                        "optimuz"
                       const publicUrl = `https://${festSlug}.ahraz.site`
-                      const internalPublicUrl = `/festivals/${fest.id}`
+                      const internalPublicUrl = `https://${festSlug}.ahraz.site`
+                      const fallbackPathUrl = `/festivals/${festSlug}`
                       const adminDashboardUrl = `/dashboard/organization/${fest.organization_id}/festivals/${fest.id}`
 
                       return (
