@@ -5,15 +5,8 @@ import { redirect } from "next/navigation"
 import { createClient as createServerClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { getDashboardForRole } from "@/config/roles"
+import { ADMIN_EMAILS } from "@/config/admin"
 import type { UserRole } from "@/types"
-
-export const ADMIN_EMAILS = [
-  "ahraz.site@gmail.com",
-  "ahraza272@gmail.com",
-  "admin@fespro.com",
-  "admin@festpro.com",
-  "ahrazfestpro@gmail.com",
-]
 
 export async function ensureUserProfile(providedUser?: any) {
   try {
