@@ -159,19 +159,30 @@ export async function middleware(request: NextRequest) {
       return response
     }
 
-    const profilePromise = supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single()
+    // High-performance role check: read from cached cookie to bypass database roundtrips
+    const cachedRole = request.cookies.get("festpro_user_role")?.value as UserRole | undefined
+    let role = cachedRole
 
-    const profileTimeoutPromise = new Promise<any>((resolve) =>
-      setTimeout(() => resolve({ data: null }), 2000)
-    )
+    if (!role) {
+      const profilePromise = supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single()
 
-    const { data: profile } = await Promise.race([profilePromise, profileTimeoutPromise])
+      const profileTimeoutPromise = new Promise<any>((resolve) =>
+        setTimeout(() => resolve({ data: null }), 1500)
+      )
 
-    const role = (profile?.role as UserRole) || "organization_owner"
+      const { data: profile } = await Promise.race([profilePromise, profileTimeoutPromise])
+      role = (profile?.role as UserRole) || "organization_owner"
+
+      response.cookies.set("festpro_user_role", role, {
+        path: "/",
+        maxAge: 60 * 60 * 24, // 24 hours
+        sameSite: "lax",
+      })
+    }
 
     if (!canAccessRoute(role, pathname)) {
       const dashboardUrl = new URL("/dashboard", request.url)

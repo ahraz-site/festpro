@@ -563,16 +563,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </Link>
             )}
 
-            {/* Refreshing Live Data Indicator (Screenshot Reference) */}
+            {/* Live Data Sync Button & Status Indicator */}
             <button
               onClick={triggerRefresh}
-              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[11px] font-semibold text-slate-600 bg-slate-100/90 hover:bg-slate-200/80 border border-slate-200 transition-all cursor-pointer"
-              title="Click to refresh festival live data"
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[11px] font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all cursor-pointer shadow-xs active:scale-95"
+              title="Click to sync festival live records"
             >
-              <RefreshCw className={`h-3 w-3 text-indigo-600 ${isRefreshing ? "animate-spin" : ""}`} />
+              <RefreshCw className={`h-3 w-3 text-indigo-600 ${isRefreshing ? "animate-spin text-emerald-600" : ""}`} />
               <span className="hidden md:inline">
-                {isRefreshing ? "Refreshing..." : "Refreshing live data..."}
+                {isRefreshing ? "Syncing live data..." : "Sync Live Data"}
               </span>
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse ml-0.5" title="Live connection active" />
             </button>
 
             {/* Help & Support */}

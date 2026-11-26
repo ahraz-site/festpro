@@ -21,26 +21,60 @@ export default function FestivalOperationsDashboard() {
   const orgId = params.orgId as string
   const festivalId = params.festivalId as string
 
-  const [data, setData] = useState<FestivalDashboardData | null>(null)
-  const [userName, setUserName] = useState<string>("Organizer")
-  const [loading, setLoading] = useState(true)
+  // 0ms SWR Initializer from Session Storage
+  const [data, setData] = useState<FestivalDashboardData | null>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = sessionStorage.getItem(`festpro_dashboard_cache_${festivalId}`)
+        if (cached) return JSON.parse(cached)
+      } catch {}
+    }
+    return null
+  })
+
+  const [userName, setUserName] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cachedUser = sessionStorage.getItem("festpro_user_display_name")
+        if (cachedUser) return cachedUser
+      } catch {}
+    }
+    return "Organizer"
+  })
+
+  // Only show skeleton if NO cached data is available
+  const [loading, setLoading] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = sessionStorage.getItem(`festpro_dashboard_cache_${festivalId}`)
+        if (cached) return false
+      } catch {}
+    }
+    return true
+  })
   const [refreshing, setRefreshing] = useState(false)
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (isFresh = false) => {
     try {
       const supabase = createClient()
       const [userRes, result] = await Promise.all([
         supabase.auth.getUser(),
-        getFestivalDashboardData(festivalId),
+        getFestivalDashboardData(festivalId, isFresh),
       ])
 
       if (userRes.data?.user) {
         const meta = userRes.data.user.user_metadata || {}
         const name = meta.first_name || userRes.data.user.email?.split("@")[0] || "Organizer"
         setUserName(name)
+        try { sessionStorage.setItem("festpro_user_display_name", name) } catch {}
       }
 
-      setData(result)
+      if (result) {
+        setData(result)
+        try {
+          sessionStorage.setItem(`festpro_dashboard_cache_${festivalId}`, JSON.stringify(result))
+        } catch {}
+      }
     } catch (e) {
       console.error(e)
     } finally {
@@ -55,21 +89,64 @@ export default function FestivalOperationsDashboard() {
 
   const handleRefresh = () => {
     setRefreshing(true)
-    loadData().then(() => toast.success("Dashboard data synced with official live records"))
+    loadData(true).then(() => toast.success("Dashboard data synced with official live records"))
   }
 
-  if (loading) {
+  // Instant Modern Skeleton (Replaces full-screen blocking spinner)
+  if (loading && !data) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[55vh] text-slate-500 gap-4">
-        <div className="relative flex items-center justify-center">
-          <div className="absolute -inset-4 rounded-full bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 blur-xl animate-pulse" />
-          <div className="animate-pulse">
-            <FestProFavicon size={48} className="shadow-md rounded-full" />
+      <div className="space-y-6 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-2xl bg-slate-200" />
+            <div className="space-y-2">
+              <div className="h-5 w-48 bg-slate-200 rounded" />
+              <div className="h-3 w-32 bg-slate-200 rounded" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-28 bg-slate-200 rounded-lg" />
+            <div className="h-8 w-32 bg-slate-200 rounded-lg" />
           </div>
         </div>
-        <p className="text-xs font-bold text-slate-700 uppercase tracking-wide animate-pulse">
-          Connecting to festival workspace...
-        </p>
+
+        {/* 4 Operations Hub Cards Skeleton */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-24 rounded-2xl bg-slate-100 border border-slate-200 p-4 space-y-2">
+              <div className="h-6 w-6 rounded-lg bg-slate-200" />
+              <div className="h-4 w-24 bg-slate-200 rounded" />
+              <div className="h-3 w-16 bg-slate-200 rounded" />
+            </div>
+          ))}
+        </div>
+
+        {/* 5 KPI Metric Cards Skeleton */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-20 rounded-xl bg-slate-100 border border-slate-200 p-3 space-y-2">
+              <div className="h-3 w-20 bg-slate-200 rounded" />
+              <div className="h-6 w-12 bg-slate-200 rounded" />
+            </div>
+          ))}
+        </div>
+
+        {/* Live Stage Slots Grid Skeleton */}
+        <div className="space-y-3">
+          <div className="h-4 w-40 bg-slate-200 rounded" />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="h-24 rounded-xl bg-slate-100 border border-slate-200 p-3.5 space-y-2">
+                <div className="flex justify-between">
+                  <div className="h-4 w-24 bg-slate-200 rounded" />
+                  <div className="h-4 w-12 bg-slate-200 rounded-full" />
+                </div>
+                <div className="h-3 w-36 bg-slate-200 rounded" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     )
   }
