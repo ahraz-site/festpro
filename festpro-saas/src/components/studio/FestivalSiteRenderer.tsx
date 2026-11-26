@@ -481,6 +481,59 @@ export default function FestivalSiteRenderer({
       ? "0px"
       : "12px"
 
+  // Dynamic Browser Tab Favicon Updater
+  useEffect(() => {
+    if (config.faviconUrl && typeof document !== "undefined") {
+      let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']")
+      if (!link) {
+        link = document.createElement("link")
+        link.rel = "shortcut icon"
+        document.getElementsByTagName("head")[0].appendChild(link)
+      }
+      link.href = config.faviconUrl
+    }
+  }, [config.faviconUrl])
+
+  // Dynamic Button Hover Classes (Configurable interactive hover styles)
+  const btnHoverEffect =
+    motion.buttonHoverEffect ||
+    (motion.defaultHover === "glow" ? "glow" : motion.defaultHover === "lift" ? "lift" : "glow")
+  const btnHoverClass = motion.reducedMotion
+    ? ""
+    : btnHoverEffect === "glow"
+    ? "transition-all duration-300 hover:shadow-lg hover:shadow-indigo-500/40 hover:brightness-110 active:scale-95"
+    : btnHoverEffect === "lift"
+    ? "transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:translate-y-0"
+    : btnHoverEffect === "scale"
+    ? "transition-all duration-300 hover:scale-105 active:scale-95"
+    : btnHoverEffect === "shimmer"
+    ? "transition-all duration-300 hover:brightness-125 active:scale-95"
+    : btnHoverEffect === "subtle"
+    ? "transition-all duration-200 hover:opacity-90 active:scale-95"
+    : "transition-colors duration-200"
+
+  // Dynamic Card Hover Classes
+  const cardHoverEffect =
+    motion.cardHoverEffect ||
+    (motion.defaultHover === "lift"
+      ? "lift_shadow"
+      : motion.defaultHover === "glow"
+      ? "border_glow"
+      : motion.defaultHover === "scale"
+      ? "scale_up"
+      : "lift_shadow")
+  const cardHoverClass = motion.reducedMotion
+    ? ""
+    : cardHoverEffect === "lift_shadow"
+    ? "transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl"
+    : cardHoverEffect === "border_glow"
+    ? "transition-all duration-300 hover:shadow-lg hover:shadow-indigo-500/25 hover:border-indigo-500/60"
+    : cardHoverEffect === "scale_up"
+    ? "transition-all duration-300 hover:scale-[1.02]"
+    : cardHoverEffect === "neon_glow"
+    ? "transition-all duration-300 hover:shadow-xl hover:shadow-fuchsia-500/30 hover:border-fuchsia-400"
+    : ""
+
   const cardClass = [
     "overflow-hidden break-words min-w-0 max-w-full box-border",
     shape.stylePreset === "brutalist"
@@ -493,13 +546,7 @@ export default function FestivalSiteRenderer({
       ? "border border-slate-200"
       : "border border-white/10",
     shape.cardShadow === "elevated" ? "shadow-xl" : shape.cardShadow === "soft" ? "shadow-md" : "",
-    !motion.reducedMotion && motion.defaultHover === "lift"
-      ? "hover:-translate-y-1 transition-transform duration-300"
-      : !motion.reducedMotion && motion.defaultHover === "scale"
-      ? "hover:scale-[1.02] transition-transform duration-300"
-      : !motion.reducedMotion && motion.defaultHover === "glow"
-      ? "hover:shadow-lg transition-shadow duration-300"
-      : "",
+    cardHoverClass,
   ]
     .filter(Boolean)
     .join(" ")
@@ -873,18 +920,64 @@ export default function FestivalSiteRenderer({
               </div>
             )}
 
-            <h1
-              className={`${headingSizeClass} tracking-tight leading-tight break-words`}
-              style={{
-                fontFamily: `"${typo.headingFont}", "${typo.malayalamFont}", "${typo.arabicFont}", sans-serif`,
-                fontWeight: Number(typo.headingWeight),
-                letterSpacing: letterSpacingVal,
-                textTransform: typo.textTransform,
-                color: palette.text,
-              }}
-            >
-              {heroTitle}
-            </h1>
+            {/* Hero Main Headline (Text, Logo Image, or Animated GIF) */}
+            {(() => {
+              const displayType = config.heroConfig?.titleDisplayType || "text_only"
+              const heroMediaUrl = config.heroConfig?.heroLogoUrl || config.logoUrl || config.wordmarkUrl
+              const heroMediaWidth = config.heroConfig?.heroLogoWidth || 420
+              const heroMediaHeight = config.heroConfig?.heroLogoHeight || 160
+              const hasMedia = displayType !== "text_only" && Boolean(heroMediaUrl)
+
+              const renderGraphic = () => (
+                <div className={`relative inline-block my-2 ${config.heroConfig?.alignment === "left" ? "" : "mx-auto"}`}>
+                  {config.heroConfig?.heroLogoGlow !== false && (
+                    <div
+                      className="absolute -inset-4 sm:-inset-6 rounded-3xl blur-2xl opacity-40 animate-pulse pointer-events-none"
+                      style={{ backgroundColor: palette.primary }}
+                    />
+                  )}
+                  <img
+                    src={heroMediaUrl}
+                    alt={heroTitle || festivalName}
+                    style={{
+                      maxHeight: `${heroMediaHeight}px`,
+                      maxWidth: `${heroMediaWidth}px`,
+                    }}
+                    className="relative z-10 w-auto h-auto object-contain mx-auto drop-shadow-2xl"
+                  />
+                </div>
+              )
+
+              const renderTextHeading = () => (
+                <h1
+                  className={`${headingSizeClass} tracking-tight leading-tight break-words`}
+                  style={{
+                    fontFamily: `"${typo.headingFont}", "${typo.malayalamFont}", "${typo.arabicFont}", sans-serif`,
+                    fontWeight: Number(typo.headingWeight),
+                    letterSpacing: letterSpacingVal,
+                    textTransform: typo.textTransform,
+                    color: palette.text,
+                  }}
+                >
+                  {heroTitle}
+                </h1>
+              )
+
+              if ((displayType === "logo_only" || displayType === "gif_or_image") && hasMedia) {
+                return renderGraphic()
+              }
+
+              if ((displayType === "logo_and_text" || displayType === "gif_and_text") && hasMedia) {
+                return (
+                  <div className="space-y-3">
+                    {renderGraphic()}
+                    {renderTextHeading()}
+                  </div>
+                )
+              }
+
+              return renderTextHeading()
+            })()}
 
             <p
               className={`text-sm @2xl:text-lg max-w-2xl leading-relaxed break-words ${
@@ -910,7 +1003,7 @@ export default function FestivalSiteRenderer({
                     setActiveTab((t as any) || "results")
                   }
                 }}
-                className="px-6 py-3 font-bold text-sm text-white shadow-lg transition-transform hover:scale-105 cursor-pointer"
+                className={`px-6 py-3 font-bold text-sm text-white shadow-lg cursor-pointer ${btnHoverClass}`}
                 style={{
                   background: palette.gradientEnabled
                     ? `linear-gradient(135deg, ${palette.primary}, ${palette.accent})`
@@ -930,7 +1023,7 @@ export default function FestivalSiteRenderer({
                     setActiveTab((t as any) || "leaderboard")
                   }
                 }}
-                className="px-6 py-3 font-bold text-sm border transition-all cursor-pointer hover:opacity-90"
+                className={`px-6 py-3 font-bold text-sm border cursor-pointer ${btnHoverClass}`}
                 style={{
                   backgroundColor: `${palette.surface}cc`,
                   borderColor: isLight ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.2)",
@@ -2282,61 +2375,162 @@ export default function FestivalSiteRenderer({
         <div className={`${containerMaxW} mx-auto px-4 sm:px-6 space-y-8`}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div
-                  className="h-9 w-9 rounded-xl flex items-center justify-center font-black text-white text-sm"
-                  style={{ backgroundColor: palette.primary }}
-                >
-                  {heroTitle.slice(0, 2).toUpperCase()}
-                </div>
-                <span className="font-black text-lg" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
-                  {heroTitle}
-                </span>
-              </div>
+              {/* Configurable Footer Logo & Wordmark Brand Presentation */}
+              {(() => {
+                const ftr = config.footerConfig || {}
+                const mode = ftr.logoMode || "use_header_logo"
+                if (mode === "hidden") return null
+
+                const footerTitle = ftr.customTitle?.trim() || heroTitle
+                const logoH = ftr.logoHeight || 36
+
+                let showLogo = false
+                let logoSrc = ""
+                let showWordmark = false
+                let wordmarkSrc = ""
+                let showTextName = true
+                let showInitialBadge = false
+
+                if (mode === "use_header_logo") {
+                  const hdrMode = hdr.logoMode || "logo_and_name"
+                  if (hdrMode === "wordmark_only" && config.wordmarkUrl) {
+                    showWordmark = true
+                    wordmarkSrc = config.wordmarkUrl
+                    showTextName = false
+                  } else if (hdrMode === "logo_and_wordmark" && (config.logoUrl || config.wordmarkUrl)) {
+                    showLogo = Boolean(config.logoUrl)
+                    logoSrc = config.logoUrl || ""
+                    showWordmark = Boolean(config.wordmarkUrl)
+                    wordmarkSrc = config.wordmarkUrl || ""
+                    showTextName = false
+                  } else if (hdrMode === "logo_and_name" && config.logoUrl) {
+                    showLogo = true
+                    logoSrc = config.logoUrl
+                    showTextName = true
+                  } else if (hdrMode === "name_only") {
+                    showTextName = true
+                  } else if (config.logoUrl) {
+                    showLogo = true
+                    logoSrc = config.logoUrl
+                  } else {
+                    showInitialBadge = true
+                  }
+                } else if (mode === "custom_logo") {
+                  logoSrc = ftr.customLogoUrl || config.logoUrl || ""
+                  showLogo = Boolean(logoSrc)
+                  showTextName = true
+                  if (!showLogo) showInitialBadge = true
+                } else if (mode === "wordmark_only") {
+                  wordmarkSrc = ftr.customWordmarkUrl || config.wordmarkUrl || ""
+                  showWordmark = Boolean(wordmarkSrc)
+                  showTextName = !showWordmark
+                } else if (mode === "logo_and_wordmark") {
+                  logoSrc = ftr.customLogoUrl || config.logoUrl || ""
+                  wordmarkSrc = ftr.customWordmarkUrl || config.wordmarkUrl || ""
+                  showLogo = Boolean(logoSrc)
+                  showWordmark = Boolean(wordmarkSrc)
+                  showTextName = !showWordmark
+                } else if (mode === "badge_and_name") {
+                  showInitialBadge = true
+                  showTextName = true
+                } else if (mode === "name_only") {
+                  showTextName = true
+                }
+
+                return (
+                  <div className="flex items-center gap-3 flex-wrap">
+                    {showLogo && logoSrc && (
+                      <img
+                        src={logoSrc}
+                        alt={footerTitle}
+                        style={{ height: `${logoH}px` }}
+                        className="w-auto max-w-[140px] object-contain shrink-0"
+                      />
+                    )}
+                    {showWordmark && wordmarkSrc ? (
+                      <img
+                        src={wordmarkSrc}
+                        alt={footerTitle}
+                        style={{ height: `${logoH}px` }}
+                        className="w-auto max-w-[220px] object-contain"
+                      />
+                    ) : showInitialBadge ? (
+                      <div
+                        className="rounded-xl flex items-center justify-center font-black text-white text-sm shrink-0"
+                        style={{
+                          height: `${logoH}px`,
+                          width: `${logoH}px`,
+                          backgroundColor: palette.primary,
+                        }}
+                      >
+                        {footerTitle.slice(0, 2).toUpperCase()}
+                      </div>
+                    ) : null}
+                    {showTextName && (
+                      <span className="font-black text-lg tracking-tight" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
+                        {footerTitle}
+                      </span>
+                    )}
+                  </div>
+                )
+              })()}
+
               <p className="text-xs leading-relaxed" style={{ color: palette.mutedText }}>
-                {heroSubtitle}
+                {config.footerConfig?.customTagline?.trim() || heroSubtitle}
               </p>
-              <div className="text-xs space-y-1 pt-1" style={{ color: palette.mutedText }}>
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-3.5 w-3.5" style={{ color: palette.accent }} />
-                  <span>{config.venueCampus}</span>
+
+              {config.footerConfig?.showContactInfo !== false && (
+                <div className="text-xs space-y-1 pt-1" style={{ color: palette.mutedText }}>
+                  {config.venueCampus && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-3.5 w-3.5 shrink-0" style={{ color: palette.accent }} />
+                      <span>{config.venueCampus}</span>
+                    </div>
+                  )}
+                  {config.helpdeskPhone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-3.5 w-3.5 shrink-0" style={{ color: palette.secondary }} />
+                      <span>{config.helpdeskPhone}</span>
+                    </div>
+                  )}
+                  {config.helpdeskEmail && (
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-3.5 w-3.5 shrink-0" style={{ color: palette.primary }} />
+                      <span>{config.helpdeskEmail}</span>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="h-3.5 w-3.5" style={{ color: palette.secondary }} />
-                  <span>{config.helpdeskPhone}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Mail className="h-3.5 w-3.5" style={{ color: palette.primary }} />
-                  <span>{config.helpdeskEmail}</span>
-                </div>
+              )}
+            </div>
+
+            {config.footerConfig?.showQuickLinks !== false && (
+              <div className="space-y-3">
+                <h4 className="text-xs font-black uppercase tracking-wider">Quick Links</h4>
+                <ul className="space-y-2 text-xs" style={{ color: palette.mutedText }}>
+                  {navTabs.map((t) => (
+                    <li key={t.id}>
+                      <button
+                        onClick={() => {
+                          setActiveTab(t.id as any)
+                          window.scrollTo({ top: 0, behavior: "smooth" })
+                        }}
+                        className="hover:underline cursor-pointer"
+                      >
+                        {t.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
+            )}
 
-            <div className="space-y-3">
-              <h4 className="text-xs font-black uppercase tracking-wider">Quick Links</h4>
-              <ul className="space-y-2 text-xs" style={{ color: palette.mutedText }}>
-                {navTabs.map((t) => (
-                  <li key={t.id}>
-                    <button
-                      onClick={() => {
-                        setActiveTab(t.id as any)
-                        window.scrollTo({ top: 0, behavior: "smooth" })
-                      }}
-                      className="hover:underline cursor-pointer"
-                    >
-                      {t.label}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="space-y-4">
-              <h4 className="text-xs font-black uppercase tracking-wider">Follow Our Updates</h4>
-              <p className="text-xs" style={{ color: palette.mutedText }}>
-                Live photos, winner announcements, and reels on official social channels.
-              </p>
-              <div className="flex items-center gap-2.5 flex-wrap">
+            {config.footerConfig?.showSocialIcons !== false && (
+              <div className="space-y-4">
+                <h4 className="text-xs font-black uppercase tracking-wider">Follow Our Updates</h4>
+                <p className="text-xs" style={{ color: palette.mutedText }}>
+                  Live photos, winner announcements, and reels on official social channels.
+                </p>
+                <div className="flex items-center gap-2.5 flex-wrap">
                 {config.socialLinks?.instagram && (
                   <a
                     href={config.socialLinks.instagram}
@@ -2404,6 +2598,7 @@ export default function FestivalSiteRenderer({
                 )}
               </div>
             </div>
+          )}
           </div>
 
           <div
@@ -2412,11 +2607,17 @@ export default function FestivalSiteRenderer({
           >
             <p>{config.footerConfig?.copyrightText || `© ${new Date().getFullYear()} ${heroTitle}. All rights reserved.`}</p>
             <div className="flex items-center gap-4">
-              <Link href="/login" className="hover:underline">Staff Login</Link>
-              <span>•</span>
-              <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="hover:underline cursor-pointer">
-                Back to top ↑
-              </button>
+              {config.footerConfig?.showStaffLogin !== false && (
+                <Link href="/login" className="hover:underline">Staff Login</Link>
+              )}
+              {config.footerConfig?.showStaffLogin !== false && config.footerConfig?.showBackToTop !== false && (
+                <span>•</span>
+              )}
+              {config.footerConfig?.showBackToTop !== false && (
+                <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="hover:underline cursor-pointer">
+                  Back to top ↑
+                </button>
+              )}
             </div>
           </div>
         </div>

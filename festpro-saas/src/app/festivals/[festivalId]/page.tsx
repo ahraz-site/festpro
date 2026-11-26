@@ -23,9 +23,31 @@ export async function generateMetadata({
   const fest = res?.data
   const title = fest?.name ? `${fest.name} - Official Live Festival Portal` : "Festival Portal"
   const description = fest?.description || "Live scoring, stage events, and real-time announcements."
+
+  let faviconUrl = ""
+  if (Array.isArray(fest?.settings)) {
+    const s = fest.settings.find((item: any) => item?.custom_fields?.website_config)
+    const wConfig = s?.custom_fields?.website_config
+    if (wConfig?.faviconUrl) {
+      faviconUrl = wConfig.faviconUrl
+    } else if (wConfig?.logoUrl) {
+      faviconUrl = wConfig.logoUrl
+    }
+  }
+  if (!faviconUrl && fest?.logo_url) {
+    faviconUrl = fest.logo_url
+  }
+
   return {
     title,
     description,
+    icons: faviconUrl
+      ? {
+          icon: faviconUrl,
+          shortcut: faviconUrl,
+          apple: faviconUrl,
+        }
+      : undefined,
     openGraph: {
       title,
       description,

@@ -37,7 +37,31 @@ export type EntranceAnimationType =
   | "slide_right"
   | "blur_reveal"
 
-export type HoverAnimationType = "none" | "lift" | "glow" | "scale"
+export type HoverAnimationType =
+  | "none"
+  | "lift"
+  | "glow"
+  | "scale"
+  | "shimmer"
+  | "tilt"
+  | "neon_border"
+  | "color_shift"
+
+export type FooterLogoMode =
+  | "use_header_logo"
+  | "custom_logo"
+  | "wordmark_only"
+  | "logo_and_wordmark"
+  | "badge_and_name"
+  | "name_only"
+  | "hidden"
+
+export type HeroTitleDisplayType =
+  | "text_only"
+  | "logo_only"
+  | "gif_or_image"
+  | "logo_and_text"
+  | "gif_and_text"
 
 export type SectionBackgroundType =
   | "inherit"
@@ -127,6 +151,9 @@ export interface MotionConfig {
   reducedMotion: boolean
   defaultEntrance: EntranceAnimationType
   defaultHover: HoverAnimationType
+  buttonHoverEffect?: "glow" | "lift" | "scale" | "shimmer" | "subtle" | "none"
+  cardHoverEffect?: "lift_shadow" | "border_glow" | "scale_up" | "neon_glow" | "none"
+  linkHoverEffect?: "underline_slide" | "color_fade" | "glow" | "none"
   duration: number
   scrollProgressBar: boolean
   parallaxHero: boolean
@@ -256,12 +283,31 @@ export interface TeamMemberItem {
   department?: string
 }
 
+export interface FooterConfig {
+  style?: "detailed" | "compact" | "centered"
+  copyrightText?: string
+  logoMode?: FooterLogoMode
+  customLogoUrl?: string
+  customWordmarkUrl?: string
+  customTitle?: string
+  customTagline?: string
+  logoHeight?: number
+  showSocialIcons?: boolean
+  showContactInfo?: boolean
+  showQuickLinks?: boolean
+  showBackToTop?: boolean
+  showStaffLogin?: boolean
+  bgType?: "inherit" | "solid" | "gradient" | "glass"
+  bgColor?: string
+}
+
 export interface FestivalWebsiteConfig {
   heroTitle?: string
   heroSubtitle?: string
   bannerUrl?: string
   logoUrl?: string
   wordmarkUrl?: string
+  faviconUrl?: string
   accentColor?: string
   themeMode?: ThemeMode
   liveStreamUrl?: string
@@ -302,12 +348,14 @@ export interface FestivalWebsiteConfig {
     countdownEnabled?: boolean
     countdownTargetDate?: string
     countdownTitle?: string
+    titleDisplayType?: HeroTitleDisplayType
+    heroLogoUrl?: string
+    heroLogoWidth?: number
+    heroLogoHeight?: number
+    heroLogoGlow?: boolean
   }
   headerConfig?: HeaderConfig
-  footerConfig?: {
-    style?: "detailed" | "compact" | "centered"
-    copyrightText?: string
-  }
+  footerConfig?: FooterConfig
   globalDesign?: {
     palette: ColorPalette
     typography: TypographyConfig
@@ -1208,6 +1256,7 @@ export function getDefaultWebsiteConfig(fest?: any, settings?: any): FestivalWeb
     bannerUrl: fest?.banner_url || "",
     logoUrl: fest?.logo_url || "",
     wordmarkUrl: "",
+    faviconUrl: fest?.logo_url || "",
     accentColor: settings?.theme_color || defaultPalette.primary,
     themeMode: "dark",
     venueCampus: "Main Auditorium Campus",
@@ -1241,6 +1290,11 @@ export function getDefaultWebsiteConfig(fest?: any, settings?: any): FestivalWeb
       countdownEnabled: true,
       countdownTitle: "Grand Finale Countdown",
       countdownTargetDate: new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0],
+      titleDisplayType: "text_only",
+      heroLogoUrl: "",
+      heroLogoWidth: 320,
+      heroLogoHeight: 120,
+      heroLogoGlow: true,
     },
     headerConfig: {
       style: "glass",
@@ -1259,6 +1313,17 @@ export function getDefaultWebsiteConfig(fest?: any, settings?: any): FestivalWeb
     footerConfig: {
       style: "detailed",
       copyrightText: `© ${new Date().getFullYear()} ${resolvedName}. All rights reserved.`,
+      logoMode: "use_header_logo",
+      customLogoUrl: "",
+      customWordmarkUrl: "",
+      customTitle: "",
+      customTagline: "",
+      logoHeight: 36,
+      showSocialIcons: true,
+      showContactInfo: true,
+      showQuickLinks: true,
+      showBackToTop: true,
+      showStaffLogin: true,
     },
     globalDesign: {
       palette: {
@@ -1283,6 +1348,9 @@ export function getDefaultWebsiteConfig(fest?: any, settings?: any): FestivalWeb
       reducedMotion: false,
       defaultEntrance: "fade_up",
       defaultHover: "lift",
+      buttonHoverEffect: "glow",
+      cardHoverEffect: "lift_shadow",
+      linkHoverEffect: "underline_slide",
       duration: 0.5,
       scrollProgressBar: true,
       parallaxHero: true,

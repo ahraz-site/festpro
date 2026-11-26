@@ -816,30 +816,207 @@ export default function FesProStudioPage() {
                       {sectionSubTab === "content" && (
                         <div className="space-y-2.5">
                           {selectedSection.type === "hero" && (
-                            <>
+                            <div className="space-y-3">
+                              {/* Hero Title Mode (Text vs Logo vs GIF) */}
+                              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                                <label className="text-[11px] font-bold text-white uppercase tracking-wider block">
+                                  Hero Title Presentation
+                                </label>
+                                <select
+                                  value={config.heroConfig?.titleDisplayType || "text_only"}
+                                  onChange={(e) =>
+                                    updateConfig((p) => ({
+                                      ...p,
+                                      heroConfig: { ...p.heroConfig, titleDisplayType: e.target.value as any },
+                                    }))
+                                  }
+                                  className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs font-medium"
+                                >
+                                  <option value="text_only">Standard Text Title (Typed)</option>
+                                  <option value="logo_only">Hero Logo Graphic Only (Replaces text)</option>
+                                  <option value="gif_or_image">Animated GIF / Graphic Banner (Replaces text)</option>
+                                  <option value="logo_and_text">Hero Logo + Text Title</option>
+                                  <option value="gif_and_text">Animated GIF + Text Title</option>
+                                </select>
+
+                                {/* Logo / GIF Upload when media is selected */}
+                                {config.heroConfig?.titleDisplayType &&
+                                  config.heroConfig.titleDisplayType !== "text_only" && (
+                                  <div className="space-y-2 pt-2 border-t border-slate-800/80">
+                                    <div className="flex items-center justify-between text-[11px]">
+                                      <span className="font-semibold text-slate-300">
+                                        {config.heroConfig.titleDisplayType.includes("gif")
+                                          ? "Animated GIF / Graphic File"
+                                          : "Hero Logo Image"}
+                                      </span>
+                                      {config.heroConfig?.heroLogoUrl && (
+                                        <button
+                                          onClick={() =>
+                                            updateConfig((p) => ({
+                                              ...p,
+                                              heroConfig: { ...p.heroConfig, heroLogoUrl: "" },
+                                            }))
+                                          }
+                                          className="text-[10px] text-rose-400 hover:underline cursor-pointer"
+                                        >
+                                          Remove
+                                        </button>
+                                      )}
+                                    </div>
+
+                                    {(config.heroConfig?.heroLogoUrl || config.logoUrl) && (
+                                      <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center max-h-24 overflow-hidden relative">
+                                        {config.heroConfig?.heroLogoGlow !== false && (
+                                          <div className="absolute inset-2 bg-indigo-500/20 blur-xl rounded-full" />
+                                        )}
+                                        <img
+                                          src={config.heroConfig?.heroLogoUrl || config.logoUrl}
+                                          alt="Hero Graphic"
+                                          className="relative z-10 max-h-20 max-w-full object-contain"
+                                        />
+                                      </div>
+                                    )}
+
+                                    <label className="block w-full px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold text-center cursor-pointer transition-all">
+                                      <span>
+                                        {config.heroConfig.titleDisplayType.includes("gif")
+                                          ? "Upload Animated GIF / Banner"
+                                          : "Upload Hero Logo"}
+                                      </span>
+                                      <input
+                                        type="file"
+                                        accept="image/*,.gif,.svg,.png,.webp,.jpg"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                          const f = e.target.files?.[0]
+                                          if (f)
+                                            compressImageFile(f, 1000, (url) =>
+                                              updateConfig((p) => ({
+                                                ...p,
+                                                heroConfig: { ...p.heroConfig, heroLogoUrl: url },
+                                              }))
+                                            )
+                                        }}
+                                      />
+                                    </label>
+                                    <input
+                                      type="text"
+                                      placeholder="Or paste Logo / Animated GIF URL"
+                                      value={config.heroConfig?.heroLogoUrl || ""}
+                                      onChange={(e) =>
+                                        updateConfig((p) => ({
+                                          ...p,
+                                          heroConfig: { ...p.heroConfig, heroLogoUrl: e.target.value },
+                                        }))
+                                      }
+                                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
+                                    />
+
+                                    {/* Width & Height Controls */}
+                                    <div className="grid grid-cols-2 gap-2 pt-1 text-[10px] text-slate-300">
+                                      <div>
+                                        <div className="flex justify-between mb-0.5">
+                                          <span>Max Width</span>
+                                          <span>{config.heroConfig?.heroLogoWidth || 420}px</span>
+                                        </div>
+                                        <input
+                                          type="range"
+                                          min={180}
+                                          max={700}
+                                          value={config.heroConfig?.heroLogoWidth || 420}
+                                          onChange={(e) =>
+                                            updateConfig((p) => ({
+                                              ...p,
+                                              heroConfig: {
+                                                ...p.heroConfig,
+                                                heroLogoWidth: Number(e.target.value),
+                                              },
+                                            }))
+                                          }
+                                          className="w-full accent-indigo-500"
+                                        />
+                                      </div>
+                                      <div>
+                                        <div className="flex justify-between mb-0.5">
+                                          <span>Max Height</span>
+                                          <span>{config.heroConfig?.heroLogoHeight || 160}px</span>
+                                        </div>
+                                        <input
+                                          type="range"
+                                          min={60}
+                                          max={320}
+                                          value={config.heroConfig?.heroLogoHeight || 160}
+                                          onChange={(e) =>
+                                            updateConfig((p) => ({
+                                              ...p,
+                                              heroConfig: {
+                                                ...p.heroConfig,
+                                                heroLogoHeight: Number(e.target.value),
+                                              },
+                                            }))
+                                          }
+                                          className="w-full accent-indigo-500"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    {/* Ambient Glow Toggle */}
+                                    <label className="flex items-center justify-between pt-1 cursor-pointer text-xs text-slate-300">
+                                      <span>Ambient Neon Glow Behind Logo/GIF</span>
+                                      <input
+                                        type="checkbox"
+                                        checked={config.heroConfig?.heroLogoGlow !== false}
+                                        onChange={(e) =>
+                                          updateConfig((p) => ({
+                                            ...p,
+                                            heroConfig: {
+                                              ...p.heroConfig,
+                                              heroLogoGlow: e.target.checked,
+                                            },
+                                          }))
+                                        }
+                                        className="accent-indigo-500 h-4 w-4"
+                                      />
+                                    </label>
+                                  </div>
+                                )}
+                              </div>
+
                               <input
                                 type="text"
-                                placeholder="Hero Badge Text"
+                                placeholder="Hero Badge Text (e.g. Live Competitions)"
                                 value={config.heroConfig?.badgeText || ""}
                                 onChange={(e) =>
-                                  updateConfig((p) => ({ ...p, heroConfig: { ...p.heroConfig, badgeText: e.target.value } }))
+                                  updateConfig((p) => ({
+                                    ...p,
+                                    heroConfig: { ...p.heroConfig, badgeText: e.target.value },
+                                  }))
                                 }
-                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-indigo-300"
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-indigo-300 text-xs"
                               />
-                              <input
-                                type="text"
-                                placeholder="Hero Main Heading"
-                                value={config.heroTitle || ""}
-                                onChange={(e) => updateConfig((p) => ({ ...p, heroTitle: e.target.value }))}
-                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-bold"
-                              />
+
+                              {/* Only show main heading input if text or combined mode */}
+                              {(config.heroConfig?.titleDisplayType === "text_only" ||
+                                config.heroConfig?.titleDisplayType === "logo_and_text" ||
+                                config.heroConfig?.titleDisplayType === "gif_and_text" ||
+                                !config.heroConfig?.titleDisplayType) && (
+                                <input
+                                  type="text"
+                                  placeholder="Hero Main Heading Text"
+                                  value={config.heroTitle || ""}
+                                  onChange={(e) => updateConfig((p) => ({ ...p, heroTitle: e.target.value }))}
+                                  className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-bold text-xs"
+                                />
+                              )}
+
                               <textarea
                                 rows={2}
-                                placeholder="Hero Subtitle"
+                                placeholder="Hero Subtitle / Description"
                                 value={config.heroSubtitle || ""}
                                 onChange={(e) => updateConfig((p) => ({ ...p, heroSubtitle: e.target.value }))}
-                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
                               />
+
                               <div className="grid grid-cols-2 gap-2">
                                 <input
                                   type="text"
@@ -851,7 +1028,7 @@ export default function FesProStudioPage() {
                                       heroConfig: { ...p.heroConfig, primaryCtaText: e.target.value },
                                     }))
                                   }
-                                  className="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                                  className="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
                                 />
                                 <input
                                   type="text"
@@ -863,9 +1040,10 @@ export default function FesProStudioPage() {
                                       heroConfig: { ...p.heroConfig, secondaryCtaText: e.target.value },
                                     }))
                                   }
-                                  className="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                                  className="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
                                 />
                               </div>
+
                               <div className="grid grid-cols-2 gap-2">
                                 <select
                                   value={config.heroConfig?.alignment || "center"}
@@ -875,20 +1053,20 @@ export default function FesProStudioPage() {
                                       heroConfig: { ...p.heroConfig, alignment: e.target.value as any },
                                     }))
                                   }
-                                  className="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                                  className="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
                                 >
                                   <option value="center">Center Align</option>
                                   <option value="left">Left Align</option>
                                 </select>
                                 <input
                                   type="text"
-                                  placeholder="Banner Photo URL"
+                                  placeholder="Hero Background Photo URL"
                                   value={config.bannerUrl || ""}
                                   onChange={(e) => updateConfig((p) => ({ ...p, bannerUrl: e.target.value }))}
-                                  className="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                                  className="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
                                 />
                               </div>
-                            </>
+                            </div>
                           )}
 
                           {selectedSection.type === "countdown" && (
@@ -2192,6 +2370,66 @@ export default function FesProStudioPage() {
                     )}
                   </div>
 
+                  {/* Website Favicon (Browser Tab Icon) */}
+                  <div className="space-y-2 p-3 rounded-xl bg-slate-950 border border-slate-800">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                        <Sparkles className="h-3 w-3 text-amber-400" />
+                        Website Favicon (Browser Tab Icon)
+                      </label>
+                      {config.faviconUrl && (
+                        <button
+                          onClick={() => updateConfig((p) => ({ ...p, faviconUrl: "" }))}
+                          className="text-[10px] text-rose-400 hover:underline cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-400">
+                      The icon displayed on the browser tab when visitors open your festival website.
+                    </p>
+
+                    {/* Live Browser Tab Preview */}
+                    <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 flex items-center gap-2">
+                      <div className="h-4 w-4 rounded shrink-0 flex items-center justify-center bg-slate-800 overflow-hidden">
+                        {config.faviconUrl ? (
+                          <img src={config.faviconUrl} alt="Favicon" className="h-3.5 w-3.5 object-contain" />
+                        ) : config.logoUrl ? (
+                          <img src={config.logoUrl} alt="Favicon" className="h-3.5 w-3.5 object-contain" />
+                        ) : (
+                          <span className="text-[9px] font-black text-slate-400">F</span>
+                        )}
+                      </div>
+                      <span className="text-[11px] font-medium text-slate-300 truncate flex-1">
+                        {config.heroTitle || "Festival Portal"} • Official Live
+                      </span>
+                      <span className="text-[10px] text-slate-500">✕</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <label className="flex-1 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold text-center cursor-pointer transition-all">
+                        <span>Upload Favicon</span>
+                        <input
+                          type="file"
+                          accept=".ico,.png,.svg,image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0]
+                            if (f) compressImageFile(f, 256, (url) => updateConfig((p) => ({ ...p, faviconUrl: url })))
+                          }}
+                        />
+                      </label>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Or paste Favicon Image URL (.png, .ico, .svg)"
+                      value={config.faviconUrl || ""}
+                      onChange={(e) => updateConfig((p) => ({ ...p, faviconUrl: e.target.value }))}
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
+                    />
+                  </div>
+
                   {/* Nav Link Typography Weight */}
                   <div>
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -2431,63 +2669,343 @@ export default function FesProStudioPage() {
                 </div>
               )}
 
-              {/* ── 5. FOOTER & SOCIALS ── */}
+              {/* ── 5. FOOTER & BRAND STUDIO ── */}
               {activePanel === "footer" && (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div>
-                    <h3 className="text-sm font-black text-white">Footer &amp; Social Media</h3>
-                    <p className="text-[11px] text-slate-400 mt-0.5">Configure campus info, helpdesk &amp; social channels.</p>
+                    <h3 className="text-sm font-black text-white">Footer &amp; Brand Studio</h3>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Customize footer logo, wordmark, campus info, helpdesk &amp; social channels.
+                    </p>
                   </div>
-                  <input
-                    type="text"
-                    placeholder="Logo Image URL"
-                    value={config.logoUrl || ""}
-                    onChange={(e) => updateConfig((p) => ({ ...p, logoUrl: e.target.value }))}
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Campus Venue Address"
-                    value={config.venueCampus || ""}
-                    onChange={(e) => updateConfig((p) => ({ ...p, venueCampus: e.target.value }))}
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Helpdesk Phone"
-                    value={config.helpdeskPhone || ""}
-                    onChange={(e) => updateConfig((p) => ({ ...p, helpdeskPhone: e.target.value }))}
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Helpdesk Email"
-                    value={config.helpdeskEmail || ""}
-                    onChange={(e) => updateConfig((p) => ({ ...p, helpdeskEmail: e.target.value }))}
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white"
-                  />
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase pt-2">Social Media URLs</span>
-                  {["instagram", "youtube", "whatsapp", "facebook", "twitter"].map((soc) => (
-                    <input
-                      key={soc}
-                      type="text"
-                      placeholder={`${soc.toUpperCase()} URL`}
-                      value={(config.socialLinks as any)?.[soc] || ""}
+
+                  {/* Footer Logo & Brand Mode */}
+                  <div className="space-y-2.5 p-3 rounded-xl bg-slate-950 border border-slate-800">
+                    <label className="text-[11px] font-bold text-white uppercase tracking-wider block">
+                      Footer Brand Mode
+                    </label>
+                    <select
+                      value={config.footerConfig?.logoMode || "use_header_logo"}
                       onChange={(e) =>
-                        updateConfig((p) => ({ ...p, socialLinks: { ...p.socialLinks, [soc]: e.target.value } }))
+                        updateConfig((p) => ({
+                          ...p,
+                          footerConfig: { ...p.footerConfig, logoMode: e.target.value as any },
+                        }))
                       }
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white"
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs font-medium"
+                    >
+                      <option value="use_header_logo">Sync with Header Logo (Automatic)</option>
+                      <option value="custom_logo">Custom Footer Logo + Name</option>
+                      <option value="wordmark_only">Custom Wordmark Image Only</option>
+                      <option value="logo_and_wordmark">Custom Logo + Wordmark Image</option>
+                      <option value="badge_and_name">Initial Badge (OP) + Name</option>
+                      <option value="name_only">Clean Festival Name Only (No icons)</option>
+                      <option value="hidden">Hide Logo in Footer</option>
+                    </select>
+
+                    {/* Wordmark Upload & URL for Footer */}
+                    {(config.footerConfig?.logoMode === "wordmark_only" ||
+                      config.footerConfig?.logoMode === "logo_and_wordmark") && (
+                      <div className="pt-2 border-t border-slate-800/80 space-y-2">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-semibold text-slate-300">Footer Wordmark Image</span>
+                          {config.footerConfig?.customWordmarkUrl && (
+                            <button
+                              onClick={() =>
+                                updateConfig((p) => ({
+                                  ...p,
+                                  footerConfig: { ...p.footerConfig, customWordmarkUrl: "" },
+                                }))
+                              }
+                              className="text-[10px] text-rose-400 hover:underline cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                        {(config.footerConfig?.customWordmarkUrl || config.wordmarkUrl) && (
+                          <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center max-h-14 overflow-hidden">
+                            <img
+                              src={config.footerConfig?.customWordmarkUrl || config.wordmarkUrl}
+                              alt="Wordmark"
+                              className="h-8 max-w-full object-contain"
+                            />
+                          </div>
+                        )}
+                        <label className="block w-full px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold text-center cursor-pointer transition-all">
+                          <span>Upload Footer Wordmark</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0]
+                              if (f)
+                                compressImageFile(f, 600, (url) =>
+                                  updateConfig((p) => ({
+                                    ...p,
+                                    footerConfig: { ...p.footerConfig, customWordmarkUrl: url },
+                                  }))
+                                )
+                            }}
+                          />
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Or paste Footer Wordmark URL"
+                          value={config.footerConfig?.customWordmarkUrl || ""}
+                          onChange={(e) =>
+                            updateConfig((p) => ({
+                              ...p,
+                              footerConfig: { ...p.footerConfig, customWordmarkUrl: e.target.value },
+                            }))
+                          }
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
+                        />
+                      </div>
+                    )}
+
+                    {/* Logo Upload & URL for Footer */}
+                    {(config.footerConfig?.logoMode === "custom_logo" ||
+                      config.footerConfig?.logoMode === "logo_and_wordmark") && (
+                      <div className="pt-2 border-t border-slate-800/80 space-y-2">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-semibold text-slate-300">Footer Logo Icon</span>
+                          {config.footerConfig?.customLogoUrl && (
+                            <button
+                              onClick={() =>
+                                updateConfig((p) => ({
+                                  ...p,
+                                  footerConfig: { ...p.footerConfig, customLogoUrl: "" },
+                                }))
+                              }
+                              className="text-[10px] text-rose-400 hover:underline cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                        {(config.footerConfig?.customLogoUrl || config.logoUrl) && (
+                          <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center max-h-14 overflow-hidden">
+                            <img
+                              src={config.footerConfig?.customLogoUrl || config.logoUrl}
+                              alt="Logo"
+                              className="h-8 max-w-full object-contain"
+                            />
+                          </div>
+                        )}
+                        <label className="block w-full px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold text-center cursor-pointer transition-all">
+                          <span>Upload Footer Logo</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0]
+                              if (f)
+                                compressImageFile(f, 400, (url) =>
+                                  updateConfig((p) => ({
+                                    ...p,
+                                    footerConfig: { ...p.footerConfig, customLogoUrl: url },
+                                  }))
+                                )
+                            }}
+                          />
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Or paste Footer Logo Image URL"
+                          value={config.footerConfig?.customLogoUrl || ""}
+                          onChange={(e) =>
+                            updateConfig((p) => ({
+                              ...p,
+                              footerConfig: { ...p.footerConfig, customLogoUrl: e.target.value },
+                            }))
+                          }
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
+                        />
+                      </div>
+                    )}
+
+                    {/* Custom Title & Tagline for Footer */}
+                    {config.footerConfig?.logoMode !== "hidden" && (
+                      <div className="space-y-2 pt-2 border-t border-slate-800/80">
+                        <div>
+                          <label className="text-[10px] text-slate-400 block mb-0.5">Footer Brand Title (Optional Override)</label>
+                          <input
+                            type="text"
+                            placeholder={config.heroTitle || "Festival Name"}
+                            value={config.footerConfig?.customTitle || ""}
+                            onChange={(e) =>
+                              updateConfig((p) => ({
+                                ...p,
+                                footerConfig: { ...p.footerConfig, customTitle: e.target.value },
+                              }))
+                            }
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-slate-400 block mb-0.5">Footer Tagline / Bio</label>
+                          <textarea
+                            rows={2}
+                            placeholder={config.heroSubtitle || "Festival description"}
+                            value={config.footerConfig?.customTagline || ""}
+                            onChange={(e) =>
+                              updateConfig((p) => ({
+                                ...p,
+                                footerConfig: { ...p.footerConfig, customTagline: e.target.value },
+                              }))
+                            }
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
+                          />
+                        </div>
+                        <div>
+                          <div className="flex justify-between text-[10px] text-slate-400 mb-0.5">
+                            <span>Footer Logo Size</span>
+                            <span>{config.footerConfig?.logoHeight || 36}px</span>
+                          </div>
+                          <input
+                            type="range"
+                            min={24}
+                            max={64}
+                            value={config.footerConfig?.logoHeight || 36}
+                            onChange={(e) =>
+                              updateConfig((p) => ({
+                                ...p,
+                                footerConfig: { ...p.footerConfig, logoHeight: Number(e.target.value) },
+                              }))
+                            }
+                            className="w-full accent-indigo-500"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Campus & Helpdesk Info */}
+                  <div className="space-y-2 p-3 rounded-xl bg-slate-950 border border-slate-800">
+                    <label className="text-[11px] font-bold text-white uppercase tracking-wider block">
+                      Campus &amp; Helpdesk Contacts
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Campus Venue Address"
+                      value={config.venueCampus || ""}
+                      onChange={(e) => updateConfig((p) => ({ ...p, venueCampus: e.target.value }))}
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
                     />
-                  ))}
-                  <input
-                    type="text"
-                    placeholder="Custom Copyright Text"
-                    value={config.footerConfig?.copyrightText || ""}
-                    onChange={(e) =>
-                      updateConfig((p) => ({ ...p, footerConfig: { ...p.footerConfig, copyrightText: e.target.value } }))
-                    }
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white"
-                  />
+                    <input
+                      type="text"
+                      placeholder="Helpdesk Phone (e.g. +91 98765 43210)"
+                      value={config.helpdeskPhone || ""}
+                      onChange={(e) => updateConfig((p) => ({ ...p, helpdeskPhone: e.target.value }))}
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Helpdesk Email"
+                      value={config.helpdeskEmail || ""}
+                      onChange={(e) => updateConfig((p) => ({ ...p, helpdeskEmail: e.target.value }))}
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
+                    />
+                  </div>
+
+                  {/* Social Media Links */}
+                  <div className="space-y-2 p-3 rounded-xl bg-slate-950 border border-slate-800">
+                    <label className="text-[11px] font-bold text-white uppercase tracking-wider block">
+                      Official Social Media Channels
+                    </label>
+                    {["instagram", "youtube", "whatsapp", "facebook", "twitter"].map((soc) => (
+                      <input
+                        key={soc}
+                        type="text"
+                        placeholder={`${soc.toUpperCase()} URL`}
+                        value={(config.socialLinks as any)?.[soc] || ""}
+                        onChange={(e) =>
+                          updateConfig((p) => ({ ...p, socialLinks: { ...p.socialLinks, [soc]: e.target.value } }))
+                        }
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
+                      />
+                    ))}
+                  </div>
+
+                  {/* Footer Display Toggles & Copyright */}
+                  <div className="space-y-2 p-3 rounded-xl bg-slate-950 border border-slate-800">
+                    <label className="text-[11px] font-bold text-white uppercase tracking-wider block">
+                      Footer Elements &amp; Copyright
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Custom Copyright Text"
+                      value={config.footerConfig?.copyrightText || ""}
+                      onChange={(e) =>
+                        updateConfig((p) => ({
+                          ...p,
+                          footerConfig: { ...p.footerConfig, copyrightText: e.target.value },
+                        }))
+                      }
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
+                    />
+                    <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
+                      <label className="flex items-center gap-2 cursor-pointer text-slate-300">
+                        <input
+                          type="checkbox"
+                          checked={config.footerConfig?.showQuickLinks !== false}
+                          onChange={(e) =>
+                            updateConfig((p) => ({
+                              ...p,
+                              footerConfig: { ...p.footerConfig, showQuickLinks: e.target.checked },
+                            }))
+                          }
+                          className="accent-indigo-500 rounded"
+                        />
+                        <span>Quick Links</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer text-slate-300">
+                        <input
+                          type="checkbox"
+                          checked={config.footerConfig?.showSocialIcons !== false}
+                          onChange={(e) =>
+                            updateConfig((p) => ({
+                              ...p,
+                              footerConfig: { ...p.footerConfig, showSocialIcons: e.target.checked },
+                            }))
+                          }
+                          className="accent-indigo-500 rounded"
+                        />
+                        <span>Social Icons</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer text-slate-300">
+                        <input
+                          type="checkbox"
+                          checked={config.footerConfig?.showStaffLogin !== false}
+                          onChange={(e) =>
+                            updateConfig((p) => ({
+                              ...p,
+                              footerConfig: { ...p.footerConfig, showStaffLogin: e.target.checked },
+                            }))
+                          }
+                          className="accent-indigo-500 rounded"
+                        />
+                        <span>Staff Login</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer text-slate-300">
+                        <input
+                          type="checkbox"
+                          checked={config.footerConfig?.showBackToTop !== false}
+                          onChange={(e) =>
+                            updateConfig((p) => ({
+                              ...p,
+                              footerConfig: { ...p.footerConfig, showBackToTop: e.target.checked },
+                            }))
+                          }
+                          className="accent-indigo-500 rounded"
+                        />
+                        <span>Back To Top</span>
+                      </label>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -2692,34 +3210,197 @@ export default function FesProStudioPage() {
               )}
 
               {/* ── 7. MOTION STUDIO ── */}
+              {/* ── 7. MOTION & INTERACTIVE HOVER STUDIO ── */}
               {activePanel === "motion" && (
-                <div className="space-y-3.5">
-                  <h3 className="text-sm font-black text-white">Motion Studio</h3>
-                  <select
-                    value={motion.defaultEntrance}
-                    onChange={(e) =>
-                      updateConfig((p) => ({ ...p, motionStudio: { ...motion, defaultEntrance: e.target.value as any } }))
-                    }
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white"
-                  >
-                    <option value="fade_up">Fade Up Reveal</option>
-                    <option value="zoom_in">Smooth Zoom In</option>
-                    <option value="none">No Entrance Motion</option>
-                  </select>
-                  <select
-                    value={motion.defaultHover}
-                    onChange={(e) =>
-                      updateConfig((p) => ({ ...p, motionStudio: { ...motion, defaultHover: e.target.value as any } }))
-                    }
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white"
-                  >
-                    <option value="lift">Card Hover Lift</option>
-                    <option value="scale">Card Scale (1.02x)</option>
-                    <option value="glow">Card Glow</option>
-                    <option value="none">None</option>
-                  </select>
-                  <label className="flex items-center justify-between p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 cursor-pointer">
-                    <span className="font-bold text-amber-300">Reduced Motion Mode</span>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-black text-white">Motion &amp; Hover Effects Studio</h3>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Configure interactive hover styles for buttons, cards, links &amp; reveal animations.
+                    </p>
+                  </div>
+
+                  {/* One-Click Presets */}
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                    <label className="text-[11px] font-bold text-white uppercase tracking-wider block">
+                      Quick Hover &amp; Motion Presets
+                    </label>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateConfig((p) => ({
+                            ...p,
+                            motionStudio: {
+                              ...motion,
+                              buttonHoverEffect: "glow",
+                              cardHoverEffect: "lift_shadow",
+                              linkHoverEffect: "underline_slide",
+                              defaultHover: "lift",
+                            },
+                          }))
+                        }
+                        className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-left cursor-pointer transition-all"
+                      >
+                        <div className="text-[11px] font-bold text-indigo-400">🚀 Interactive</div>
+                        <div className="text-[10px] text-slate-400">Lift cards + Glow buttons</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateConfig((p) => ({
+                            ...p,
+                            motionStudio: {
+                              ...motion,
+                              buttonHoverEffect: "glow",
+                              cardHoverEffect: "neon_glow",
+                              linkHoverEffect: "glow",
+                              defaultHover: "glow",
+                            },
+                          }))
+                        }
+                        className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-left cursor-pointer transition-all"
+                      >
+                        <div className="text-[11px] font-bold text-fuchsia-400">✨ Neon Cyber</div>
+                        <div className="text-[10px] text-slate-400">Neon borders &amp; glow</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateConfig((p) => ({
+                            ...p,
+                            motionStudio: {
+                              ...motion,
+                              buttonHoverEffect: "lift",
+                              cardHoverEffect: "scale_up",
+                              linkHoverEffect: "color_fade",
+                              defaultHover: "scale",
+                            },
+                          }))
+                        }
+                        className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-left cursor-pointer transition-all"
+                      >
+                        <div className="text-[11px] font-bold text-amber-400">💎 Luxury Scale</div>
+                        <div className="text-[10px] text-slate-400">Smooth scale zoom</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateConfig((p) => ({
+                            ...p,
+                            motionStudio: {
+                              ...motion,
+                              buttonHoverEffect: "subtle",
+                              cardHoverEffect: "none",
+                              linkHoverEffect: "none",
+                              defaultHover: "none",
+                            },
+                          }))
+                        }
+                        className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-left cursor-pointer transition-all"
+                      >
+                        <div className="text-[11px] font-bold text-emerald-400">⚡ Minimal</div>
+                        <div className="text-[10px] text-slate-400">Crisp &amp; instant</div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Button Hover Effect */}
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+                    <label className="text-[11px] font-bold text-white uppercase tracking-wider block">
+                      Button Hover Effect
+                    </label>
+                    <select
+                      value={motion.buttonHoverEffect || "glow"}
+                      onChange={(e) =>
+                        updateConfig((p) => ({
+                          ...p,
+                          motionStudio: { ...motion, buttonHoverEffect: e.target.value as any },
+                        }))
+                      }
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs font-medium"
+                    >
+                      <option value="glow">Neon Glow Aura (Vibrant &amp; Glowing)</option>
+                      <option value="lift">Smooth 3D Lift &amp; Shadow Elevation</option>
+                      <option value="scale">Spring Scale Expansion (1.05x)</option>
+                      <option value="shimmer">Light Sweep Shimmer</option>
+                      <option value="subtle">Subtle Brightness Transition</option>
+                      <option value="none">Static (No Animation)</option>
+                    </select>
+                  </div>
+
+                  {/* Card & Widget Hover Effect */}
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+                    <label className="text-[11px] font-bold text-white uppercase tracking-wider block">
+                      Cards &amp; Modules Hover Effect
+                    </label>
+                    <select
+                      value={motion.cardHoverEffect || "lift_shadow"}
+                      onChange={(e) =>
+                        updateConfig((p) => ({
+                          ...p,
+                          motionStudio: { ...motion, cardHoverEffect: e.target.value as any },
+                        }))
+                      }
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs font-medium"
+                    >
+                      <option value="lift_shadow">Float Elevation (-4px) &amp; Deep Shadow</option>
+                      <option value="border_glow">Accent Neon Border Glow</option>
+                      <option value="scale_up">Scale Zoom (1.02x)</option>
+                      <option value="neon_glow">Intense Cyber Neon Aura</option>
+                      <option value="none">Static (No Animation)</option>
+                    </select>
+                  </div>
+
+                  {/* Navigation Links Hover Effect */}
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+                    <label className="text-[11px] font-bold text-white uppercase tracking-wider block">
+                      Nav Links Hover Effect
+                    </label>
+                    <select
+                      value={motion.linkHoverEffect || "underline_slide"}
+                      onChange={(e) =>
+                        updateConfig((p) => ({
+                          ...p,
+                          motionStudio: { ...motion, linkHoverEffect: e.target.value as any },
+                        }))
+                      }
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs font-medium"
+                    >
+                      <option value="underline_slide">Sliding Animated Underline</option>
+                      <option value="glow">Accent Color Glow</option>
+                      <option value="color_fade">Smooth Color Shift</option>
+                      <option value="none">Standard</option>
+                    </select>
+                  </div>
+
+                  {/* Entrance Motion */}
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+                    <label className="text-[11px] font-bold text-white uppercase tracking-wider block">
+                      Page Entrance Reveal Animation
+                    </label>
+                    <select
+                      value={motion.defaultEntrance || "fade_up"}
+                      onChange={(e) =>
+                        updateConfig((p) => ({
+                          ...p,
+                          motionStudio: { ...motion, defaultEntrance: e.target.value as any },
+                        }))
+                      }
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs font-medium"
+                    >
+                      <option value="fade_up">Smooth Fade Up Reveal</option>
+                      <option value="zoom_in">Subtle Zoom In</option>
+                      <option value="none">Instant (No Entrance Motion)</option>
+                    </select>
+                  </div>
+
+                  {/* Reduced Motion Toggle */}
+                  <label className="flex items-center justify-between p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 cursor-pointer text-xs">
+                    <div>
+                      <span className="font-bold text-amber-300 block">Reduced Motion Mode</span>
+                      <span className="text-[10px] text-amber-300/70">Disables animations for accessibility and slow devices</span>
+                    </div>
                     <input
                       type="checkbox"
                       checked={motion.reducedMotion}
