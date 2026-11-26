@@ -489,7 +489,9 @@ export async function loginStaffAction(
     } else if (r === "stage_manager" || r === "stage") {
       redirectUrl = `/dashboard/organization/${orgId}/festivals/${festId}/stage-desk`
     } else if (r === "team_manager" || r === "team") {
-      redirectUrl = `/dashboard/organization/${orgId}/festivals/${festId}/teams`
+      redirectUrl = `/dashboard/organization/${orgId}/festivals/${festId}/teams/portal`
+    } else if (r === "green_room" || r === "greenroom") {
+      redirectUrl = `/dashboard/organization/${orgId}/festivals/${festId}/green-room`
     } else if (r === "announcer" || r === "reception") {
       redirectUrl = `/dashboard/organization/${orgId}/festivals/${festId}/announcements`
     } else if (r === "prizes" || r === "award") {
@@ -508,3 +510,30 @@ export async function loginStaffAction(
     }
   }
 }
+
+// ────────────────────────────────────────────
+// 5. GET ACTIVE STAFF SESSION & LOGOUT
+// ────────────────────────────────────────────
+
+export async function getStaffSessionAction(): Promise<StaffSession | null> {
+  try {
+    const cookieStore = await cookies()
+    const raw = cookieStore.get("festpro_staff_session")?.value
+    if (!raw) return null
+    return JSON.parse(raw) as StaffSession
+  } catch {
+    return null
+  }
+}
+
+export async function logoutStaffAction(): Promise<{ success: boolean }> {
+  try {
+    const cookieStore = await cookies()
+    cookieStore.delete("festpro_staff_session")
+    cookieStore.delete("festpro_judge_session")
+    return { success: true }
+  } catch {
+    return { success: true }
+  }
+}
+

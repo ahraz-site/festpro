@@ -97,6 +97,20 @@ export default function GreenRoomPage() {
   }
 
   const callCandidateAudio = (p: ParticipantCard) => {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const now = audioCtx.currentTime
+      const osc = audioCtx.createOscillator()
+      const gain = audioCtx.createGain()
+      osc.type = "sine"
+      osc.frequency.setValueAtTime(659.25, now) // E5 tone
+      gain.gain.setValueAtTime(0.3, now)
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2)
+      osc.connect(gain)
+      gain.connect(audioCtx.destination)
+      osc.start(now)
+      osc.stop(now + 1.2)
+    } catch {}
     setCallingCandidate(p.chestNumber)
     toast.info(`Calling Chest #${p.chestNumber} (${p.name}) to stage!`, {
       icon: <Volume2 className="h-4 w-4 text-indigo-400" />,

@@ -1,25 +1,35 @@
 "use client"
 
 import React, { useState, useEffect, useTransition } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
-  Shield,
-  Star,
+  Gavel,
+  LayoutDashboard,
+  HelpCircle,
+  Search,
   CheckCircle2,
   Clock,
   LogOut,
   ChevronRight,
-  Award,
-  Sparkles,
+  Shield,
+  Star,
   Lock,
   Unlock,
   AlertCircle,
   RefreshCw,
-  Search,
-  Filter,
+  Award,
+  Sparkles,
+  ArrowLeft,
+  Sliders,
+  Check,
+  User,
+  Sun,
+  Download,
 } from "lucide-react"
 import { toast } from "sonner"
 import { getJudgeSessionAction, logoutJudgeAction, type JudgeSession } from "@/lib/actions/judge-auth"
+import { FestProFavicon } from "@/components/ui/logo"
 
 interface CandidateItem {
   id: string
@@ -38,18 +48,40 @@ interface CompetitionItem {
   code: string
   category: string
   stageName: string
+  scoringStatus: "LOCKED" | "VALUATION" | "NOT_OPEN"
   maxMarks: number
   criteria: Array<{ id: string; name: string; maxMarks: number }>
   candidates: CandidateItem[]
 }
 
-const DEMO_COMPETITIONS: CompetitionItem[] = [
+const INITIAL_COMPETITIONS: CompetitionItem[] = [
   {
-    id: "comp-1",
+    id: "comp-madh-song",
+    name: "Madh Song",
+    code: "MADH-01",
+    category: "Senior",
+    stageName: "Stage 1",
+    scoringStatus: "VALUATION",
+    maxMarks: 100,
+    criteria: [
+      { id: "ms1", name: "Thalam & Tune", maxMarks: 30 },
+      { id: "ms2", name: "Pronunciation & Sahithya", maxMarks: 30 },
+      { id: "ms3", name: "Voice & Melody", maxMarks: 25 },
+      { id: "ms4", name: "Presentation & Stage Presence", maxMarks: 15 },
+    ],
+    candidates: [
+      { id: "cand-ms1", chestNumber: "102", blindCode: "CODE A", status: "submitted", criteriaScores: { ms1: 27, ms2: 28, ms3: 24, ms4: 14 }, totalScore: 93 },
+      { id: "cand-ms2", chestNumber: "106", blindCode: "CODE B", status: "pending", criteriaScores: { ms1: 0, ms2: 0, ms3: 0, ms4: 0 }, totalScore: 0 },
+      { id: "cand-ms3", chestNumber: "114", blindCode: "CODE C", status: "pending", criteriaScores: { ms1: 0, ms2: 0, ms3: 0, ms4: 0 }, totalScore: 0 },
+    ],
+  },
+  {
+    id: "comp-classical-dance",
     name: "Classical Solo Dance (Bharatanatyam)",
     code: "CL-DNC-01",
-    category: "Dance",
-    stageName: "Main Stage 1",
+    category: "Senior",
+    stageName: "Stage 1",
+    scoringStatus: "VALUATION",
     maxMarks: 100,
     criteria: [
       { id: "c1", name: "Talam & Rhythm", maxMarks: 25 },
@@ -66,11 +98,12 @@ const DEMO_COMPETITIONS: CompetitionItem[] = [
     ],
   },
   {
-    id: "comp-2",
+    id: "comp-light-music",
     name: "Light Music Solo (Malayalam)",
     code: "MUS-LGT-02",
-    category: "Music",
+    category: "Junior",
     stageName: "Stage 2",
+    scoringStatus: "VALUATION",
     maxMarks: 100,
     criteria: [
       { id: "m1", name: "Shruti & Pitch Accuracy", maxMarks: 30 },
@@ -84,11 +117,12 @@ const DEMO_COMPETITIONS: CompetitionItem[] = [
     ],
   },
   {
-    id: "comp-3",
+    id: "comp-mappilappattu",
     name: "Mappilappattu Solo",
     code: "MUS-MAP-03",
-    category: "Music",
+    category: "General",
     stageName: "Stage 3",
+    scoringStatus: "NOT_OPEN",
     maxMarks: 100,
     criteria: [
       { id: "p1", name: "Isai & Traditional Tune", maxMarks: 30 },
@@ -100,7 +134,27 @@ const DEMO_COMPETITIONS: CompetitionItem[] = [
       { id: "cand-301", chestNumber: "301", blindCode: "CODE X", status: "pending", criteriaScores: { p1: 0, p2: 0, p3: 0, p4: 0 }, totalScore: 0 },
     ],
   },
+  {
+    id: "comp-elocution-eng",
+    name: "Elocution (English)",
+    code: "ENG-ELO-04",
+    category: "Senior",
+    stageName: "Stage 1",
+    scoringStatus: "LOCKED",
+    maxMarks: 100,
+    criteria: [
+      { id: "e1", name: "Content & Substance", maxMarks: 35 },
+      { id: "e2", name: "Delivery & Body Language", maxMarks: 35 },
+      { id: "e3", name: "Pronunciation & Vocabulary", maxMarks: 30 },
+    ],
+    candidates: [
+      { id: "cand-401", chestNumber: "109", blindCode: "CODE G", status: "submitted", criteriaScores: { e1: 32, e2: 33, e3: 28 }, totalScore: 93 },
+      { id: "cand-402", chestNumber: "115", blindCode: "CODE H", status: "submitted", criteriaScores: { e1: 30, e2: 31, e3: 27 }, totalScore: 88 },
+    ],
+  },
 ]
+
+type StatusTab = "All" | "Not Open" | "Valuation" | "Locked"
 
 export default function JudgeDashboardPage() {
   const router = useRouter()
@@ -108,9 +162,16 @@ export default function JudgeDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [isPending, startTransition] = useTransition()
 
-  const [competitions, setCompetitions] = useState<CompetitionItem[]>(DEMO_COMPETITIONS)
-  const [selectedCompId, setSelectedCompId] = useState<string>(DEMO_COMPETITIONS[0].id)
-  const [selectedCandidateId, setSelectedCandidateId] = useState<string>(DEMO_COMPETITIONS[0].candidates[1]?.id || DEMO_COMPETITIONS[0].candidates[0].id)
+  // View state: "list" (Screenshot 2: My judging) vs "scoring" (Tablet Console)
+  const [viewMode, setViewMode] = useState<"list" | "scoring">("list")
+  const [statusFilter, setStatusFilter] = useState<StatusTab>("All")
+  const [searchQuery, setSearchQuery] = useState("")
+
+  const [competitions, setCompetitions] = useState<CompetitionItem[]>(INITIAL_COMPETITIONS)
+  const [selectedCompId, setSelectedCompId] = useState<string>(INITIAL_COMPETITIONS[0].id)
+  const [selectedCandidateId, setSelectedCandidateId] = useState<string>(
+    INITIAL_COMPETITIONS[0].candidates[1]?.id || INITIAL_COMPETITIONS[0].candidates[0].id
+  )
   const [currentScores, setCurrentScores] = useState<Record<string, number>>({})
   const [remarks, setRemarks] = useState("")
 
@@ -122,13 +183,13 @@ export default function JudgeDashboardPage() {
         if (session) {
           setJudgeSession(session)
         } else {
-          // Fallback demo judge
+          // Default fallback demo judge
           setJudgeSession({
             judgeId: "demo-judge",
             festivalId: "c66d0281-bc93-4cb8-b94e-e54bf27c7119",
-            name: "Official Stage Judge",
-            username: "judge1",
-            stageName: "Main Stage 1",
+            name: "Sinan (Official Judge)",
+            username: "sinan",
+            stageName: "Stage 1",
             isLead: true,
           })
         }
@@ -142,9 +203,10 @@ export default function JudgeDashboardPage() {
   }, [])
 
   const selectedComp = competitions.find((c) => c.id === selectedCompId) || competitions[0]
-  const selectedCandidate = selectedComp.candidates.find((cd) => cd.id === selectedCandidateId) || selectedComp.candidates[0]
+  const selectedCandidate =
+    selectedComp.candidates.find((cd) => cd.id === selectedCandidateId) || selectedComp.candidates[0]
 
-  // Synchronize scores when candidate changes
+  // Synchronize scores when candidate or competition changes
   useEffect(() => {
     if (selectedCandidate) {
       setCurrentScores(selectedCandidate.criteriaScores || {})
@@ -186,7 +248,9 @@ export default function JudgeDashboardPage() {
       )
 
       if (lockScore) {
-        toast.success(`Score of ${totalCalculated}/${selectedComp.maxMarks} locked for ${selectedCandidate.blindCode} (Chest #${selectedCandidate.chestNumber})`)
+        toast.success(
+          `Score of ${totalCalculated}/${selectedComp.maxMarks} locked for ${selectedCandidate.blindCode} (Chest #${selectedCandidate.chestNumber})`
+        )
         // Auto advance to next pending candidate
         const nextPending = selectedComp.candidates.find(
           (c) => c.id !== selectedCandidateId && c.status === "pending"
@@ -200,284 +264,480 @@ export default function JudgeDashboardPage() {
     })
   }
 
+  const handleOpenScoring = (comp: CompetitionItem) => {
+    setSelectedCompId(comp.id)
+    const firstPending = comp.candidates.find((c) => c.status === "pending") || comp.candidates[0]
+    if (firstPending) setSelectedCandidateId(firstPending.id)
+    setViewMode("scoring")
+  }
+
   const handleLogout = async () => {
     await logoutJudgeAction()
     toast.success("Judge signed out successfully.")
     window.location.href = "/login"
   }
 
+  // Filter competitions for Screenshot 2 list
+  const filteredCompetitions = competitions.filter((comp) => {
+    const q = searchQuery.toLowerCase().trim()
+    const matchesSearch =
+      !q ||
+      comp.name.toLowerCase().includes(q) ||
+      comp.category.toLowerCase().includes(q) ||
+      comp.stageName.toLowerCase().includes(q)
+
+    if (!matchesSearch) return false
+
+    if (statusFilter === "Not Open" && comp.scoringStatus !== "NOT_OPEN") return false
+    if (statusFilter === "Valuation" && comp.scoringStatus !== "VALUATION") return false
+    if (statusFilter === "Locked" && comp.scoringStatus !== "LOCKED") return false
+
+    return true
+  })
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#080d14] text-white flex items-center justify-center p-6">
         <div className="flex items-center gap-3">
           <span className="h-6 w-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm font-bold text-slate-300">Loading Official Judge Console...</span>
+          <span className="text-sm font-bold text-slate-300">Loading Official Judge Portal...</span>
         </div>
       </div>
     )
   }
 
-  const scoredCount = selectedComp.candidates.filter((c) => c.status === "submitted").length
-  const totalCount = selectedComp.candidates.length
-
   return (
-    <div className="min-h-screen bg-[#080d14] text-slate-100 flex flex-col">
-      {/* ── TOP HEADER ── */}
-      <header className="bg-[#0c131d] border-b border-slate-800 px-4 sm:px-8 py-3.5 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-            <Shield className="h-5 w-5 text-white" />
+    <div className="min-h-screen bg-[#080d14] text-slate-100 flex flex-col font-sans selection:bg-[#00a389] selection:text-white">
+      {/* ── TOP HEADER (Matching Screenshot 1 & 2 Festize Topbar) ── */}
+      <header className="bg-[#0b1118] border-b border-slate-800/80 px-4 sm:px-8 py-3 flex items-center justify-between sticky top-0 z-50">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-[#00a389] flex items-center justify-center shadow-md shadow-emerald-500/20 font-black text-white text-base">
+              F
+            </div>
+            <span className="text-lg font-black tracking-tight text-white">Festize</span>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm sm:text-base font-black text-white">Judge Scoring Console</span>
-              <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                Official Jury Portal
-              </span>
-            </div>
-            <div className="text-xs text-slate-400 flex items-center gap-2">
-              <span>{judgeSession?.name || "Judge Panel"}</span>
-              <span>•</span>
-              <span className="text-emerald-400 font-semibold">{judgeSession?.stageName || selectedComp.stageName}</span>
-            </div>
+
+          <div className="hidden sm:block border-l border-slate-800 pl-4">
+            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
+              FEST
+            </span>
+            <span className="text-xs font-bold text-slate-200">Festize</span>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="hidden md:flex items-center gap-2 bg-[#111927] border border-slate-800 px-3 py-1.5 rounded-lg text-xs">
-            <span className="text-slate-400">Username:</span>
-            <span className="font-mono font-bold text-white">{judgeSession?.username || "judge1"}</span>
+          <div className="hidden md:flex items-center gap-2 text-xs font-medium text-slate-400 bg-[#0e1622] px-3 py-1.5 rounded-full border border-slate-800">
+            <RefreshCw className="h-3 w-3 text-[#00a389] animate-spin" />
+            <span>Refreshing live data...</span>
           </div>
 
           <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-800 hover:border-rose-500/50 bg-[#111927] hover:bg-rose-500/10 text-xs font-bold text-slate-300 hover:text-rose-400 transition-colors cursor-pointer"
+            onClick={() => toast.info("Festival Jury Helpdesk is active.")}
+            className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+            title="Help"
           >
-            <LogOut className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Sign Out</span>
+            <HelpCircle className="h-4 w-4" />
+          </button>
+
+          <button
+            onClick={() => toast.info("Dark mode active for judging console.")}
+            className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+            title="Theme"
+          >
+            <Sun className="h-4 w-4" />
+          </button>
+
+          <button
+            onClick={() => toast.success("Offline marks cache synchronized.")}
+            className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+            title="Download offline backup"
+          >
+            <Download className="h-4 w-4" />
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="h-8 w-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 hover:bg-red-500/20 hover:text-red-400 transition-all cursor-pointer"
+            title="Sign Out"
+          >
+            <User className="h-4 w-4" />
           </button>
         </div>
       </header>
 
-      {/* ── MAIN JUDGING WORKSPACE ── */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        {/* Left Column: Competition & Candidate List */}
-        <div className="w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-slate-800 bg-[#0a1018] p-4 flex flex-col gap-4">
-          {/* Competition Selector */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-black uppercase tracking-wider text-slate-400">
-              Active Stage Competition
-            </label>
-            <select
-              value={selectedCompId}
-              onChange={(e) => {
-                setSelectedCompId(e.target.value)
-                const comp = competitions.find((c) => c.id === e.target.value)
-                if (comp?.candidates[0]) setSelectedCandidateId(comp.candidates[0].id)
-              }}
-              className="w-full bg-[#111927] border border-slate-700 rounded-lg px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-emerald-500 cursor-pointer"
-            >
-              {competitions.map((comp) => (
-                <option key={comp.id} value={comp.id}>
-                  {comp.name} ({comp.code})
-                </option>
-              ))}
-            </select>
+      {/* ── SECONDARY SUBNAV BAR (Screenshot 2: Dashboard | My judging | Help) ── */}
+      <div className="bg-[#0b1118]/60 border-b border-slate-800/80 px-4 sm:px-8 flex items-center gap-6 text-sm">
+        <Link
+          href="/dashboard"
+          className="py-3 text-slate-400 hover:text-slate-200 flex items-center gap-2 font-medium transition-colors border-b-2 border-transparent"
+        >
+          <LayoutDashboard className="h-4 w-4" />
+          <span>Dashboard</span>
+        </Link>
+
+        <button
+          onClick={() => setViewMode("list")}
+          className={`py-3 flex items-center gap-2 font-bold transition-all border-b-2 cursor-pointer ${
+            viewMode === "list"
+              ? "text-[#00a389] border-[#00a389]"
+              : "text-slate-400 hover:text-slate-200 border-transparent"
+          }`}
+        >
+          <Gavel className="h-4 w-4" />
+          <span>My judging</span>
+        </button>
+
+        {viewMode === "scoring" && (
+          <div className="py-3 flex items-center gap-2 font-bold text-emerald-400 border-b-2 border-emerald-400">
+            <Sliders className="h-4 w-4" />
+            <span>Scoring Console ({selectedComp.name})</span>
+          </div>
+        )}
+
+        <Link
+          href="/dashboard/help"
+          className="py-3 text-slate-400 hover:text-slate-200 flex items-center gap-2 font-medium transition-colors border-b-2 border-transparent"
+        >
+          <HelpCircle className="h-4 w-4" />
+          <span>Help</span>
+        </Link>
+      </div>
+
+      {/* ── VIEW 1: "MY JUDGING" PORTAL (EXACT REPLICA OF USER SCREENSHOT 2) ── */}
+      {viewMode === "list" && (
+        <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-8 py-8 space-y-6">
+          {/* Section Header with Gavel Icon (Screenshot 2) */}
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-[#00a389]/15 border border-[#00a389]/30 flex items-center justify-center text-[#00c9a7]">
+              <Gavel className="h-5 w-5" />
+            </div>
+            <h1 className="text-2xl font-black text-white tracking-tight">My judging</h1>
           </div>
 
-          {/* Progress Banner */}
-          <div className="bg-[#111927] border border-slate-800 rounded-xl p-3 flex items-center justify-between text-xs">
-            <div className="space-y-0.5">
-              <span className="text-[10px] text-slate-400 font-bold uppercase">Scoring Progress</span>
-              <div className="font-black text-white text-sm">
-                {scoredCount} of {totalCount} evaluated
-              </div>
-            </div>
-            <div className="h-9 w-9 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold text-xs">
-              {Math.round((scoredCount / (totalCount || 1)) * 100)}%
-            </div>
+          {/* Search Bar (Screenshot 2) */}
+          <div className="relative max-w-md">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search programs..."
+              className="w-full bg-[#0e1622] border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-[#00a389] transition-all"
+            />
           </div>
 
-          {/* Candidates / Blind Codes List */}
-          <div className="flex-1 space-y-1.5 overflow-y-auto">
-            <label className="text-[11px] font-black uppercase tracking-wider text-slate-400 block pb-1">
-              Participants on Stage
-            </label>
-            {selectedComp.candidates.map((cand) => {
-              const isSelected = cand.id === selectedCandidateId
-              const isSubmitted = cand.status === "submitted"
+          {/* Status Filter Tabs (Screenshot 2: Status: [All] [Not Open] [Valuation] [Locked]) */}
+          <div className="flex items-center gap-3 flex-wrap text-sm">
+            <span className="font-bold text-slate-400">Status:</span>
+            {(["All", "Not Open", "Valuation", "Locked"] as StatusTab[]).map((tab) => {
+              const isActive = statusFilter === tab
               return (
                 <button
-                  key={cand.id}
-                  onClick={() => setSelectedCandidateId(cand.id)}
-                  className={`w-full p-3 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer ${
-                    isSelected
-                      ? "bg-emerald-500/10 border-emerald-500 text-white shadow-md shadow-emerald-500/10"
-                      : "bg-[#111927] border-slate-800/80 hover:border-slate-700 text-slate-300"
+                  key={tab}
+                  onClick={() => setStatusFilter(tab)}
+                  className={`px-4 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+                    isActive
+                      ? "bg-[#00a389] text-white shadow-xs"
+                      : "bg-[#0e1622] text-slate-400 hover:text-white border border-slate-800"
                   }`}
                 >
-                  <div className="space-y-0.5 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-black text-xs text-white">{cand.blindCode}</span>
-                      <span className="text-[10px] font-semibold text-slate-400">Chest #{cand.chestNumber}</span>
-                    </div>
-                    <div className="text-[11px] text-slate-400">
-                      {isSubmitted ? (
-                        <span className="text-emerald-400 font-bold">Score: {cand.totalScore} / {selectedComp.maxMarks}</span>
-                      ) : (
-                        <span>Ready to score</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    {isSubmitted ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                        <CheckCircle2 className="h-3 w-3" /> Locked
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-500/30">
-                        <Clock className="h-3 w-3" /> Pending
-                      </span>
-                    )}
-                  </div>
+                  {tab}
                 </button>
               )
             })}
           </div>
-        </div>
 
-        {/* Right Area: Digital Marksheet Scoring Console */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-8 flex flex-col justify-between max-w-4xl mx-auto w-full space-y-6">
-          {/* Candidate Card Header */}
-          <div className="bg-[#0c131d] border border-slate-800 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="inline-flex items-center gap-2 text-xs font-bold text-emerald-400 uppercase tracking-wider">
-                <Sparkles className="h-3.5 w-3.5" />
-                <span>Double-Blind Evaluation</span>
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-3">
-                <span>{selectedCandidate.blindCode}</span>
-                <span className="text-sm px-2.5 py-1 rounded-md bg-slate-800 font-mono text-slate-300">
-                  Chest #{selectedCandidate.chestNumber}
-                </span>
-              </h2>
-              <p className="text-xs text-slate-400">
-                Evaluating item: <span className="text-white font-semibold">{selectedComp.name}</span> • Stage: <span className="text-white font-semibold">{selectedComp.stageName}</span>
-              </p>
-            </div>
+          {/* Programs Grid (Screenshot 2) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pt-2">
+            {filteredCompetitions.map((comp) => {
+              const isLocked = comp.scoringStatus === "LOCKED"
+              const isValuation = comp.scoringStatus === "VALUATION"
+              const isNotOpen = comp.scoringStatus === "NOT_OPEN"
 
-            {/* Total Marks Badge */}
-            <div className="bg-[#111927] border border-slate-800 px-5 py-3 rounded-xl text-center shrink-0">
-              <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Total Score</div>
-              <div className="text-3xl font-black text-emerald-400 font-mono">
-                {totalCalculated}
-                <span className="text-xs text-slate-500 ml-1 font-sans">/ {selectedComp.maxMarks}</span>
-              </div>
-              <div className="text-[10px] font-bold text-slate-400 mt-0.5">
-                {totalCalculated >= 80 ? "Grade A" : totalCalculated >= 70 ? "Grade B" : totalCalculated >= 60 ? "Grade C" : "Standard"}
-              </div>
-            </div>
-          </div>
+              return (
+                <div
+                  key={comp.id}
+                  className="bg-[#0e1622] border border-slate-800/90 rounded-2xl p-6 flex flex-col justify-between hover:border-slate-700 transition-all shadow-lg"
+                >
+                  <div className="space-y-4">
+                    <h2 className="text-xl font-black text-white leading-snug">{comp.name}</h2>
 
-          {/* Criteria Scoring Sliders & Inputs */}
-          <div className="space-y-4">
-            <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">
-              Evaluation Criteria &amp; Marks Distribution
-            </h3>
-
-            <div className="space-y-3">
-              {selectedComp.criteria.map((cr) => {
-                const mark = Number(currentScores[cr.id]) || 0
-                return (
-                  <div
-                    key={cr.id}
-                    className="bg-[#0c131d] border border-slate-800/80 rounded-xl p-4 sm:p-5 space-y-3 hover:border-slate-700 transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
+                    <div className="space-y-1 text-xs text-slate-400">
                       <div>
-                        <div className="text-sm font-bold text-white">{cr.name}</div>
-                        <div className="text-[11px] text-slate-400">Maximum allowable marks: {cr.maxMarks}</div>
+                        <span className="text-slate-500">Category:</span>{" "}
+                        <span className="text-slate-300 font-medium">{comp.category}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          min={0}
-                          max={cr.maxMarks}
-                          value={mark || ""}
-                          onChange={(e) => handleScoreChange(cr.id, parseInt(e.target.value) || 0, cr.maxMarks)}
-                          placeholder="0"
-                          className="w-16 bg-[#111927] border border-emerald-500/50 rounded-lg py-1.5 px-2 text-center text-base font-black text-emerald-400 font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                        />
-                        <span className="text-xs text-slate-500 font-bold">/ {cr.maxMarks}</span>
+                      <div>
+                        <span className="text-slate-500">Stage:</span>{" "}
+                        <span className="text-slate-300 font-medium">{comp.stageName}</span>
                       </div>
-                    </div>
-
-                    {/* Quick Stepper Buttons */}
-                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                      <span className="text-[10px] text-slate-500 font-bold mr-1">Quick Select:</span>
-                      {[
-                        Math.round(cr.maxMarks * 0.4),
-                        Math.round(cr.maxMarks * 0.6),
-                        Math.round(cr.maxMarks * 0.75),
-                        Math.round(cr.maxMarks * 0.85),
-                        Math.round(cr.maxMarks * 0.95),
-                        cr.maxMarks,
-                      ].map((presetVal) => (
-                        <button
-                          key={presetVal}
-                          type="button"
-                          onClick={() => handleScoreChange(cr.id, presetVal, cr.maxMarks)}
-                          className={`px-2 py-1 rounded text-[11px] font-bold border transition-colors cursor-pointer ${
-                            mark === presetVal
-                              ? "bg-emerald-500 text-white border-emerald-400 shadow-sm"
-                              : "bg-[#111927] border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
+                      <div>
+                        <span className="text-slate-500">Scoring:</span>{" "}
+                        <span
+                          className={`font-black uppercase tracking-wider ${
+                            isLocked
+                              ? "text-red-400"
+                              : isValuation
+                              ? "text-emerald-400"
+                              : "text-amber-400"
                           }`}
                         >
-                          {presetVal}
-                        </button>
-                      ))}
+                          {comp.scoringStatus}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                )
-              })}
+
+                  <div className="pt-6">
+                    {isLocked ? (
+                      <button
+                        disabled
+                        className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#14232c] text-[#00c9a7] border border-[#00a389]/30 text-xs font-bold opacity-80 cursor-not-allowed"
+                      >
+                        Valuation closed
+                      </button>
+                    ) : isValuation ? (
+                      <button
+                        onClick={() => handleOpenScoring(comp)}
+                        className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#00a389] hover:bg-[#008f78] text-white text-xs font-bold shadow-md shadow-teal-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <Sliders className="h-3.5 w-3.5" />
+                        <span>Enter Marks</span>
+                      </button>
+                    ) : (
+                      <button
+                        disabled
+                        className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-800 text-slate-400 text-xs font-bold cursor-not-allowed"
+                      >
+                        Not Open Yet
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {filteredCompetitions.length === 0 && (
+            <div className="text-center py-16 bg-[#0e1622] rounded-2xl border border-slate-800 text-slate-400">
+              <Gavel className="h-8 w-8 mx-auto text-slate-600 mb-2" />
+              <p className="font-bold">No programs match &ldquo;{statusFilter}&rdquo;</p>
+              <p className="text-xs text-slate-500 mt-1">Try switching to &ldquo;All&rdquo; status tab.</p>
+            </div>
+          )}
+        </main>
+      )}
+
+      {/* ── VIEW 2: LIVE TABLET SCORING CONSOLE ── */}
+      {viewMode === "scoring" && (
+        <div className="flex-1 flex flex-col">
+          {/* Subheader bar for Scoring Console */}
+          <div className="bg-[#0b1118] border-b border-slate-800 px-4 sm:px-8 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setViewMode("list")}
+                className="px-3 py-1.5 rounded-xl bg-[#0e1622] border border-slate-800 hover:border-slate-700 text-xs font-bold text-slate-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <ArrowLeft className="h-3.5 w-3.5 text-[#00a389]" />
+                <span>Back to My judging</span>
+              </button>
+              <div>
+                <span className="text-xs text-slate-400">Active Program:</span>
+                <span className="ml-1.5 text-sm font-black text-white">{selectedComp.name}</span>
+                <span className="ml-2 px-2 py-0.5 rounded text-[10px] font-bold bg-[#00a389]/20 text-[#00c9a7]">
+                  {selectedComp.stageName}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-slate-400">Scored:</span>
+              <span className="font-bold text-white">
+                {selectedComp.candidates.filter((c) => c.status === "submitted").length}/
+                {selectedComp.candidates.length}
+              </span>
             </div>
           </div>
 
-          {/* Remarks Field */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-black uppercase tracking-wider text-slate-400">
-              Jury Notes / Feedback (Optional)
-            </label>
-            <textarea
-              value={remarks}
-              onChange={(e) => setRemarks(e.target.value)}
-              placeholder="Enter technical comments, stage feedback, or violation notes for scrutiny committee..."
-              rows={2}
-              className="w-full bg-[#0c131d] border border-slate-800 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
-            />
-          </div>
+          <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 min-h-0">
+            {/* LEFT COLUMN: CANDIDATES QUEUE */}
+            <aside className="lg:col-span-4 xl:col-span-3 border-r border-slate-800 bg-[#0a1019] flex flex-col">
+              <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">
+                    Contestant Queue
+                  </h3>
+                  <p className="text-[11px] text-slate-500">Blind code evaluation</p>
+                </div>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-800 text-slate-300">
+                  {selectedComp.candidates.length} Candidates
+                </span>
+              </div>
 
-          {/* Action Bar */}
-          <div className="pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <button
-              onClick={() => handleSaveAndSubmit(false)}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-700 hover:border-slate-600 bg-[#111927] text-xs font-bold text-slate-300 hover:text-white transition-colors cursor-pointer"
-            >
-              Save Draft Score
-            </button>
+              <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                {selectedComp.candidates.map((cand, idx) => {
+                  const isSelected = cand.id === selectedCandidate.id
+                  const isSubmitted = cand.status === "submitted"
+                  return (
+                    <button
+                      key={cand.id}
+                      onClick={() => setSelectedCandidateId(cand.id)}
+                      className={`w-full p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? "bg-[#0e1724] border-[#00a389] shadow-lg shadow-teal-500/10 ring-1 ring-[#00a389]"
+                          : "bg-[#0c131d] border-slate-800/80 hover:border-slate-700 text-slate-300"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm font-black text-white">
+                            #{cand.chestNumber}
+                          </span>
+                          <span className="text-xs font-bold text-slate-400">({cand.blindCode})</span>
+                        </div>
+                        {isSubmitted ? (
+                          <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                            <Check className="h-3 w-3" />
+                            {cand.totalScore}/{selectedComp.maxMarks}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                            Pending
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </aside>
 
-            <button
-              onClick={() => handleSaveAndSubmit(true)}
-              disabled={isPending || totalCalculated === 0}
-              className="w-full sm:w-auto px-7 py-3 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-black text-xs tracking-wider uppercase shadow-xl shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              <CheckCircle2 className="h-4 w-4" />
-              <span>Lock &amp; Submit Scorecard ({totalCalculated} Marks)</span>
-            </button>
+            {/* RIGHT COLUMN: SCORING CRITERIA SLIDERS */}
+            <main className="lg:col-span-8 xl:col-span-9 p-4 sm:p-8 overflow-y-auto space-y-6">
+              {/* Candidate Info Header */}
+              <div className="p-5 rounded-2xl bg-[#0e1622] border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Currently Evaluating
+                  </span>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="text-2xl font-black text-white font-mono">
+                      Chest #{selectedCandidate.chestNumber}
+                    </span>
+                    <span className="px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider bg-[#00a389]/20 text-[#00c9a7] border border-[#00a389]/30">
+                      {selectedCandidate.blindCode}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <span className="text-xs text-slate-400 font-medium">Calculated Total</span>
+                    <div className="text-3xl font-black text-white font-mono leading-none mt-0.5">
+                      {totalCalculated}
+                      <span className="text-sm font-normal text-slate-500">
+                        /{selectedComp.maxMarks}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Criteria Sliders */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Official Criteria Marks Breakdown
+                </h3>
+
+                <div className="grid grid-cols-1 gap-4">
+                  {selectedComp.criteria.map((crit) => {
+                    const score = Number(currentScores[crit.id]) || 0
+                    return (
+                      <div
+                        key={crit.id}
+                        className="p-5 rounded-2xl bg-[#0e1622] border border-slate-800/90 space-y-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-slate-200 text-sm">{crit.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg font-black text-[#00c9a7] font-mono">
+                              {score}
+                            </span>
+                            <span className="text-xs text-slate-500 font-mono">/{crit.maxMarks}</span>
+                          </div>
+                        </div>
+
+                        {/* Slider + Stepper Controls */}
+                        <div className="flex items-center gap-4">
+                          <input
+                            type="range"
+                            min={0}
+                            max={crit.maxMarks}
+                            step={1}
+                            value={score}
+                            onChange={(e) =>
+                              handleScoreChange(crit.id, Number(e.target.value), crit.maxMarks)
+                            }
+                            className="flex-1 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#00a389]"
+                          />
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleScoreChange(crit.id, score - 1, crit.maxMarks)}
+                              className="h-8 w-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold flex items-center justify-center cursor-pointer"
+                            >
+                              -
+                            </button>
+                            <button
+                              onClick={() => handleScoreChange(crit.id, score + 1, crit.maxMarks)}
+                              className="h-8 w-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold flex items-center justify-center cursor-pointer"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Remarks Field */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Judges Confidential Remarks (Optional)
+                </label>
+                <textarea
+                  value={remarks}
+                  onChange={(e) => setRemarks(e.target.value)}
+                  placeholder="Note on pitch, rhythm, expression, or technical violations..."
+                  rows={2}
+                  className="w-full bg-[#0e1622] border border-slate-800 rounded-xl p-3 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-[#00a389]"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-800">
+                <button
+                  onClick={() => handleSaveAndSubmit(false)}
+                  disabled={isPending}
+                  className="w-full sm:w-auto px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all cursor-pointer"
+                >
+                  Save Draft
+                </button>
+
+                <button
+                  onClick={() => handleSaveAndSubmit(true)}
+                  disabled={isPending}
+                  className="w-full sm:w-auto px-8 py-3 rounded-xl bg-[#00a389] hover:bg-[#008f78] text-white text-xs font-black shadow-lg shadow-teal-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Lock className="h-4 w-4" />
+                  <span>Lock &amp; Submit Score ({totalCalculated}/{selectedComp.maxMarks})</span>
+                </button>
+              </div>
+            </main>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

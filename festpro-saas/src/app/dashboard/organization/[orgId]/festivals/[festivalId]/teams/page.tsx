@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react"
 import { useParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
-import { Users, Plus, Search, Trash2, Edit2, Shield, X, Loader2 } from "lucide-react"
+import Link from "next/link"
+import { Users, Plus, Search, Trash2, Edit2, Shield, X, Loader2, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
@@ -171,6 +172,14 @@ export default function FestivalTeamsPage() {
 
           {/* Line vs Grid View Toggle */}
           <ViewToggle mode={viewMode} onChange={setViewMode} />
+
+          <Link
+            href={`/dashboard/organization/${orgId}/festivals/${festivalId}/teams/portal`}
+            className="rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-xs px-3.5 py-2 flex items-center gap-1.5 transition-all"
+          >
+            <Users className="h-3.5 w-3.5 text-indigo-400" />
+            <span>Team Manager Portal</span>
+          </Link>
 
           <Button
             size="sm"

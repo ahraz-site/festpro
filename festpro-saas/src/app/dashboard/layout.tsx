@@ -20,6 +20,7 @@ import type { ExtendedOrganization } from "@/types/organization"
 import { FestProLogo, AhrazFestProLogo, FestProFavicon } from "@/components/ui/logo"
 import { AccountStatusBanner } from "@/components/license/account-status-banner"
 import { getOrCreateOrganizationFestivalAction } from "@/lib/actions/festival"
+import { getStaffSessionAction } from "@/lib/actions/staff-auth"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -72,7 +73,43 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     async function load() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push("/login"); return }
+      if (!user) {
+        // Check if user is logged in via Staff / Judge / People credentials
+        const staffSess = await getStaffSessionAction()
+        if (staffSess) {
+          const defaultOrgId = staffSess.organizationId || "a3b0972c-a447-4934-8d26-3bad6c9a9cc9"
+          const staffProf: any = {
+            id: staffSess.id,
+            email: `${staffSess.username}@festpro.internal`,
+            first_name: staffSess.name,
+            last_name: "",
+            role: staffSess.role || "judge",
+            organization_id: defaultOrgId,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }
+          setProfile(staffProf)
+          try { sessionStorage.setItem("festpro_cached_profile", JSON.stringify(staffProf)) } catch {}
+          setOrganizations([{
+            id: defaultOrgId,
+            name: "Default Organization",
+            slug: "default-org",
+          } as any])
+          if (staffSess.festivalId) {
+            setCurrentFestival({
+              id: staffSess.festivalId,
+              name: "optimuz",
+              short_name: "OP",
+              status: "active",
+            })
+          }
+          setLoading(false)
+          return
+        }
+
+        router.push("/login")
+        return
+      }
 
       const [profRes, memRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
@@ -301,6 +338,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       isActive: pathname.includes("/green-room"),
     },
     {
+      label: "Announcer desk",
+      href: effectiveFestivalId
+        ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/announcements`
+        : `/dashboard/organization/${currentOrgId}/festivals?target=announcements`,
+      icon: Megaphone,
+      isActive: pathname.includes("/announcements"),
+    },
+    {
       label: "Media panel",
       href: effectiveFestivalId
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/media-panel`
@@ -494,8 +539,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }, 900)
   }
 
-  // Render full-viewport IDE for FesPro Website Studio
-  if (pathname?.endsWith("/website") || pathname?.endsWith("/page-builder")) {
+  // Render full-viewport IDE for FesPro Website Studio or Official Jury / Judge Portal
+  if (
+    pathname?.endsWith("/website") ||
+    pathname?.endsWith("/page-builder") ||
+    pathname?.startsWith("/dashboard/judge")
+  ) {
     return <>{children}</>
   }
 

@@ -279,19 +279,27 @@ export default function FestivalPrizesPage() {
                   {/* Prize */}
                   <td className="py-4 px-5 text-slate-500 font-semibold">{row.prize || "—"}</td>
 
-                  {/* Action (Give button) */}
+                  {/* Action (Give button & Print Slip) */}
                   <td className="py-4 px-5 text-right">
-                    <Button
-                      size="sm"
-                      onClick={() => handleToggleGive(row.id)}
-                      className={`rounded-xl text-xs font-bold px-4 shadow-xs ${
-                        row.isGiven
-                          ? "bg-slate-100 text-indigo-700 hover:bg-slate-200 border border-indigo-200"
-                          : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
-                      }`}
-                    >
-                      {row.isGiven ? "Given ✓" : "Give"}
-                    </Button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => toast.success(`Printing Stage Award Slip for ${row.winnerName} (${row.place} · ${row.program})`)}
+                        className="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-[11px] font-bold text-slate-700 cursor-pointer"
+                      >
+                        Print Slip
+                      </button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleToggleGive(row.id)}
+                        className={`rounded-xl text-xs font-bold px-4 shadow-xs ${
+                          row.isGiven
+                            ? "bg-slate-100 text-indigo-700 hover:bg-slate-200 border border-indigo-200"
+                            : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
+                        }`}
+                      >
+                        {row.isGiven ? "Given ✓" : "Give"}
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}

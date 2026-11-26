@@ -187,6 +187,11 @@ export default function PeopleAndAccessPage() {
       code: "pri",
       count: members.filter((m) => m.role === "prizes" || m.role?.includes("prize")).length,
     },
+    {
+      label: "Green room",
+      code: "gre",
+      count: members.filter((m) => m.role === "green_room" || m.role?.includes("green")).length,
+    },
   ]
 
   const formatRoleLabel = (r: string) => {
@@ -199,6 +204,7 @@ export default function PeopleAndAccessPage() {
     if (r === "team_manager") return "Team manager"
     if (r === "announcer") return "Announcer"
     if (r === "prizes") return "Prizes"
+    if (r === "green_room" || r === "greenroom") return "Green room"
     return r.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
   }
 
@@ -210,6 +216,7 @@ export default function PeopleAndAccessPage() {
     if (roleLower.includes("stage")) return "bg-emerald-50 text-emerald-700 border-emerald-200"
     if (roleLower.includes("admin")) return "bg-rose-50 text-rose-700 border-rose-200"
     if (roleLower.includes("team")) return "bg-blue-50 text-blue-700 border-blue-200"
+    if (roleLower.includes("green")) return "bg-teal-50 text-teal-700 border-teal-200"
     return "bg-indigo-50 text-indigo-700 border-indigo-200"
   }
 
@@ -512,6 +519,7 @@ export default function PeopleAndAccessPage() {
                   <option value="announcer">Announcer</option>
                   <option value="media_manager">Media manager</option>
                   <option value="prizes">Prizes</option>
+                  <option value="green_room">Green room</option>
                 </select>
               </div>
 
