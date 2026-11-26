@@ -10,59 +10,95 @@ import {
 export type { FestivalWebsiteConfig }
 
 export async function getFestivalWebsiteConfigAction(festivalId: string) {
+  if (!festivalId) {
+    return {
+      success: true,
+      data: {
+        festival: null,
+        settings: null,
+        config: normalizeWebsiteConfig(null, null, null),
+      },
+    }
+  }
+
   let serverClient: any = null
   try {
     serverClient = await createServerClient()
   } catch {}
-  const adminClient = createAdminClient()
+  let adminClient: any = null
+  try {
+    adminClient = createAdminClient()
+  } catch {}
 
   try {
     // 1. Fetch festival data (try authenticated client first, then admin fallback)
     let fest: any = null
     if (serverClient) {
-      const { data } = await serverClient.from("festivals").select("*").eq("id", festivalId).limit(1)
-      fest = data?.[0] || null
+      try {
+        const { data } = await serverClient.from("festivals").select("*").eq("id", festivalId).limit(1)
+        fest = data?.[0] || null
+      } catch {}
     }
     if (!fest && adminClient) {
-      const { data } = await adminClient.from("festivals").select("*").eq("id", festivalId).limit(1)
-      fest = data?.[0] || null
+      try {
+        const { data } = await adminClient.from("festivals").select("*").eq("id", festivalId).limit(1)
+        fest = data?.[0] || null
+      } catch {}
     }
 
     // 2. Fetch festival_settings (authenticated client first, then admin fallback)
     let settings: any = null
     if (serverClient) {
-      const { data } = await serverClient
-        .from("festival_settings")
-        .select("*")
-        .eq("festival_id", festivalId)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-      settings = data?.[0] || null
+      try {
+        const { data } = await serverClient
+          .from("festival_settings")
+          .select("*")
+          .eq("festival_id", festivalId)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+        settings = data?.[0] || null
+      } catch {}
     }
     if (!settings && adminClient) {
-      const { data } = await adminClient
-        .from("festival_settings")
-        .select("*")
-        .eq("festival_id", festivalId)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-      settings = data?.[0] || null
+      try {
+        const { data } = await adminClient
+          .from("festival_settings")
+          .select("*")
+          .eq("festival_id", festivalId)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+        settings = data?.[0] || null
+      } catch {}
     }
 
-    const rawFields = settings?.custom_fields
+    let rawFields = settings?.custom_fields
+    if (typeof rawFields === "string") {
+      try { rawFields = JSON.parse(rawFields) } catch {}
+    }
     const customFields: Record<string, any> =
       rawFields && typeof rawFields === "object" && !Array.isArray(rawFields)
         ? rawFields
         : {}
-    let saved = (customFields.website_config as FestivalWebsiteConfig) || null
+    let saved = customFields.website_config || null
+    if (typeof saved === "string") {
+      try { saved = JSON.parse(saved) } catch {}
+    }
 
     // 3. Fallback: Check public_homepage_settings if festival_settings did not have website_config
     if (!saved) {
       const checkHp = async (client: any) => {
         if (!client) return null
-        const { data } = await client.from("public_homepage_settings").select("*").eq("festival_id", festivalId).limit(1)
-        const row = data?.[0]
-        return row?.seo_meta?.website_config || row?.featured_sections?.[0] || null
+        try {
+          const { data } = await client.from("public_homepage_settings").select("*").eq("festival_id", festivalId).limit(1)
+          const row = data?.[0]
+          let hpConfig = row?.seo_meta?.website_config || row?.featured_sections?.[0] || null
+          if (typeof hpConfig === "string") {
+            try { hpConfig = JSON.parse(hpConfig) } catch {}
+          }
+          return hpConfig
+        } catch {
+          return null
+        }
       }
       saved = (await checkHp(serverClient)) || (await checkHp(adminClient)) || null
     }
@@ -78,7 +114,15 @@ export async function getFestivalWebsiteConfigAction(festivalId: string) {
       },
     }
   } catch (err: any) {
-    return { error: err.message || "Failed to fetch website builder configuration" }
+    console.error("getFestivalWebsiteConfigAction safe fallback notice:", err)
+    return {
+      success: true,
+      data: {
+        festival: null,
+        settings: null,
+        config: normalizeWebsiteConfig(null, null, null),
+      },
+    }
   }
 }
 

@@ -60,6 +60,19 @@ export default function FestivalsListPage() {
       help: "/help",
     }
 
+    // Fast instant redirect if target is specified and active festival is in session cache
+    const subPath = target && targetMap[target] ? targetMap[target] : ""
+    try {
+      const cached = sessionStorage.getItem(`festpro_active_fest_${orgId}`)
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        if (parsed?.id) {
+          router.replace(`/dashboard/organization/${orgId}/festivals/${parsed.id}${subPath}`)
+          return
+        }
+      }
+    } catch {}
+
     async function load() {
       try {
         const supabase = createClient()
@@ -127,18 +140,25 @@ export default function FestivalsListPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[55vh] gap-4">
-        <div className="relative flex items-center justify-center">
-          <div className="absolute -inset-4 rounded-full bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 blur-xl animate-pulse" />
-          <div className="animate-pulse">
-            <FestProFavicon size={48} className="shadow-md rounded-full" />
+      <div className="space-y-6 animate-pulse">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-7 w-44 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+            <div className="h-3.5 w-64 bg-slate-100 dark:bg-slate-800/60 rounded-lg" />
           </div>
+          <div className="h-9 w-32 bg-slate-200 dark:bg-slate-800 rounded-xl" />
         </div>
-        <div className="space-y-1 text-center">
-          <p className="text-xs font-bold text-slate-700 uppercase tracking-wider animate-pulse">
-            Connecting to festival workspace...
-          </p>
-          <p className="text-[11px] text-slate-400">Loading festival tools and real-time operations</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-48 rounded-2xl bg-white border border-slate-200/90 p-6 space-y-4">
+              <div className="h-5 w-3/4 bg-slate-200 rounded-md" />
+              <div className="h-4 w-1/2 bg-slate-100 rounded" />
+              <div className="pt-4 border-t border-slate-100 flex justify-between">
+                <div className="h-4 w-16 bg-slate-100 rounded" />
+                <div className="h-4 w-20 bg-slate-100 rounded" />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     )

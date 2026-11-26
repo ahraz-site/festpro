@@ -7,6 +7,7 @@ import { Eye, EyeOff, Download, Sparkles, Shield, User, Mail, Lock } from "lucid
 import { toast } from "sonner"
 import { createClient } from "@/lib/supabase/client"
 import { loginJudgeAction } from "@/lib/actions/judge-auth"
+import { loginStaffAction } from "@/lib/actions/staff-auth"
 import { ADMIN_EMAILS } from "@/config/admin"
 
 export default function LoginPage() {
@@ -59,10 +60,18 @@ export default function LoginPage() {
     const isEmail = cleanId.includes("@")
 
     // ────────────────────────────────────────────
-    // 1. JUDGE LOGIN (Username based, as in Quaf / Festize)
+    // 1. FESTIVAL STAFF & JUDGE LOGIN (Username based, as in Quaf / Festize)
     // ────────────────────────────────────────────
     if (authMode === "judge" || !isEmail) {
       try {
+        const staffRes = await loginStaffAction(cleanId, cleanPass)
+        if (staffRes.success && staffRes.redirectUrl) {
+          toast.success(`Welcome ${staffRes.member?.name || cleanId}! Loading your workspace...`)
+          window.location.href = staffRes.redirectUrl
+          return
+        }
+
+        // Also check judge action as fallback
         const judgeRes = await loginJudgeAction(cleanId, cleanPass)
         if (judgeRes.success && judgeRes.redirectUrl) {
           toast.success(`Welcome Judge ${judgeRes.judge?.name || cleanId}! Loading score console...`)
@@ -70,14 +79,14 @@ export default function LoginPage() {
           return
         }
 
-        // If judge login failed but user entered an email, try organizer login below
+        // If username login failed but user entered an email, try organizer login below
         if (!isEmail) {
-          toast.error(judgeRes.error || "Invalid judge username or password. Check with your festival desk.")
+          toast.error(staffRes.error || judgeRes.error || "Invalid username or password. Check with your festival desk.")
           setIsLoading(false)
           return
         }
       } catch (err: any) {
-        console.warn("Judge login attempt error:", err)
+        console.warn("Staff login attempt error:", err)
       }
     }
 

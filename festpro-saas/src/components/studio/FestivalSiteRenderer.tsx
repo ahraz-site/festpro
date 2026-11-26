@@ -5,7 +5,7 @@ import Link from "next/link"
 import {
   Trophy, Calendar, MapPin, Users, Award, Globe, Sparkles, Clock,
   Search, Video, Image as ImageIcon, Newspaper, Play, Phone, Mail,
-  ChevronRight, ChevronLeft, Menu, X, Download, AlertTriangle, Megaphone
+  ChevronRight, ChevronLeft, Menu, X, Download, AlertTriangle, Megaphone, Eye
 } from "lucide-react"
 import type {
   FestivalWebsiteConfig,
@@ -73,6 +73,35 @@ function resolveVideoEmbed(video: VideoItem): { kind: "iframe" | "mp4"; src: str
     }
   }
   return { kind: "iframe", src: raw }
+}
+
+function resolveVideoThumb(video: VideoItem): string {
+  const raw = (video.url || "").trim()
+  if (video.thumbnailUrl) return video.thumbnailUrl
+  if (raw.includes("youtube.com/watch")) {
+    try {
+      const u = new URL(raw)
+      const v = u.searchParams.get("v")
+      if (v) return `https://img.youtube.com/vi/${v}/hqdefault.jpg`
+    } catch {}
+  }
+  if (raw.includes("youtu.be/")) {
+    const id = raw.split("youtu.be/")[1]?.split("?")[0]
+    if (id) return `https://img.youtube.com/vi/${id}/hqdefault.jpg`
+  }
+  if (raw.includes("youtube.com/shorts/")) {
+    const id = raw.split("youtube.com/shorts/")[1]?.split("?")[0]
+    if (id) return `https://img.youtube.com/vi/${id}/hqdefault.jpg`
+  }
+  if (raw.includes("youtube.com/live/")) {
+    const id = raw.split("youtube.com/live/")[1]?.split("?")[0]
+    if (id) return `https://img.youtube.com/vi/${id}/hqdefault.jpg`
+  }
+  if (raw.includes("youtube.com/embed/")) {
+    const id = raw.split("youtube.com/embed/")[1]?.split("?")[0]
+    if (id) return `https://img.youtube.com/vi/${id}/hqdefault.jpg`
+  }
+  return "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=800&q=80"
 }
 
 function getRatioClass(ratio?: GalleryAspectRatio): string {
@@ -400,7 +429,9 @@ export default function FestivalSiteRenderer({
   const [isScrolled, setIsScrolled] = useState(false)
   const [headerHidden, setHeaderHidden] = useState(false)
   const [lightboxImage, setLightboxImage] = useState<{ url: string; title: string } | null>(null)
+  const [playingVideoModal, setPlayingVideoModal] = useState<VideoItem | null>(null)
   const [selectedAlbum, setSelectedAlbum] = useState<string>("All")
+  const [selectedVideoCategory, setSelectedVideoCategory] = useState<string>("All")
   const [activeVideoId, setActiveVideoId] = useState<string>(config.videoStudio?.videos?.[0]?.id || "")
   const [showPopup, setShowPopup] = useState(false)
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
@@ -628,6 +659,11 @@ export default function FestivalSiteRenderer({
 
   const videos = config.videoStudio?.videos || []
   const currentVideo = videos.find((v) => v.id === activeVideoId) || videos[0]
+  const videoCategories = ["All", ...Array.from(new Set(videos.map((v) => v.category || "Stage").filter(Boolean)))]
+  const filteredVideos =
+    selectedVideoCategory === "All"
+      ? videos
+      : videos.filter((v) => (v.category || "Stage") === selectedVideoCategory)
   const newsItems = config.news || []
 
   const filteredResults = results.filter(
@@ -1481,7 +1517,7 @@ export default function FestivalSiteRenderer({
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-black flex items-center gap-2" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
                 <Video className="h-5 w-5 text-rose-500" />
-                <span>Live Stream &amp; Video Studio</span>
+                <span>Festival Videos &amp; Telecasts</span>
               </h2>
               <button
                 onClick={() => setActiveTab("videos")}
@@ -1491,25 +1527,33 @@ export default function FestivalSiteRenderer({
                 Open Video Gallery <ChevronRight className="h-3.5 w-3.5" />
               </button>
             </div>
-            {currentVideo && (
-              <div
-                className={`overflow-hidden aspect-video max-h-[480px] ${cardClass}`}
-                style={{ backgroundColor: palette.surface, borderRadius: radiusVal }}
-              >
-                {(() => {
-                  const emb = resolveVideoEmbed(currentVideo)
-                  return emb.kind === "mp4" ? (
-                    <video src={emb.src} controls className="w-full h-full object-cover" />
-                  ) : (
-                    <iframe
-                      src={emb.src}
-                      title={currentVideo.title}
-                      className="w-full h-full border-0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
+            {videos.length === 0 ? (
+              <div className={`p-8 text-center space-y-2 ${cardClass}`} style={{ backgroundColor: palette.surface, borderRadius: radiusVal }}>
+                <Video className="h-8 w-8 mx-auto" style={{ color: palette.mutedText }} />
+                <p className="text-xs" style={{ color: palette.mutedText }}>No videos added yet</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {videos.slice(0, 3).map((v) => (
+                  <div
+                    key={v.id}
+                    onClick={() => setPlayingVideoModal(v)}
+                    className={`group relative overflow-hidden cursor-pointer aspect-video ${cardClass}`}
+                    style={{ backgroundColor: palette.surface, borderRadius: radiusVal }}
+                  >
+                    <img
+                      src={resolveVideoThumb(v)}
+                      alt=""
+                      loading="lazy"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                  )
-                })()}
+                    <div className="absolute inset-0 bg-black/25 group-hover:bg-black/40 transition-colors duration-300 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-full bg-white/90 group-hover:bg-white text-slate-900 flex items-center justify-center shadow-xl group-hover:scale-110 transition-all duration-300">
+                        <Play className="h-5 w-5 fill-slate-900 ml-0.5 text-slate-900" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -1546,15 +1590,14 @@ export default function FestivalSiteRenderer({
                 >
                   <img
                     src={g.url}
-                    alt={g.title}
+                    alt=""
                     loading="lazy"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-3">
-                    <span className="text-[10px] font-bold uppercase truncate" style={{ color: palette.accent }}>
-                      {g.category || "Event"}
-                    </span>
-                    <span className="text-xs font-bold text-white line-clamp-1">{g.title}</span>
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <div className="w-9 h-9 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow-md">
+                      <Eye className="h-4 w-4" />
+                    </div>
                   </div>
                 </div>
               ))}
@@ -2228,11 +2271,10 @@ export default function FestivalSiteRenderer({
                       {config.galleryStudio.watermarkText}
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent flex flex-col justify-end p-4">
-                    <span className="text-[10px] font-bold uppercase" style={{ color: palette.accent }}>
-                      {g.category || "Event"}
-                    </span>
-                    <h4 className="text-sm font-bold text-white mt-0.5">{g.title}</h4>
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <div className="w-11 h-11 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-200">
+                      <Eye className="h-5 w-5" />
+                    </div>
                   </div>
                 </div>
               ))}
@@ -2240,92 +2282,65 @@ export default function FestivalSiteRenderer({
           </div>
         )}
 
-        {/* Standalone Universal Video & Reels Page */}
+        {/* Standalone Video Gallery Page (Matching Gallery Grid Style, No Text Overlays) */}
         {activeTab === "videos" && (
-          <div className={`${containerMaxW} mx-auto px-4 sm:px-6 py-10 space-y-8`}>
-            <div>
-              <h2 className="text-2xl font-black" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
-                Video &amp; Live Stream Studio
-              </h2>
-              <p className="text-xs mt-1" style={{ color: palette.mutedText }}>
-                YouTube, Reels, Shorts, Live Broadcasts &amp; Direct Video Highlights
-              </p>
+          <div className={`${containerMaxW} mx-auto px-4 sm:px-6 py-10 space-y-6`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-black" style={{ fontFamily: `"${typo.headingFont}", sans-serif` }}>
+                  Festival Videos &amp; Telecasts
+                </h2>
+                <p className="text-xs mt-1" style={{ color: palette.mutedText }}>
+                  Live stage broadcasts, performance highlights &amp; official reels
+                </p>
+              </div>
+              {videoCategories.length > 1 && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {videoCategories.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedVideoCategory(cat)}
+                      className="px-3 py-1.5 text-xs font-bold cursor-pointer transition-all"
+                      style={{
+                        borderRadius: btnRadius,
+                        backgroundColor: selectedVideoCategory === cat ? palette.primary : palette.surface,
+                        color: selectedVideoCategory === cat ? "#FFFFFF" : palette.mutedText,
+                      }}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {currentVideo && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-3">
+            {filteredVideos.length === 0 ? (
+              <div className={`p-12 text-center space-y-3 ${cardClass}`} style={{ backgroundColor: palette.surface, borderRadius: radiusVal }}>
+                <Video className="h-10 w-10 mx-auto" style={{ color: palette.mutedText }} />
+                <p className="text-xs font-bold" style={{ color: palette.mutedText }}>No videos uploaded yet</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredVideos.map((v) => (
                   <div
-                    className={`overflow-hidden ${
-                      currentVideo.aspectRatio === "9:16"
-                        ? "aspect-[9/16] max-h-[560px] mx-auto"
-                        : currentVideo.aspectRatio === "1:1"
-                        ? "aspect-square max-h-[500px] mx-auto"
-                        : "aspect-video"
-                    } ${cardClass}`}
+                    key={v.id}
+                    onClick={() => setPlayingVideoModal(v)}
+                    className={`group relative overflow-hidden cursor-pointer aspect-video ${cardClass}`}
                     style={{ backgroundColor: palette.surface, borderRadius: radiusVal }}
                   >
-                    {(() => {
-                      const emb = resolveVideoEmbed(currentVideo)
-                      return emb.kind === "mp4" ? (
-                        <video src={emb.src} controls className="w-full h-full object-cover" />
-                      ) : (
-                        <iframe
-                          src={emb.src}
-                          title={currentVideo.title}
-                          className="w-full h-full border-0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        />
-                      )
-                    })()}
+                    <img
+                      src={resolveVideoThumb(v)}
+                      alt=""
+                      loading="lazy"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-black/25 group-hover:bg-black/40 transition-colors duration-300 flex items-center justify-center">
+                      <div className="w-14 h-14 rounded-full bg-white/90 group-hover:bg-white text-slate-900 flex items-center justify-center shadow-2xl group-hover:scale-110 transition-all duration-300">
+                        <Play className="h-6 w-6 fill-slate-900 ml-1 text-slate-900" />
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <span
-                      className="px-2 py-0.5 rounded text-[10px] font-black uppercase"
-                      style={{ backgroundColor: `${palette.primary}25`, color: palette.secondary }}
-                    >
-                      {currentVideo.platform.replace("_", " ")}
-                    </span>
-                    <h3 className="text-lg font-black">{currentVideo.title}</h3>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <h4 className="text-xs font-black uppercase tracking-wider" style={{ color: palette.mutedText }}>
-                    Festival Playlist ({videos.length})
-                  </h4>
-                  <div className="space-y-2.5 max-h-[500px] overflow-y-auto pr-1">
-                    {videos.map((v) => {
-                      const active = v.id === currentVideo.id
-                      return (
-                        <button
-                          key={v.id}
-                          onClick={() => setActiveVideoId(v.id)}
-                          className={`w-full p-3 text-left flex items-center gap-3 cursor-pointer ${cardClass}`}
-                          style={{
-                            backgroundColor: active ? `${palette.primary}25` : palette.surface,
-                            borderColor: active ? palette.primary : undefined,
-                            borderRadius: radiusVal,
-                          }}
-                        >
-                          <div
-                            className="h-10 w-10 rounded-lg flex items-center justify-center shrink-0 text-white"
-                            style={{ backgroundColor: palette.primary }}
-                          >
-                            <Play className="h-4 w-4" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="text-xs font-bold truncate">{v.title}</div>
-                            <div className="text-[10px] uppercase mt-0.5" style={{ color: palette.accent }}>
-                              {v.platform.replace("_", " ")} • {v.aspectRatio || "16:9"}
-                            </div>
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
+                ))}
               </div>
             )}
           </div>
@@ -2644,12 +2659,49 @@ export default function FestivalSiteRenderer({
                     <Download className="h-4 w-4" />
                   </a>
                 )}
-                <button onClick={() => setLightboxImage(null)} className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white">
+                <button onClick={() => setLightboxImage(null)} className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer">
                   <X className="h-4 w-4" />
                 </button>
               </div>
             </div>
             <img src={lightboxImage.url} alt={lightboxImage.title} className="w-full max-h-[80vh] object-contain rounded-xl" />
+          </div>
+        </div>
+      )}
+
+      {/* ── VIDEO LIGHTBOX MODAL ── */}
+      {playingVideoModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-4 animate-in fade-in"
+          onClick={() => setPlayingVideoModal(null)}
+        >
+          <div className="max-w-4xl w-full space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between text-white">
+              <h4 className="font-bold text-sm truncate pr-2">{playingVideoModal.title || "Festival Video"}</h4>
+              <button
+                onClick={() => setPlayingVideoModal(null)}
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer"
+                title="Close video"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black shadow-2xl border border-white/10">
+              {(() => {
+                const emb = resolveVideoEmbed(playingVideoModal)
+                return emb.kind === "mp4" ? (
+                  <video src={emb.src} controls autoPlay className="w-full h-full object-contain" />
+                ) : (
+                  <iframe
+                    src={emb.src ? `${emb.src}?autoplay=1` : ""}
+                    title={playingVideoModal.title || "Festival Video"}
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                )
+              })()}
+            </div>
           </div>
         </div>
       )}
