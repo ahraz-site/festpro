@@ -1,5 +1,6 @@
 "use server"
 
+import { revalidatePath } from "next/cache"
 import { createClient as createServerClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import {
@@ -218,6 +219,14 @@ export async function saveFestivalWebsiteConfigAction(festivalId: string, config
           console.warn("Festivals table update error:", fErr)
         }
       }
+    }
+
+    try {
+      revalidatePath(`/festivals/${festivalId}`, "page")
+      revalidatePath(`/festivals/${festivalId}`)
+      revalidatePath(`/`, "layout")
+    } catch (revErr) {
+      console.warn("revalidatePath error:", revErr)
     }
 
     return { success: true, message: "FesPro Studio design published to live site!" }
