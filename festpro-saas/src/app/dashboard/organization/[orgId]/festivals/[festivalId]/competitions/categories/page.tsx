@@ -10,14 +10,20 @@ import { getCategories, createCategory, updateCategory, deleteCategory } from "@
 import { ExportPrintBar } from "@/components/ui/export-print-bar"
 import { ViewToggle, type ViewMode } from "@/components/ui/view-toggle"
 import type { CompetitionCategory } from "@/types/competition"
+import {
+  getCachedWorkspace,
+  fetchWorkspaceWithSWR,
+  invalidateFestivalWorkspace,
+} from "@/lib/cache/workspace-cache"
 
 export default function CategoriesPage() {
   const params = useParams()
   const orgId = params.orgId as string
   const festivalId = params.festivalId as string
 
-  const [categories, setCategories] = useState<CompetitionCategory[]>([])
-  const [loading, setLoading] = useState(true)
+  const initialCache = getCachedWorkspace(festivalId, "categories")
+  const [categories, setCategories] = useState<CompetitionCategory[]>(() => (initialCache?.categories || []) as CompetitionCategory[])
+  const [loading, setLoading] = useState(!initialCache)
   const [search, setSearch] = useState("")
   const [typeFilter, setTypeFilter] = useState("all")
   const [viewMode, setViewMode] = useState<ViewMode>("grid")
@@ -27,7 +33,7 @@ export default function CategoriesPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
-  // Form Fields (Screenshot 6)
+  // Form Fields
   const [name, setName] = useState("")
   const [isCommon, setIsCommon] = useState(false)
   const [nameOther, setNameOther] = useState("")
@@ -36,11 +42,9 @@ export default function CategoriesPage() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch(`/api/festival/${festivalId}/workspace?scope=categories`, { cache: "no-store" })
-      if (res.ok) {
-        const json = await res.json()
+      await fetchWorkspaceWithSWR(festivalId, "categories", (json) => {
         setCategories((json.categories || []) as CompetitionCategory[])
-      }
+      })
     } catch (e) {
       console.error(e)
     } finally {
@@ -78,6 +82,7 @@ export default function CategoriesPage() {
     if (res.error) {
       toast.error(res.error)
     } else {
+      invalidateFestivalWorkspace(festivalId)
       toast.success("Category deleted")
       setCategories((prev) => prev.filter((c) => c.id !== id))
     }
@@ -107,6 +112,7 @@ export default function CategoriesPage() {
     if (res.error) {
       toast.error(res.error)
     } else {
+      invalidateFestivalWorkspace(festivalId)
       toast.success(editingId ? "Category updated" : "Category added successfully!")
       setShowModal(false)
       load()

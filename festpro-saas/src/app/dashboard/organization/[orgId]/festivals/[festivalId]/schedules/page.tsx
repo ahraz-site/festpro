@@ -18,40 +18,44 @@ import { ExportPrintBar } from "@/components/ui/export-print-bar"
 import type { StageSchedule } from "@/types/schedule"
 import type { FestivalStage } from "@/types/festival"
 import type { Competition } from "@/types/competition"
+import {
+  getCachedWorkspace,
+  fetchWorkspaceWithSWR,
+  invalidateFestivalWorkspace,
+} from "@/lib/cache/workspace-cache"
 
 export default function FestivalSchedulerPage() {
   const params = useParams()
   const orgId = params.orgId as string
   const festivalId = params.festivalId as string
 
-  const [schedules, setSchedules] = useState<any[]>([])
-  const [stages, setStages] = useState<FestivalStage[]>([])
-  const [competitions, setCompetitions] = useState<Competition[]>([])
-  const [loading, setLoading] = useState(true)
+  const initialCache = getCachedWorkspace(festivalId, "schedules")
+  const [schedules, setSchedules] = useState<any[]>(() => initialCache?.schedules || [])
+  const [stages, setStages] = useState<FestivalStage[]>(() => (initialCache?.stages || []) as FestivalStage[])
+  const [competitions, setCompetitions] = useState<Competition[]>(() => (initialCache?.competitions || []) as Competition[])
+  const [loading, setLoading] = useState(!initialCache)
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
   const [viewType, setViewType] = useState<"timeline" | "list">("timeline")
   const [showIssues, setShowIssues] = useState(false)
 
-  // Quick Schedule Form (Screenshot 11)
-  const [selectedProgram, setSelectedProgram] = useState("")
-  const [selectedStage, setSelectedStage] = useState("")
+  // Quick Schedule Form
+  const [selectedProgram, setSelectedProgram] = useState(() => initialCache?.competitions?.[0]?.id || "")
+  const [selectedStage, setSelectedStage] = useState(() => initialCache?.stages?.[0]?.id || "")
   const [scheduleDateTime, setScheduleDateTime] = useState("")
   const [durationMinutes, setDurationMinutes] = useState("30")
   const [submitting, setSubmitting] = useState(false)
 
   const loadData = useCallback(async () => {
     try {
-      const res = await fetch(`/api/festival/${festivalId}/workspace?scope=schedules`, { cache: "no-store" })
-      if (res.ok) {
-        const json = await res.json()
+      await fetchWorkspaceWithSWR(festivalId, "schedules", (json) => {
         setSchedules(json.schedules || [])
         const stList = (json.stages || []) as FestivalStage[]
         const compsList = (json.competitions || []) as Competition[]
         setStages(stList)
         setCompetitions(compsList)
-        if (compsList[0]) setSelectedProgram((prev) => prev || compsList[0].id)
-        if (stList[0]) setSelectedStage((prev) => prev || stList[0].id)
-      }
+        if (compsList[0]) setSelectedProgram((prev: string) => prev || compsList[0].id)
+        if (stList[0]) setSelectedStage((prev: string) => prev || stList[0].id)
+      })
     } catch (e) {
       console.error(e)
     } finally {

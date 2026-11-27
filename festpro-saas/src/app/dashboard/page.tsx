@@ -26,57 +26,74 @@ import { createClient } from "@/lib/supabase/client"
 import { getStaffSessionAction, type StaffSession } from "@/lib/actions/staff-auth"
 
 export default function FestDashboardRoot() {
-  const router = useRouter()
-  const [userName, setUserName] = useState("Organizer")
-  const [userRole, setUserRole] = useState("organization_owner")
-  const [orgId, setOrgId] = useState("")
-  const [festivalId, setFestivalId] = useState("")
-  const [festName, setFestName] = useState("Festival Workspace")
-  const [stageProgramsCount, setStageProgramsCount] = useState<number>(0)
-  const [participantsCount, setParticipantsCount] = useState<number>(0)
-  const [loading, setLoading] = useState(true)
+  const cachedInit = (() => {
+    if (typeof window === "undefined") return null
+    try {
+      const raw = sessionStorage.getItem("festpro_dash_root_cache")
+      return raw ? JSON.parse(raw) : null
+    } catch {
+      return null
+    }
+  })()
+
+  const [userName, setUserName] = useState(cachedInit?.userName || "Organizer")
+  const [userRole, setUserRole] = useState(cachedInit?.userRole || "organization_owner")
+  const [orgId, setOrgId] = useState(cachedInit?.orgId || "")
+  const [festivalId, setFestivalId] = useState(cachedInit?.festivalId || "")
+  const [festName, setFestName] = useState(cachedInit?.festName || "Festival Workspace")
+  const [stageProgramsCount, setStageProgramsCount] = useState<number>(cachedInit?.stageProgramsCount || 0)
+  const [participantsCount, setParticipantsCount] = useState<number>(cachedInit?.participantsCount || 0)
+  const [loading, setLoading] = useState(!cachedInit)
 
   useEffect(() => {
+    let active = true
     async function initDashboard() {
       try {
+        let nextName = "Organizer"
+        let nextRole = "organization_owner"
         let resolvedOrgId = ""
         let resolvedFestId = ""
+        let nextFestName = "Festival Workspace"
 
         const staff = await getStaffSessionAction()
         if (staff) {
-          setUserName(staff.name || "Staff Member")
-          setUserRole(staff.role || "staff")
+          nextName = staff.name || "Staff Member"
+          nextRole = staff.role || "staff"
           resolvedOrgId = staff.organizationId || ""
           resolvedFestId = staff.festivalId || ""
         } else {
           const supabase = createClient()
-          const {
-            data: { user },
-          } = await supabase.auth.getUser()
-          if (user) {
-            const { data: prof } = await supabase
-              .from("profiles")
-              .select("first_name, last_name, role, organization_id")
-              .eq("id", user.id)
-              .maybeSingle()
+          const { data: sessionData } = await supabase.auth.getSession()
+          let user = sessionData?.session?.user || null
+          if (!user) {
+            const { data: userRes } = await supabase.auth.getUser()
+            user = userRes?.user || null
+          }
 
+          if (user) {
+            const [profRes, memRes] = await Promise.all([
+              supabase.from("profiles").select("first_name, last_name, role, organization_id").eq("id", user.id).maybeSingle(),
+              supabase.from("organization_members").select("organization_id").eq("user_id", user.id).limit(1).maybeSingle(),
+            ])
+
+            const prof = profRes.data
             if (prof?.first_name) {
-              setUserName(prof.first_name)
-              setUserRole(prof.role || "organization_owner")
+              nextName = prof.first_name
+              nextRole = prof.role || "organization_owner"
             } else {
-              setUserName(user.email?.split("@")[0] || "Organizer")
+              nextName = user.email?.split("@")[0] || "Organizer"
             }
 
-            if (prof?.organization_id) {
-              resolvedOrgId = prof.organization_id
-            } else {
-              const { data: mem } = await supabase
-                .from("organization_members")
-                .select("organization_id")
-                .eq("user_id", user.id)
+            resolvedOrgId = prof?.organization_id || memRes.data?.organization_id || ""
+            if (!resolvedOrgId) {
+              const { data: orgRow } = await supabase
+                .from("organizations")
+                .select("id")
+                .is("deleted_at", null)
+                .order("created_at", { ascending: false })
                 .limit(1)
                 .maybeSingle()
-              if (mem?.organization_id) resolvedOrgId = mem.organization_id
+              if (orgRow?.id) resolvedOrgId = orgRow.id
             }
 
             if (resolvedOrgId) {
@@ -89,79 +106,119 @@ export default function FestDashboardRoot() {
                 .limit(1)
               if (fests?.[0]) {
                 resolvedFestId = fests[0].id
-                setFestName(fests[0].name || "Festival Workspace")
+                nextFestName = fests[0].name || "Festival Workspace"
               }
             }
           }
         }
 
+        if (!active) return
+        setUserName(nextName)
+        setUserRole(nextRole)
         if (resolvedOrgId) setOrgId(resolvedOrgId)
+
+        let nextComps = stageProgramsCount
+        let nextParts = participantsCount
         if (resolvedFestId) {
           setFestivalId(resolvedFestId)
+          setFestName(nextFestName)
           try {
-            const res = await fetch(`/api/festival/${resolvedFestId}/workspace?scope=all`, { cache: "no-store" })
-            if (res.ok) {
+            const res = await fetch(`/api/festival/${resolvedFestId}/workspace?scope=summary`, { cache: "no-store" })
+            if (res.ok && active) {
               const json = await res.json()
-              if (json.festival?.name) setFestName(json.festival.name)
-              setParticipantsCount(Array.isArray(json.participants) ? json.participants.length : 0)
-              setStageProgramsCount(Array.isArray(json.competitions) ? json.competitions.length : 0)
+              if (json.festival?.name) nextFestName = json.festival.name
+              nextParts = Number(json.counts?.participants ?? 0)
+              nextComps = Number(json.counts?.competitions ?? 0)
+              setFestName(nextFestName)
+              setParticipantsCount(nextParts)
+              setStageProgramsCount(nextComps)
             }
+          } catch {}
+        }
+
+        if (active && (resolvedOrgId || resolvedFestId)) {
+          try {
+            sessionStorage.setItem(
+              "festpro_dash_root_cache",
+              JSON.stringify({
+                userName: nextName,
+                userRole: nextRole,
+                orgId: resolvedOrgId,
+                festivalId: resolvedFestId,
+                festName: nextFestName,
+                stageProgramsCount: nextComps,
+                participantsCount: nextParts,
+              })
+            )
           } catch {}
         }
       } catch (err) {
         console.warn("initDashboard notice:", err)
       } finally {
-        setLoading(false)
+        if (active) setLoading(false)
       }
     }
     initDashboard()
+    return () => {
+      active = false
+    }
   }, [])
 
-  const festBase = orgId && festivalId ? `/dashboard/organization/${orgId}/festivals/${festivalId}` : "/dashboard/organization"
+  const makeToolHref = (subpath: string, targetKey: string) => {
+    if (orgId && festivalId) {
+      return `/dashboard/organization/${orgId}/festivals/${festivalId}/${subpath}`
+    }
+    if (orgId) {
+      return `/dashboard/organization/${orgId}/festivals?target=${targetKey}`
+    }
+    return "/dashboard/organization"
+  }
 
-  // Tools matching Screenshot 1: Festize "Your tools"
+  const festBase = orgId && festivalId ? `/dashboard/organization/${orgId}/festivals/${festivalId}` : orgId ? `/dashboard/organization/${orgId}/festivals` : "/dashboard/organization"
+
+  // Tools grid
   const tools = [
     {
       title: "Participants",
       desc: "Student list, chest numbers & divisions",
       icon: Bookmark,
-      href: `${festBase}/participants`,
+      href: makeToolHref("participants", "participants"),
     },
     {
       title: "Programs",
       desc: "All stage competitions, schedules & rules",
       icon: Trophy,
-      href: `${festBase}/competitions`,
+      href: makeToolHref("competitions", "competitions"),
     },
     {
       title: "Live programs",
       desc: "Stage status, current calls & queues",
       icon: Sliders,
-      href: `${festBase}/live-programs`,
+      href: makeToolHref("live-programs", "live-programs"),
     },
     {
       title: "Stage desk",
       desc: "Live stage caller, timer & audio buzzer",
       icon: Monitor,
-      href: `${festBase}/stage-desk`,
+      href: makeToolHref("stage-desk", "stage-desk"),
     },
     {
       title: "Reports & printouts",
       desc: "Score sheets, tabulation charts & PDF slips",
       icon: Printer,
-      href: `${festBase}/reports`,
+      href: makeToolHref("reports", "reports"),
     },
     {
       title: "Subject picker",
       desc: "Random topic & blind letter draws",
       icon: Dices,
-      href: `${festBase}/subject-picker`,
+      href: makeToolHref("subject-picker", "subject-picker"),
     },
     {
       title: "Help",
       desc: "Jury guidelines, handbook & quick FAQ",
       icon: HelpCircle,
-      href: `${festBase}/help`,
+      href: makeToolHref("help", "help"),
     },
   ]
 
@@ -179,7 +236,7 @@ export default function FestDashboardRoot() {
       title: "Team Manager Portal",
       desc: "House points, team roster & stage calls",
       icon: Users,
-      href: `${festBase}/teams/portal`,
+      href: makeToolHref("teams/portal", "teams"),
       show: true,
       color: "text-blue-700 bg-blue-50 border-blue-200",
     },
@@ -187,7 +244,7 @@ export default function FestDashboardRoot() {
       title: "Green Room Desk",
       desc: "Contestant reporting, code letters & audio bell",
       icon: DoorOpen,
-      href: `${festBase}/green-room`,
+      href: makeToolHref("green-room", "green-room"),
       show: true,
       color: "text-amber-700 bg-amber-50 border-amber-200",
     },
@@ -195,7 +252,7 @@ export default function FestDashboardRoot() {
       title: "Announcer Desk",
       desc: "Live stage calls, mic prompts & result flashes",
       icon: Megaphone,
-      href: `${festBase}/announcements`,
+      href: makeToolHref("announcements", "announcements"),
       show: true,
       color: "text-purple-700 bg-purple-50 border-purple-200",
     },
@@ -203,7 +260,7 @@ export default function FestDashboardRoot() {
       title: "Prizes & Honors",
       desc: "Winner list, stage award checklist & slips",
       icon: Gift,
-      href: `${festBase}/prizes`,
+      href: makeToolHref("prizes", "prizes"),
       show: true,
       color: "text-rose-700 bg-rose-50 border-rose-200",
     },

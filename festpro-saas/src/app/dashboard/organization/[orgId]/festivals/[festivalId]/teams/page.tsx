@@ -10,6 +10,11 @@ import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { ExportPrintBar } from "@/components/ui/export-print-bar"
 import { ViewToggle, type ViewMode } from "@/components/ui/view-toggle"
+import {
+  getCachedWorkspace,
+  fetchWorkspaceWithSWR,
+  invalidateFestivalWorkspace,
+} from "@/lib/cache/workspace-cache"
 
 interface Team {
   id: string
@@ -26,8 +31,9 @@ export default function FestivalTeamsPage() {
   const orgId = params.orgId as string
   const festivalId = params.festivalId as string
 
-  const [teams, setTeams] = useState<Team[]>([])
-  const [loading, setLoading] = useState(true)
+  const initialCache = getCachedWorkspace(festivalId, "teams")
+  const [teams, setTeams] = useState<Team[]>(() => (initialCache?.teams || []) as Team[])
+  const [loading, setLoading] = useState(!initialCache)
   const [search, setSearch] = useState("")
   const [viewMode, setViewMode] = useState<ViewMode>("grid")
 
@@ -41,11 +47,9 @@ export default function FestivalTeamsPage() {
 
   const fetchTeams = useCallback(async () => {
     try {
-      const res = await fetch(`/api/festival/${festivalId}/workspace?scope=teams`, { cache: "no-store" })
-      if (res.ok) {
-        const json = await res.json()
+      await fetchWorkspaceWithSWR(festivalId, "teams", (json) => {
         setTeams((json.teams || []) as Team[])
-      }
+      })
     } catch (e) {
       console.error("Failed to fetch teams:", e)
     } finally {
@@ -86,6 +90,7 @@ export default function FestivalTeamsPage() {
         toast.error(json.error || "Failed to delete team")
         return
       }
+      invalidateFestivalWorkspace(festivalId)
       setTeams((prev) => prev.filter((t) => t.id !== id))
       toast.success(`Team "${name}" deleted`)
     } catch {
@@ -121,6 +126,7 @@ export default function FestivalTeamsPage() {
         toast.error(json.error || "Failed to save team")
         return
       }
+      invalidateFestivalWorkspace(festivalId)
       toast.success(editingTeam ? "Team updated successfully" : `Team "${teamName}" created!`)
       setIsModalOpen(false)
       fetchTeams()

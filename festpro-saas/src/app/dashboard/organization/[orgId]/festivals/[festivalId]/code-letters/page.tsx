@@ -15,6 +15,7 @@ import {
   Keyboard, Search, Loader2, Save, CheckCircle2,
   Sparkles, Check, ArrowRight
 } from "lucide-react"
+import { getCachedWorkspace, fetchWorkspaceWithSWR, invalidateFestivalWorkspace } from "@/lib/cache/workspace-cache"
 
 interface CandidateCode {
   id: string
@@ -30,69 +31,61 @@ export default function CodeLettersPage() {
   const orgId = params.orgId as string
   const festivalId = params.festivalId as string
 
-  const [competitions, setCompetitions] = useState<Competition[]>([])
-  const [loading, setLoading] = useState(true)
+  const initialCache = getCachedWorkspace(festivalId, "code-letters")
+  const [workspaceData, setWorkspaceData] = useState<any>(() => initialCache || null)
+  const [competitions, setCompetitions] = useState<Competition[]>(() => (initialCache?.competitions || []) as Competition[])
+  const [loading, setLoading] = useState(!initialCache)
   const [selectedCompId, setSelectedCompId] = useState<string>("")
   const [candidates, setCandidates] = useState<CandidateCode[]>([])
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    async function load() {
-      try {
-        const res = await fetch(`/api/festival/${festivalId}/workspace?scope=code-letters`, { cache: "no-store" })
-        const data = await res.json()
-        const compList = (data?.competitions || []) as Competition[]
-        setCompetitions(compList)
-      } catch (err) {
-        console.error("Failed to load competitions:", err)
-      } finally {
-        setLoading(false)
-      }
+    let active = true
+    fetchWorkspaceWithSWR(festivalId, "code-letters", (data) => {
+      if (!active) return
+      setWorkspaceData(data)
+      setCompetitions((data?.competitions || []) as Competition[])
+    })
+      .catch((err) => console.error("Failed to load competitions:", err))
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => {
+      active = false
     }
-    load()
   }, [festivalId])
 
   useEffect(() => {
-    if (!selectedCompId) {
+    if (!selectedCompId || !workspaceData) {
       setCandidates([])
       return
     }
 
-    async function loadCandidates() {
-      try {
-        const res = await fetch(`/api/festival/${festivalId}/workspace?scope=code-letters`, { cache: "no-store" })
-        const data = await res.json()
-        const pList = (data?.participants || []) as Participant[]
-        const regs = (data?.registrations || []) as Array<{ participant_id: string; competition_id: string }>
-        const savedEntries = ((data?.customFields?.code_letters as Record<string, Array<{ id: string; codeLetter: string; isReported: boolean }>> | undefined)?.[selectedCompId]) || []
-        const savedById = new Map(savedEntries.map((s) => [s.id, s]))
+    const pList = (workspaceData?.participants || []) as Participant[]
+    const regs = (workspaceData?.registrations || []) as Array<{ participant_id: string; competition_id: string }>
+    const savedEntries = ((workspaceData?.customFields?.code_letters as Record<string, Array<{ id: string; codeLetter: string; isReported: boolean }>> | undefined)?.[selectedCompId]) || []
+    const savedById = new Map(savedEntries.map((s) => [s.id, s]))
 
-        const enrolledIds = new Set(regs.filter((r) => r.competition_id === selectedCompId).map((r) => r.participant_id))
-        const filteredParticipants = enrolledIds.size > 0
-          ? pList.filter((p) => enrolledIds.has(p.id))
-          : pList
+    const enrolledIds = new Set(regs.filter((r) => r.competition_id === selectedCompId).map((r) => r.participant_id))
+    const filteredParticipants = enrolledIds.size > 0
+      ? pList.filter((p) => enrolledIds.has(p.id))
+      : pList
 
-        const codesList: CandidateCode[] = filteredParticipants.map((p, idx) => {
-          const saved = savedById.get(p.id)
-          const letter = saved?.codeLetter || String.fromCharCode(65 + (idx % 26))
-          return {
-            id: p.id,
-            chestNumber: p.chest_number || "—",
-            name: `${p.first_name} ${p.last_name || ""}`.trim(),
-            team: p.unit || "Unassigned",
-            codeLetter: letter,
-            isReported: saved?.isReported ?? false,
-          }
-        })
-
-        setCandidates(codesList)
-      } catch (err) {
-        console.error("Failed to load participants:", err)
-        setCandidates([])
+    const codesList: CandidateCode[] = filteredParticipants.map((p, idx) => {
+      const saved = savedById.get(p.id)
+      const letter = saved?.codeLetter || String.fromCharCode(65 + (idx % 26))
+      return {
+        id: p.id,
+        chestNumber: p.chest_number || "—",
+        name: `${p.first_name} ${p.last_name || ""}`.trim(),
+        team: p.unit || "Unassigned",
+        codeLetter: letter,
+        isReported: saved?.isReported ?? false,
       }
-    }
-    loadCandidates()
-  }, [selectedCompId, festivalId])
+    })
+
+    setCandidates(codesList)
+  }, [selectedCompId, workspaceData])
 
   const handleLetterChange = (id: string, letter: string) => {
     const val = letter.toUpperCase().slice(0, 2)
@@ -141,6 +134,7 @@ export default function CodeLettersPage() {
       if (!res.ok || !data.success) {
         throw new Error(data.error || "Failed to save code letters")
       }
+      invalidateFestivalWorkspace(festivalId)
       toast.success("Code letters saved!")
     } catch (err: any) {
       toast.error(err?.message || "Failed to save code letters")

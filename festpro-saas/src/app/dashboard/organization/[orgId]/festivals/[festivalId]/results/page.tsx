@@ -7,6 +7,7 @@ import { ExportPrintBar } from "@/components/ui/export-print-bar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Trophy, Search, Loader2, X, Check } from "lucide-react"
+import { getCachedWorkspace, fetchWorkspaceWithSWR } from "@/lib/cache/workspace-cache"
 
 interface WinnerItem {
   place: string
@@ -21,11 +22,12 @@ export default function FestivalResultsPage() {
   const params = useParams()
   const festivalId = params.festivalId as string
 
-  const [competitions, setCompetitions] = useState<Competition[]>([])
-  const [categories, setCategories] = useState<any[]>([])
-  const [participants, setParticipants] = useState<any[]>([])
-  const [resultItems, setResultItems] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const initialCache = getCachedWorkspace(festivalId, "results")
+  const [competitions, setCompetitions] = useState<Competition[]>(() => (initialCache?.competitions || []) as Competition[])
+  const [categories, setCategories] = useState<any[]>(() => initialCache?.categories || [])
+  const [participants, setParticipants] = useState<any[]>(() => initialCache?.participants || [])
+  const [resultItems, setResultItems] = useState<any[]>(() => initialCache?.resultItems || [])
+  const [loading, setLoading] = useState(!initialCache)
 
   // Filters
   const [search, setSearch] = useState("")
@@ -38,24 +40,17 @@ export default function FestivalResultsPage() {
 
   useEffect(() => {
     let active = true
-    async function load() {
-      try {
-        const res = await fetch(`/api/festival/${festivalId}/workspace?scope=results`, {
-          cache: "no-store",
-        })
-        const data = await res.json()
-        if (!active) return
-        setCompetitions((Array.isArray(data?.competitions) ? data.competitions : []) as Competition[])
-        setCategories(Array.isArray(data?.categories) ? data.categories : [])
-        setParticipants(Array.isArray(data?.participants) ? data.participants : [])
-        setResultItems(Array.isArray(data?.resultItems) ? data.resultItems : [])
-      } catch (err) {
-        console.error("Failed to load results:", err)
-      } finally {
+    fetchWorkspaceWithSWR(festivalId, "results", (data) => {
+      if (!active) return
+      setCompetitions((Array.isArray(data?.competitions) ? data.competitions : []) as Competition[])
+      setCategories(Array.isArray(data?.categories) ? data.categories : [])
+      setParticipants(Array.isArray(data?.participants) ? data.participants : [])
+      setResultItems(Array.isArray(data?.resultItems) ? data.resultItems : [])
+    })
+      .catch((err) => console.error("Failed to load results:", err))
+      .finally(() => {
         if (active) setLoading(false)
-      }
-    }
-    load()
+      })
     return () => {
       active = false
     }

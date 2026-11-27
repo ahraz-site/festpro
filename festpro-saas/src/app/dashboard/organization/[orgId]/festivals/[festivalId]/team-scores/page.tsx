@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { Users, Loader2, X } from "lucide-react"
+import { getCachedWorkspace, fetchWorkspaceWithSWR, invalidateFestivalWorkspace } from "@/lib/cache/workspace-cache"
 
 interface TeamScoreRow {
   id: string
@@ -20,44 +21,43 @@ export default function TeamScoresPage() {
   const params = useParams()
   const festivalId = params.festivalId as string
 
-  const [teams, setTeams] = useState<any[]>([])
-  const [teamPoints, setTeamPoints] = useState<any[]>([])
-  const [categories, setCategories] = useState<any[]>([])
-  const [competitions, setCompetitions] = useState<any[]>([])
-  const [participants, setParticipants] = useState<any[]>([])
-  const [resultItems, setResultItems] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const initialCache = getCachedWorkspace(festivalId, "team-scores")
+  const [teams, setTeams] = useState<any[]>(() => initialCache?.teams || [])
+  const [teamPoints, setTeamPoints] = useState<any[]>(() => initialCache?.teamPoints || [])
+  const [categories, setCategories] = useState<any[]>(() => initialCache?.categories || [])
+  const [competitions, setCompetitions] = useState<any[]>(() => initialCache?.competitions || [])
+  const [participants, setParticipants] = useState<any[]>(() => initialCache?.participants || [])
+  const [resultItems, setResultItems] = useState<any[]>(() => initialCache?.resultItems || [])
+  const [loading, setLoading] = useState(!initialCache)
   const [submitting, setSubmitting] = useState(false)
   const [search, setSearch] = useState("")
 
   // Controls
   const [viewType, setViewType] = useState<"overall" | "by_category">("overall")
   const [selectedCategory, setSelectedCategory] = useState("all")
-  const [isPublished, setIsPublished] = useState(false)
+  const [isPublished, setIsPublished] = useState(() => Boolean(initialCache?.customFields?.published_scores_meta?.publishedAt))
 
   // Adjust Points Modal State
   const [showAdjustModal, setShowAdjustModal] = useState(false)
-  const [adjustTeamId, setAdjustTeamId] = useState("")
+  const [adjustTeamId, setAdjustTeamId] = useState(() => initialCache?.teams?.[0]?.id || "")
   const [adjustPoints, setAdjustPoints] = useState("0")
   const [adjustReason, setAdjustReason] = useState("")
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch(`/api/festival/${festivalId}/workspace?scope=team-scores`, {
-        cache: "no-store",
+      await fetchWorkspaceWithSWR(festivalId, "team-scores", (data) => {
+        const dbTeams = Array.isArray(data?.teams) ? data.teams : []
+        setTeams(dbTeams)
+        setTeamPoints(Array.isArray(data?.teamPoints) ? data.teamPoints : [])
+        setCategories(Array.isArray(data?.categories) ? data.categories : [])
+        setCompetitions(Array.isArray(data?.competitions) ? data.competitions : [])
+        setParticipants(Array.isArray(data?.participants) ? data.participants : [])
+        setResultItems(Array.isArray(data?.resultItems) ? data.resultItems : [])
+        setIsPublished(Boolean(data?.customFields?.published_scores_meta?.publishedAt))
+        if (dbTeams[0]) {
+          setAdjustTeamId((prev: string) => (prev && dbTeams.some((t: any) => t.id === prev) ? prev : dbTeams[0].id))
+        }
       })
-      const data = await res.json()
-      const dbTeams = Array.isArray(data?.teams) ? data.teams : []
-      setTeams(dbTeams)
-      setTeamPoints(Array.isArray(data?.teamPoints) ? data.teamPoints : [])
-      setCategories(Array.isArray(data?.categories) ? data.categories : [])
-      setCompetitions(Array.isArray(data?.competitions) ? data.competitions : [])
-      setParticipants(Array.isArray(data?.participants) ? data.participants : [])
-      setResultItems(Array.isArray(data?.resultItems) ? data.resultItems : [])
-      setIsPublished(Boolean(data?.customFields?.published_scores_meta?.publishedAt))
-      if (dbTeams[0]) {
-        setAdjustTeamId((prev) => (prev && dbTeams.some((t: any) => t.id === prev) ? prev : dbTeams[0].id))
-      }
     } catch (err) {
       console.error("Failed to load team scores:", err)
     } finally {
@@ -175,6 +175,7 @@ export default function TeamScoresPage() {
       if (!res.ok || !data.success) {
         throw new Error(data.error || "Failed to adjust team points")
       }
+      invalidateFestivalWorkspace(festivalId)
       toast.success(`Adjusted ${pts > 0 ? `+${pts}` : pts} points for ${teamObj.name}`)
       setShowAdjustModal(false)
       setAdjustPoints("0")

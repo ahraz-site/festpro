@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner"
 import type { FestivalStage } from "@/types/festival"
 import type { Competition } from "@/types/competition"
+import { getCachedWorkspace, fetchWorkspaceWithSWR } from "@/lib/cache/workspace-cache"
 
 interface LiveResultAnnouncement {
   id: string
@@ -39,10 +40,11 @@ export default function AnnouncerDeskPage() {
   const orgId = params.orgId as string
   const festivalId = params.festivalId as string
 
-  const [loading, setLoading] = useState(true)
-  const [stages, setStages] = useState<FestivalStage[]>([])
-  const [competitions, setCompetitions] = useState<Competition[]>([])
-  const [participants, setParticipants] = useState<any[]>([])
+  const initialCache = getCachedWorkspace(festivalId, "announcer")
+  const [loading, setLoading] = useState(!initialCache)
+  const [stages, setStages] = useState<FestivalStage[]>(() => initialCache?.stages || [])
+  const [competitions, setCompetitions] = useState<Competition[]>(() => initialCache?.competitions || [])
+  const [participants, setParticipants] = useState<any[]>(() => initialCache?.participants || [])
 
   const [selectedStage, setSelectedStage] = useState<string>("")
   const [callType, setCallType] = useState<"Call 1" | "Call 2" | "Final Call">("Call 1")
@@ -57,74 +59,68 @@ export default function AnnouncerDeskPage() {
   const [isEmergency, setIsEmergency] = useState(false)
   const [recentBroadcasts, setRecentBroadcasts] = useState<
     Array<{ id: string; text: string; time: string; stage: string; type: string }>
-  >([])
+  >(() => initialCache?.customFields?.announcer_broadcasts || [])
 
-  const loadWorkspace = useCallback(async () => {
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/festival/${festivalId}/workspace?scope=announcer`, {
-        cache: "no-store",
-      })
-      if (!res.ok) return
-      const json = await res.json()
+  const applyWorkspace = useCallback((json: any) => {
+    const stgs: FestivalStage[] = json.stages || []
+    const comps: Competition[] = json.competitions || []
+    const parts: any[] = json.participants || []
+    const results: any[] = json.resultItems || []
+    const announcedMap: Record<string, boolean> = json.customFields?.announced_results || {}
+    const broadcasts: any[] = json.customFields?.announcer_broadcasts || []
 
-      const stgs: FestivalStage[] = json.stages || []
-      const comps: Competition[] = json.competitions || []
-      const parts: any[] = json.participants || []
-      const results: any[] = json.resultItems || []
-      const announcedMap: Record<string, boolean> = json.customFields?.announced_results || {}
-      const broadcasts: any[] = json.customFields?.announcer_broadcasts || []
+    setStages(stgs)
+    setCompetitions(comps)
+    setParticipants(parts)
+    setRecentBroadcasts(broadcasts)
 
-      setStages(stgs)
-      setCompetitions(comps)
-      setParticipants(parts)
-      setRecentBroadcasts(broadcasts)
+    if (stgs[0]) setSelectedStage((prev) => prev || stgs[0].name)
+    if (comps[0]) setProgramName((prev) => prev || comps[0].name)
 
-      if (stgs[0] && !selectedStage) setSelectedStage(stgs[0].name)
-      if (comps[0] && !programName) setProgramName(comps[0].name)
-
-      // Group real live/published results by competition
-      const byComp = new Map<string, LiveResultAnnouncement>()
-      for (const item of results) {
-        if (item.status !== "live" && item.status !== "published") continue
-        const compId = item.competition_id
-        if (!byComp.has(compId)) {
-          byComp.set(compId, {
-            id: compId,
-            competitionId: compId,
-            programName: item.competition?.name || "Competition",
-            category: item.participant?.division || "General",
-            isAnnounced: !!announcedMap[compId],
-            publishedAt: item.published_at
-              ? new Date(item.published_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-              : "Published",
-            winners: [],
-          })
-        }
-        const entry = byComp.get(compId)!
-        const pName = item.participant
-          ? `${item.participant.first_name || ""} ${item.participant.last_name || ""}`.trim()
-          : "Contestant"
-        entry.winners.push({
-          rank: item.rank || entry.winners.length + 1,
-          name: pName,
-          chestNumber: item.participant?.chest_number || "-",
-          team: item.participant?.unit || "",
-          score: Number(item.final_score || item.total_score || 0),
+    const byComp = new Map<string, LiveResultAnnouncement>()
+    for (const item of results) {
+      if (item.status !== "live" && item.status !== "published") continue
+      const compId = item.competition_id
+      if (!byComp.has(compId)) {
+        byComp.set(compId, {
+          id: compId,
+          competitionId: compId,
+          programName: item.competition?.name || "Competition",
+          category: item.participant?.division || "General",
+          isAnnounced: !!announcedMap[compId],
+          publishedAt: item.published_at
+            ? new Date(item.published_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+            : "Published",
+          winners: [],
         })
       }
+      const grp = byComp.get(compId)!
+      grp.winners.push({
+        rank: item.rank || grp.winners.length + 1,
+        name: item.participant ? `${item.participant.first_name || ""} ${item.participant.last_name || ""}`.trim() : "Contestant",
+        chestNumber: item.participant?.chest_number || "-",
+        team: item.participant?.unit || "",
+        score: Number(item.final_score || item.total_score || 0),
+      })
+    }
 
-      const grouped = Array.from(byComp.values()).map((g) => ({
-        ...g,
-        winners: g.winners.sort((a, b) => a.rank - b.rank).slice(0, 3),
-      }))
-      setLiveResults(grouped)
+    const grouped = Array.from(byComp.values()).map((g) => ({
+      ...g,
+      winners: g.winners.sort((a, b) => a.rank - b.rank).slice(0, 3),
+    }))
+    setLiveResults(grouped)
+  }, [])
+
+  const loadWorkspace = useCallback(async () => {
+    if (initialCache) applyWorkspace(initialCache)
+    try {
+      await fetchWorkspaceWithSWR(festivalId, "announcer", applyWorkspace)
     } catch (err) {
-      console.error("Announcer workspace load error:", err)
+      console.error("Failed to load announcer desk:", err)
     } finally {
       setLoading(false)
     }
-  }, [festivalId])
+  }, [festivalId, applyWorkspace])
 
   useEffect(() => {
     if (festivalId) loadWorkspace()

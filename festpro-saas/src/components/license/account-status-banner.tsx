@@ -5,17 +5,51 @@ import { AlertTriangle, ShieldAlert, Phone, CreditCard } from "lucide-react"
 import type { SaasLicense } from "@/types/licensing"
 import { getOrganizationLicense } from "@/lib/actions/licensing"
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export function AccountStatusBanner({ organizationId }: { organizationId?: string | null }) {
-  const [license, setLicense] = useState<SaasLicense | null>(null)
+  const [license, setLicense] = useState<SaasLicense | null>(() => {
+    if (!organizationId || !UUID_RE.test(organizationId) || typeof window === "undefined") return null
+    try {
+      const cached = sessionStorage.getItem(`festpro_license_status_${organizationId}`)
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        if (parsed && Date.now() - parsed.ts < 120_000) return parsed.data
+      }
+    } catch {}
+    return null
+  })
 
   useEffect(() => {
-    if (!organizationId) return
+    if (!organizationId || !UUID_RE.test(organizationId)) return
+    let active = true
+    try {
+      const cached = sessionStorage.getItem(`festpro_license_status_${organizationId}`)
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        if (parsed && Date.now() - parsed.ts < 120_000) {
+          setLicense(parsed.data)
+          return
+        }
+      }
+    } catch {}
+
     async function check() {
       if (!organizationId) return
       const lic = await getOrganizationLicense(organizationId)
+      if (!active) return
       setLicense(lic)
+      try {
+        sessionStorage.setItem(
+          `festpro_license_status_${organizationId}`,
+          JSON.stringify({ data: lic, ts: Date.now() })
+        )
+      } catch {}
     }
     check()
+    return () => {
+      active = false
+    }
   }, [organizationId])
 
   if (!license) return null

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { Gamepad2, Search, Loader2, Users, MoreVertical } from "lucide-react"
+import { getCachedWorkspace, fetchWorkspaceWithSWR, invalidateFestivalWorkspace } from "@/lib/cache/workspace-cache"
 
 function mapDeskStatusToLabel(deskStatus?: string, dbStatus?: string): string {
   if (deskStatus === "STARTED") return "Started"
@@ -36,12 +37,13 @@ export default function LiveProgramsPage() {
   const orgId = params.orgId as string
   const festivalId = params.festivalId as string
 
-  const [competitions, setCompetitions] = useState<Competition[]>([])
-  const [stages, setStages] = useState<FestivalStage[]>([])
-  const [categories, setCategories] = useState<any[]>([])
-  const [resultItems, setResultItems] = useState<any[]>([])
-  const [programMarks, setProgramMarks] = useState<Record<string, any[]>>({})
-  const [loading, setLoading] = useState(true)
+  const initialCache = getCachedWorkspace(festivalId, "live-programs")
+  const [competitions, setCompetitions] = useState<Competition[]>(() => (initialCache?.competitions || []) as Competition[])
+  const [stages, setStages] = useState<FestivalStage[]>(() => (initialCache?.stages || []) as FestivalStage[])
+  const [categories, setCategories] = useState<any[]>(() => initialCache?.categories || [])
+  const [resultItems, setResultItems] = useState<any[]>(() => initialCache?.resultItems || [])
+  const [programMarks, setProgramMarks] = useState<Record<string, any[]>>(() => (initialCache?.customFields?.program_marks || {}) as Record<string, any[]>)
+  const [loading, setLoading] = useState(!initialCache)
 
   // Filters
   const [search, setSearch] = useState("")
@@ -55,43 +57,38 @@ export default function LiveProgramsPage() {
 
   useEffect(() => {
     let active = true
-    async function load() {
-      try {
-        const res = await fetch(`/api/festival/${festivalId}/workspace?scope=live-programs`, {
-          cache: "no-store",
-        })
-        const data = await res.json()
-        if (!active) return
+    const applyData = (data: any) => {
+      if (!active) return
+      const compList = (Array.isArray(data?.competitions) ? data.competitions : []) as Competition[]
+      const stageList = (Array.isArray(data?.stages) ? data.stages : []) as FestivalStage[]
+      const liveStatuses = (data?.customFields?.live_stage_statuses || {}) as Record<
+        string,
+        { stageId?: string; deskStatus?: string }
+      >
 
-        const compList = (Array.isArray(data?.competitions) ? data.competitions : []) as Competition[]
-        const stageList = (Array.isArray(data?.stages) ? data.stages : []) as FestivalStage[]
-        const liveStatuses = (data?.customFields?.live_stage_statuses || {}) as Record<
-          string,
-          { stageId?: string; deskStatus?: string }
-        >
+      setCompetitions(compList)
+      setStages(stageList)
+      setCategories(Array.isArray(data?.categories) ? data.categories : [])
+      setResultItems(Array.isArray(data?.resultItems) ? data.resultItems : [])
+      setProgramMarks((data?.customFields?.program_marks || {}) as Record<string, any[]>)
 
-        setCompetitions(compList)
-        setStages(stageList)
-        setCategories(Array.isArray(data?.categories) ? data.categories : [])
-        setResultItems(Array.isArray(data?.resultItems) ? data.resultItems : [])
-        setProgramMarks((data?.customFields?.program_marks || {}) as Record<string, any[]>)
-
-        const initial: Record<string, { stageId: string; status: string }> = {}
-        compList.forEach((c) => {
-          const saved = liveStatuses[c.id]
-          initial[c.id] = {
-            stageId: saved?.stageId || (c as any).venue_id || stageList[0]?.id || "",
-            status: mapDeskStatusToLabel(saved?.deskStatus, c.status),
-          }
-        })
-        setProgramStates(initial)
-      } catch (err) {
-        console.error("Failed to load live programs:", err)
-      } finally {
-        if (active) setLoading(false)
-      }
+      const initial: Record<string, { stageId: string; status: string }> = {}
+      compList.forEach((c) => {
+        const saved = liveStatuses[c.id]
+        initial[c.id] = {
+          stageId: saved?.stageId || (c as any).venue_id || stageList[0]?.id || "",
+          status: mapDeskStatusToLabel(saved?.deskStatus, c.status),
+        }
+      })
+      setProgramStates(initial)
     }
-    load()
+
+    if (initialCache) applyData(initialCache)
+    fetchWorkspaceWithSWR(festivalId, "live-programs", applyData)
+      .catch((err) => console.error("Failed to load live programs:", err))
+      .finally(() => {
+        if (active) setLoading(false)
+      })
     return () => {
       active = false
     }
@@ -119,6 +116,7 @@ export default function LiveProgramsPage() {
           },
         }),
       })
+      invalidateFestivalWorkspace(festivalId)
     } catch {}
   }
 

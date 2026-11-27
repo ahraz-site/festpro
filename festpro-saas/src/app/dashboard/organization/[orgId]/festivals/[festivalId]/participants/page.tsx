@@ -20,19 +20,26 @@ import { ExportPrintBar } from "@/components/ui/export-print-bar"
 import { ViewToggle, type ViewMode } from "@/components/ui/view-toggle"
 import type { Participant } from "@/types/participant"
 import type { CompetitionCategory, Competition } from "@/types/competition"
+import {
+  getCachedWorkspace,
+  fetchWorkspaceWithSWR,
+  invalidateFestivalWorkspace,
+} from "@/lib/cache/workspace-cache"
 
 export default function ParticipantsManagementPage() {
   const params = useParams()
   const orgId = params.orgId as string
   const festivalId = params.festivalId as string
 
-  const [participants, setParticipants] = useState<Participant[]>([])
-  const [categories, setCategories] = useState<CompetitionCategory[]>([])
-  const [teams, setTeams] = useState<{ id: string; name: string; code: string }[]>([])
-  const [competitions, setCompetitions] = useState<Competition[]>([])
-  const [registrations, setRegistrations] = useState<Array<{ participant_id: string; competition_id: string }>>([])
-  const [maxLimit, setMaxLimit] = useState<number | null>(null)
-  const [loading, setLoading] = useState(true)
+  const initialCache = getCachedWorkspace(festivalId, "participants")
+
+  const [participants, setParticipants] = useState<Participant[]>(() => (initialCache?.participants || []) as Participant[])
+  const [categories, setCategories] = useState<CompetitionCategory[]>(() => (initialCache?.categories || []) as CompetitionCategory[])
+  const [teams, setTeams] = useState<{ id: string; name: string; code: string }[]>(() => initialCache?.teams || [])
+  const [competitions, setCompetitions] = useState<Competition[]>(() => (initialCache?.competitions || []) as Competition[])
+  const [registrations, setRegistrations] = useState<Array<{ participant_id: string; competition_id: string }>>(() => initialCache?.registrations || [])
+  const [maxLimit, setMaxLimit] = useState<number | null>(() => initialCache?.license?.max_participants ?? null)
+  const [loading, setLoading] = useState(!initialCache)
   const [viewMode, setViewMode] = useState<ViewMode>("table")
 
   // Filters
@@ -60,44 +67,41 @@ export default function ParticipantsManagementPage() {
   const [bulkCategory, setBulkCategory] = useState("")
   const [bulkNames, setBulkNames] = useState("")
 
+  const applyWorkspace = useCallback((json: any) => {
+    const partsList = (json.participants || []) as Participant[]
+    const catsList = (json.categories || []) as CompetitionCategory[]
+    const teamsList = (json.teams || []) as { id: string; name: string; code: string }[]
+    const compsList = (json.competitions || []) as Competition[]
+    const regsList = (json.registrations || []) as Array<{ participant_id: string; competition_id: string }>
+
+    setParticipants(partsList)
+    setCategories(catsList)
+    setTeams(teamsList)
+    setCompetitions(compsList)
+    setRegistrations(regsList)
+    if (json.license !== undefined) {
+      setMaxLimit(json.license?.max_participants ?? null)
+    }
+
+    if (teamsList[0]) {
+      setFormTeam((prev) => prev || teamsList[0].code || teamsList[0].name)
+      setBulkTeam((prev) => prev || teamsList[0].code || teamsList[0].name)
+    }
+    if (catsList[0]) {
+      setFormCategory((prev) => prev || catsList[0].name)
+      setBulkCategory((prev) => prev || catsList[0].name)
+    }
+  }, [])
+
   const loadData = useCallback(async () => {
     try {
-      const res = await fetch(`/api/festival/${festivalId}/workspace?scope=participants`, {
-        cache: "no-store",
-      })
-      if (!res.ok) {
-        setLoading(false)
-        return
-      }
-      const json = await res.json()
-      const partsList = (json.participants || []) as Participant[]
-      const catsList = (json.categories || []) as CompetitionCategory[]
-      const teamsList = (json.teams || []) as { id: string; name: string; code: string }[]
-      const compsList = (json.competitions || []) as Competition[]
-      const regsList = (json.registrations || []) as Array<{ participant_id: string; competition_id: string }>
-
-      setParticipants(partsList)
-      setCategories(catsList)
-      setTeams(teamsList)
-      setCompetitions(compsList)
-      setRegistrations(regsList)
-      setMaxLimit(json.license?.max_participants ?? null)
-
-      if (teamsList[0]) {
-        setFormTeam((prev) => prev || teamsList[0].code || teamsList[0].name)
-        setBulkTeam((prev) => prev || teamsList[0].code || teamsList[0].name)
-      }
-      if (catsList[0]) {
-        setFormCategory((prev) => prev || catsList[0].name)
-        setBulkCategory((prev) => prev || catsList[0].name)
-      }
+      await fetchWorkspaceWithSWR(festivalId, "participants", applyWorkspace)
     } catch (err) {
       console.error("Failed to load participants workspace:", err)
-      toast.error("Failed to load participants")
     } finally {
       setLoading(false)
     }
-  }, [festivalId])
+  }, [festivalId, applyWorkspace])
 
   useEffect(() => {
     loadData()
@@ -109,6 +113,7 @@ export default function ParticipantsManagementPage() {
     if (res.error) {
       toast.error(res.error)
     } else {
+      invalidateFestivalWorkspace(festivalId)
       toast.success("Participant removed")
       setParticipants((prev) => prev.filter((p) => p.id !== id))
     }
@@ -161,6 +166,7 @@ export default function ParticipantsManagementPage() {
       if (!res.ok || json.error) {
         toast.error(json.error || "Failed to save program enrollments")
       } else {
+        invalidateFestivalWorkspace(festivalId)
         toast.success("Program enrollments updated!")
         setProgramModalParticipant(null)
         loadData()
@@ -199,6 +205,7 @@ export default function ParticipantsManagementPage() {
     if (res.error) {
       toast.error(res.error)
     } else {
+      invalidateFestivalWorkspace(festivalId)
       toast.success(editingId ? "Participant updated!" : "Participant added successfully!")
       setShowAddModal(false)
       setEditingId(null)
@@ -226,6 +233,7 @@ export default function ParticipantsManagementPage() {
     if (res.error) {
       toast.error(res.error)
     } else {
+      invalidateFestivalWorkspace(festivalId)
       toast.success(`Successfully added ${res.count} participants!`)
       setShowBulkModal(false)
       setBulkNames("")

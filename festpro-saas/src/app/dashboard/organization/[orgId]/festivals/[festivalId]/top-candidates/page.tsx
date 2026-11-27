@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ExportPrintBar } from "@/components/ui/export-print-bar"
 import { Trophy, X, Loader2 } from "lucide-react"
+import { getCachedWorkspace, fetchWorkspaceWithSWR } from "@/lib/cache/workspace-cache"
 
 interface CandidateRank {
   rank: number
@@ -20,16 +21,17 @@ export default function TopCandidatesPage() {
   const params = useParams()
   const festivalId = params.festivalId as string
 
+  const initialCache = getCachedWorkspace(festivalId, "top-candidates")
   const [includeCommon, setIncludeCommon] = useState(true)
   const [includeStage, setIncludeStage] = useState(true)
   const [includeOffStage, setIncludeOffStage] = useState(true)
   const [searchCategory, setSearchCategory] = useState("")
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!initialCache)
 
-  const [dbCategories, setDbCategories] = useState<any[]>([])
-  const [competitions, setCompetitions] = useState<any[]>([])
-  const [participants, setParticipants] = useState<any[]>([])
-  const [resultItems, setResultItems] = useState<any[]>([])
+  const [dbCategories, setDbCategories] = useState<any[]>(() => initialCache?.categories || [])
+  const [competitions, setCompetitions] = useState<any[]>(() => initialCache?.competitions || [])
+  const [participants, setParticipants] = useState<any[]>(() => initialCache?.participants || [])
+  const [resultItems, setResultItems] = useState<any[]>(() => initialCache?.resultItems || [])
 
   // Ranking Modal
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
@@ -37,24 +39,17 @@ export default function TopCandidatesPage() {
 
   useEffect(() => {
     let active = true
-    async function load() {
-      try {
-        const res = await fetch(`/api/festival/${festivalId}/workspace?scope=top-candidates`, {
-          cache: "no-store",
-        })
-        const data = await res.json()
-        if (!active) return
-        setDbCategories(Array.isArray(data?.categories) ? data.categories : [])
-        setCompetitions(Array.isArray(data?.competitions) ? data.competitions : [])
-        setParticipants(Array.isArray(data?.participants) ? data.participants : [])
-        setResultItems(Array.isArray(data?.resultItems) ? data.resultItems : [])
-      } catch (err) {
-        console.error("Failed to load top candidates data:", err)
-      } finally {
+    fetchWorkspaceWithSWR(festivalId, "top-candidates", (data) => {
+      if (!active) return
+      setDbCategories(Array.isArray(data?.categories) ? data.categories : [])
+      setCompetitions(Array.isArray(data?.competitions) ? data.competitions : [])
+      setParticipants(Array.isArray(data?.participants) ? data.participants : [])
+      setResultItems(Array.isArray(data?.resultItems) ? data.resultItems : [])
+    })
+      .catch((err) => console.error("Failed to load top candidates data:", err))
+      .finally(() => {
         if (active) setLoading(false)
-      }
-    }
-    load()
+      })
     return () => {
       active = false
     }

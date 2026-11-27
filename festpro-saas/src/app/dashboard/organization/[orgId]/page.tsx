@@ -16,6 +16,45 @@ import { getOrganizationDashboardData } from "@/lib/actions/organization"
 import { getOrCreateOrganizationFestivalAction } from "@/lib/actions/festival"
 import { FestProFavicon } from "@/components/ui/logo"
 
+import { createClient } from "@/lib/supabase/client"
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+const KNOWN_FESTIVAL_SECTIONS = new Set([
+  "teams",
+  "participants",
+  "competitions",
+  "schedules",
+  "live-programs",
+  "stages",
+  "stage-desk",
+  "tv-displays",
+  "judges-panel",
+  "green-room",
+  "announcements",
+  "media-panel",
+  "enter-marks",
+  "code-letters",
+  "subject-picker",
+  "team-scores",
+  "results",
+  "result-planner",
+  "published-team-scores",
+  "top-candidates",
+  "prizes",
+  "grade-points",
+  "id-cards",
+  "certificates",
+  "reports",
+  "poster-templates",
+  "poster-ads",
+  "fonts",
+  "website",
+  "api-keys",
+  "settings",
+  "help",
+])
+
 export default function OrganizationDashboardPage() {
   const params = useParams()
   const router = useRouter()
@@ -26,28 +65,122 @@ export default function OrganizationDashboardPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function load() {
+    let active = true
+
+    async function recoverInvalidOrgRoute() {
+      const targetSubpath = KNOWN_FESTIVAL_SECTIONS.has(orgId) ? `/${orgId}` : ""
       try {
-        const [orgRes, festRes] = await Promise.all([
-          getOrganizationDashboardData(orgId),
-          getOrCreateOrganizationFestivalAction(orgId),
-        ])
+        const cachedProfRaw = sessionStorage.getItem("festpro_cached_profile")
+        const cachedProf = cachedProfRaw ? JSON.parse(cachedProfRaw) : null
+        let realOrgId = cachedProf?.organization_id && UUID_RE.test(cachedProf.organization_id) ? cachedProf.organization_id : ""
 
-        setData(orgRes as unknown as OrganizationDashboardData)
+        if (!realOrgId) {
+          const cachedOrgsRaw = sessionStorage.getItem("festpro_cached_orgs")
+          const cachedOrgs = cachedOrgsRaw ? JSON.parse(cachedOrgsRaw) : null
+          if (cachedOrgs?.[0]?.id && UUID_RE.test(cachedOrgs[0].id)) realOrgId = cachedOrgs[0].id
+        }
 
+        if (!realOrgId) {
+          const supabase = createClient()
+          const { data: sess } = await supabase.auth.getSession()
+          const userId = sess?.session?.user?.id
+          if (userId) {
+            const { data: prof } = await supabase.from("profiles").select("organization_id").eq("id", userId).maybeSingle()
+            if (prof?.organization_id) realOrgId = prof.organization_id
+            if (!realOrgId) {
+              const { data: mem } = await supabase.from("organization_members").select("organization_id").eq("user_id", userId).limit(1).maybeSingle()
+              if (mem?.organization_id) realOrgId = mem.organization_id
+            }
+          }
+          if (!realOrgId) {
+            const { data: orgRow } = await supabase.from("organizations").select("id").is("deleted_at", null).limit(1).maybeSingle()
+            if (orgRow?.id) realOrgId = orgRow.id
+          }
+        }
+
+        if (!realOrgId) {
+          router.replace("/dashboard/organization")
+          return
+        }
+
+        const cachedFestRaw = sessionStorage.getItem(`festpro_active_fest_${realOrgId}`)
+        const cachedFest = cachedFestRaw ? JSON.parse(cachedFestRaw) : null
+        if (cachedFest?.id) {
+          router.replace(`/dashboard/organization/${realOrgId}/festivals/${cachedFest.id}${targetSubpath}`)
+          return
+        }
+
+        const festRes = await getOrCreateOrganizationFestivalAction(realOrgId)
+        if (festRes.success && festRes.festival?.id) {
+          try { sessionStorage.setItem(`festpro_active_fest_${realOrgId}`, JSON.stringify(festRes.festival)) } catch {}
+          router.replace(`/dashboard/organization/${realOrgId}/festivals/${festRes.festival.id}${targetSubpath}`)
+          return
+        }
+
+        router.replace(`/dashboard/organization/${realOrgId}`)
+      } catch {
+        router.replace("/dashboard/organization")
+      }
+    }
+
+    async function load() {
+      // Recover immediately if a malformed URL like /dashboard/organization/participants was hit
+      if (!UUID_RE.test(orgId)) {
+        await recoverInvalidOrgRoute()
+        return
+      }
+
+      // 0ms instant redirect if active festival is already cached in sessionStorage
+      try {
+        const cachedFestRaw = sessionStorage.getItem(`festpro_active_fest_${orgId}`)
+        if (cachedFestRaw) {
+          const cachedFest = JSON.parse(cachedFestRaw)
+          if (cachedFest?.id) {
+            router.replace(`/dashboard/organization/${orgId}/festivals/${cachedFest.id}`)
+            return
+          }
+        }
+      } catch {}
+
+      try {
+        // Check lightweight Supabase festival query first to redirect quickly without full dashboard payload
+        const supabase = createClient()
+        const { data: directFest } = await supabase
+          .from("festivals")
+          .select("id, name, short_name, code, status")
+          .eq("organization_id", orgId)
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (directFest?.id) {
+          try { sessionStorage.setItem(`festpro_active_fest_${orgId}`, JSON.stringify(directFest)) } catch {}
+          router.replace(`/dashboard/organization/${orgId}/festivals/${directFest.id}`)
+          return
+        }
+
+        const festRes = await getOrCreateOrganizationFestivalAction(orgId)
+        if (!active) return
         if (festRes.success && festRes.festival) {
           setActiveFest(festRes.festival)
-          // Automatically redirect to the full festival workspace if arriving at organization root
+          try { sessionStorage.setItem(`festpro_active_fest_${orgId}`, JSON.stringify(festRes.festival)) } catch {}
           router.replace(`/dashboard/organization/${orgId}/festivals/${festRes.festival.id}`)
           return
         }
+
+        const orgRes = await getOrganizationDashboardData(orgId)
+        if (active) setData(orgRes as unknown as OrganizationDashboardData)
       } catch (err) {
         console.error("Dashboard load error:", err)
       } finally {
-        setLoading(false)
+        if (active) setLoading(false)
       }
     }
     load()
+    return () => {
+      active = false
+    }
   }, [orgId, router])
 
   if (loading) {

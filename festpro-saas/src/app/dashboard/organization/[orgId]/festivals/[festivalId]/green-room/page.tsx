@@ -19,8 +19,7 @@ import {
   Tag,
   Volume2,
 } from "lucide-react"
-import { getParticipants } from "@/lib/actions/participant"
-import { getCompetitions } from "@/lib/actions/competition"
+import { getCachedWorkspace, fetchWorkspaceWithSWR, invalidateFestivalWorkspace } from "@/lib/cache/workspace-cache"
 
 type GreenRoomStatus = "waiting" | "reported" | "ready_for_stage" | "on_stage" | "completed"
 
@@ -42,57 +41,62 @@ export default function GreenRoomPage() {
   const orgId = params.orgId as string
   const festivalId = params.festivalId as string
 
-  const [loading, setLoading] = useState(true)
+  const mapGreenRoomData = (data: any) => {
+    const pList = Array.isArray(data?.participants) ? data.participants : []
+    const cList = Array.isArray(data?.competitions) ? data.competitions : []
+    const greenRoomMap = (data?.customFields?.green_room || {}) as Record<
+      string,
+      { status?: GreenRoomStatus; codeLetter?: string; reportedTime?: string }
+    >
+    const codeLettersObj = (data?.customFields?.code_letters || {}) as Record<
+      string,
+      Array<{ id: string; codeLetter?: string; isReported?: boolean }>
+    >
+    const fallbackCodeByParticipant = new Map<string, string>()
+    Object.values(codeLettersObj).forEach((entries) => {
+      if (Array.isArray(entries)) {
+        entries.forEach((entry) => {
+          if (entry?.id && entry?.codeLetter && !fallbackCodeByParticipant.has(entry.id)) {
+            fallbackCodeByParticipant.set(entry.id, entry.codeLetter)
+          }
+        })
+      }
+    })
+
+    const mapped: ParticipantCard[] = pList.map((p: any, idx: number) => {
+      const saved = greenRoomMap[p.id]
+      return {
+        id: p.id,
+        name: `${p.first_name || ""} ${p.last_name || ""}`.trim() || `Participant ${idx + 1}`,
+        chestNumber: p.chest_number || "—",
+        team: p.unit || "Unassigned",
+        category: p.division || "General",
+        codeLetter: saved?.codeLetter || fallbackCodeByParticipant.get(p.id) || undefined,
+        greenRoomStatus: saved?.status || "waiting",
+        reportedTime: saved?.reportedTime || undefined,
+      }
+    })
+    return { mapped, cList }
+  }
+
+  const initialCache = getCachedWorkspace(festivalId, "green-room")
+  const initialMapped = initialCache ? mapGreenRoomData(initialCache) : null
+
+  const [loading, setLoading] = useState(!initialCache)
   const [isPending, startTransition] = useTransition()
-  const [participants, setParticipants] = useState<ParticipantCard[]>([])
-  const [competitions, setCompetitions] = useState<any[]>([])
+  const [participants, setParticipants] = useState<ParticipantCard[]>(() => initialMapped?.mapped || [])
+  const [competitions, setCompetitions] = useState<any[]>(() => initialMapped?.cList || [])
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | GreenRoomStatus>("all")
   const [selectedCompetition, setSelectedCompetition] = useState<string>("all")
   const [callingCandidate, setCallingCandidate] = useState<string | null>(null)
 
   const loadData = () => {
-    setLoading(true)
-    fetch(`/api/festival/${festivalId}/workspace?scope=green-room`, { cache: "no-store" })
-      .then((res) => res.json())
-      .then((data) => {
-        const pList = Array.isArray(data?.participants) ? data.participants : []
-        const cList = Array.isArray(data?.competitions) ? data.competitions : []
-        const greenRoomMap = (data?.customFields?.green_room || {}) as Record<
-          string,
-          { status?: GreenRoomStatus; codeLetter?: string; reportedTime?: string }
-        >
-        const codeLettersObj = (data?.customFields?.code_letters || {}) as Record<
-          string,
-          Array<{ id: string; codeLetter?: string; isReported?: boolean }>
-        >
-        const fallbackCodeByParticipant = new Map<string, string>()
-        Object.values(codeLettersObj).forEach((entries) => {
-          if (Array.isArray(entries)) {
-            entries.forEach((entry) => {
-              if (entry?.id && entry?.codeLetter && !fallbackCodeByParticipant.has(entry.id)) {
-                fallbackCodeByParticipant.set(entry.id, entry.codeLetter)
-              }
-            })
-          }
-        })
-
-        const mapped: ParticipantCard[] = pList.map((p: any, idx: number) => {
-          const saved = greenRoomMap[p.id]
-          return {
-            id: p.id,
-            name: `${p.first_name || ""} ${p.last_name || ""}`.trim() || `Participant ${idx + 1}`,
-            chestNumber: p.chest_number || "—",
-            team: p.unit || "Unassigned",
-            category: p.division || "General",
-            codeLetter: saved?.codeLetter || fallbackCodeByParticipant.get(p.id) || undefined,
-            greenRoomStatus: saved?.status || "waiting",
-            reportedTime: saved?.reportedTime || undefined,
-          }
-        })
-        setParticipants(mapped)
-        setCompetitions(cList)
-      })
+    fetchWorkspaceWithSWR(festivalId, "green-room", (data) => {
+      const { mapped, cList } = mapGreenRoomData(data)
+      setParticipants(mapped)
+      setCompetitions(cList)
+    })
       .catch((err) => toast.error(err.message || "Failed to load green room candidates"))
       .finally(() => setLoading(false))
   }

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { Gift, Search, X, Trophy, Loader2 } from "lucide-react"
+import { getCachedWorkspace, fetchWorkspaceWithSWR, invalidateFestivalWorkspace } from "@/lib/cache/workspace-cache"
 
 interface PrizeRow {
   id: string
@@ -26,7 +27,8 @@ export default function FestivalPrizesPage() {
   const params = useParams()
   const festivalId = params.festivalId as string
 
-  const [loading, setLoading] = useState(true)
+  const initialCache = getCachedWorkspace(festivalId, "prizes")
+  const [loading, setLoading] = useState(!initialCache)
   const [tab, setTab] = useState<"Winners" | "Candidates">("Winners")
   const [search, setSearch] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("all")
@@ -40,67 +42,64 @@ export default function FestivalPrizesPage() {
   const [categories, setCategories] = useState<string[]>([])
   const [prizes, setPrizes] = useState<PrizeRow[]>([])
 
+  const applyPrizes = useCallback((json: any) => {
+    const pConfig = json.customFields?.prize_config
+    const fAmt = pConfig?.first ?? "1000"
+    const sAmt = pConfig?.second ?? "500"
+    const tAmt = pConfig?.third ?? "250"
+    setFirstPrizeAmount(String(fAmt))
+    setSecondPrizeAmount(String(sAmt))
+    setThirdPrizeAmount(String(tAmt))
+
+    const givenMap: Record<string, boolean> = json.customFields?.prize_given || {}
+    const cats = (json.categories || []).map((c: any) => c.name)
+    setCategories(cats)
+
+    const resultItems: any[] = json.resultItems || []
+    const liveWinners = resultItems.filter(
+      (item) => (item.status === "live" || item.status === "published") && item.rank && item.rank <= 3
+    )
+
+    const rows: PrizeRow[] = liveWinners.map((item) => {
+      const rank = Number(item.rank)
+      const placeStr = rank === 1 ? "1st" : rank === 2 ? "2nd" : "3rd"
+      const amtNum = rank === 1 ? Number(fAmt) || 0 : rank === 2 ? Number(sAmt) || 0 : Number(tAmt) || 0
+      const rewardLabel =
+        amtNum > 0
+          ? `₹${amtNum.toLocaleString()} + ${rank === 1 ? "Trophy" : "Medal"}`
+          : rank === 1
+          ? "Trophy + Certificate"
+          : "Medal + Certificate"
+
+      return {
+        id: item.id,
+        program: item.competition?.name || "Program",
+        category: item.participant?.division || "General",
+        place: placeStr,
+        winnerName: item.participant
+          ? `${item.participant.first_name || ""} ${item.participant.last_name || ""}`.trim()
+          : "Participant",
+        winnerCode: item.participant?.chest_number || item.participant?.participant_id || "-",
+        team: item.participant?.unit || "",
+        grade: item.grade || "—",
+        prize: rewardLabel,
+        amount: amtNum,
+        isGiven: !!givenMap[item.id],
+      }
+    })
+    setPrizes(rows)
+  }, [])
+
   const loadPrizes = useCallback(async () => {
-    setLoading(true)
+    if (initialCache) applyPrizes(initialCache)
     try {
-      const res = await fetch(`/api/festival/${festivalId}/workspace?scope=prizes`, {
-        cache: "no-store",
-      })
-      if (!res.ok) return
-      const json = await res.json()
-
-      const pConfig = json.customFields?.prize_config
-      const fAmt = pConfig?.first ?? "1000"
-      const sAmt = pConfig?.second ?? "500"
-      const tAmt = pConfig?.third ?? "250"
-      setFirstPrizeAmount(String(fAmt))
-      setSecondPrizeAmount(String(sAmt))
-      setThirdPrizeAmount(String(tAmt))
-
-      const givenMap: Record<string, boolean> = json.customFields?.prize_given || {}
-      const cats = (json.categories || []).map((c: any) => c.name)
-      setCategories(cats)
-
-      const resultItems: any[] = json.resultItems || []
-      const liveWinners = resultItems.filter(
-        (item) => (item.status === "live" || item.status === "published") && item.rank && item.rank <= 3
-      )
-
-      const rows: PrizeRow[] = liveWinners.map((item) => {
-        const rank = Number(item.rank)
-        const placeStr = rank === 1 ? "1st" : rank === 2 ? "2nd" : "3rd"
-        const amtNum = rank === 1 ? Number(fAmt) || 0 : rank === 2 ? Number(sAmt) || 0 : Number(tAmt) || 0
-        const rewardLabel =
-          amtNum > 0
-            ? `₹${amtNum.toLocaleString()} + ${rank === 1 ? "Trophy" : "Medal"}`
-            : rank === 1
-            ? "Trophy + Certificate"
-            : "Medal + Certificate"
-
-        return {
-          id: item.id,
-          program: item.competition?.name || "Program",
-          category: item.participant?.division || "General",
-          place: placeStr,
-          winnerName: item.participant
-            ? `${item.participant.first_name || ""} ${item.participant.last_name || ""}`.trim()
-            : "Participant",
-          winnerCode: item.participant?.chest_number || item.participant?.participant_id || "-",
-          team: item.participant?.unit || "",
-          grade: item.grade || "—",
-          prize: rewardLabel,
-          amount: amtNum,
-          isGiven: !!givenMap[item.id],
-        }
-      })
-
-      setPrizes(rows)
+      await fetchWorkspaceWithSWR(festivalId, "prizes", applyPrizes)
     } catch (err) {
       console.error("Failed to load prizes:", err)
     } finally {
       setLoading(false)
     }
-  }, [festivalId])
+  }, [festivalId, applyPrizes])
 
   useEffect(() => {
     if (festivalId) loadPrizes()

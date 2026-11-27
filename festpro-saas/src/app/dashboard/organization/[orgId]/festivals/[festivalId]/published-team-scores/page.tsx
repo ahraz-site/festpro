@@ -5,6 +5,7 @@ import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ExportPrintBar } from "@/components/ui/export-print-bar"
 import { BarChart2, FileImage, Loader2 } from "lucide-react"
+import { getCachedWorkspace, fetchWorkspaceWithSWR } from "@/lib/cache/workspace-cache"
 
 interface PublishedScoreItem {
   rank: number
@@ -16,40 +17,37 @@ export default function PublishedTeamScoresPage() {
   const params = useParams()
   const festivalId = params.festivalId as string
 
+  const initialCache = getCachedWorkspace(festivalId, "published-scores")
   const [activeTab, setActiveTab] = useState<string>("Overall")
-  const [loading, setLoading] = useState(true)
-  const [teams, setTeams] = useState<any[]>([])
-  const [teamPoints, setTeamPoints] = useState<any[]>([])
-  const [categories, setCategories] = useState<any[]>([])
-  const [competitions, setCompetitions] = useState<any[]>([])
-  const [participants, setParticipants] = useState<any[]>([])
-  const [resultItems, setResultItems] = useState<any[]>([])
-  const [publishedAt, setPublishedAt] = useState<string | null>(null)
+  const [loading, setLoading] = useState(!initialCache)
+  const [teams, setTeams] = useState<any[]>(() => initialCache?.teams || [])
+  const [teamPoints, setTeamPoints] = useState<any[]>(() => initialCache?.teamPoints || [])
+  const [categories, setCategories] = useState<any[]>(() => initialCache?.categories || [])
+  const [competitions, setCompetitions] = useState<any[]>(() => initialCache?.competitions || [])
+  const [participants, setParticipants] = useState<any[]>(() => initialCache?.participants || [])
+  const [resultItems, setResultItems] = useState<any[]>(() => initialCache?.resultItems || [])
+  const [publishedAt, setPublishedAt] = useState<string | null>(() => {
+    const meta = initialCache?.customFields?.published_scores_meta?.publishedAt
+    return typeof meta === "string" ? meta : null
+  })
 
   useEffect(() => {
     let active = true
-    async function load() {
-      try {
-        const res = await fetch(`/api/festival/${festivalId}/workspace?scope=published-scores`, {
-          cache: "no-store",
-        })
-        const data = await res.json()
-        if (!active) return
-        setTeams(Array.isArray(data?.teams) ? data.teams : [])
-        setTeamPoints(Array.isArray(data?.teamPoints) ? data.teamPoints : [])
-        setCategories(Array.isArray(data?.categories) ? data.categories : [])
-        setCompetitions(Array.isArray(data?.competitions) ? data.competitions : [])
-        setParticipants(Array.isArray(data?.participants) ? data.participants : [])
-        setResultItems(Array.isArray(data?.resultItems) ? data.resultItems : [])
-        const metaTime = data?.customFields?.published_scores_meta?.publishedAt
-        setPublishedAt(typeof metaTime === "string" ? metaTime : null)
-      } catch (err) {
-        console.error("Failed to load published scores:", err)
-      } finally {
+    fetchWorkspaceWithSWR(festivalId, "published-scores", (data) => {
+      if (!active) return
+      setTeams(Array.isArray(data?.teams) ? data.teams : [])
+      setTeamPoints(Array.isArray(data?.teamPoints) ? data.teamPoints : [])
+      setCategories(Array.isArray(data?.categories) ? data.categories : [])
+      setCompetitions(Array.isArray(data?.competitions) ? data.competitions : [])
+      setParticipants(Array.isArray(data?.participants) ? data.participants : [])
+      setResultItems(Array.isArray(data?.resultItems) ? data.resultItems : [])
+      const metaTime = data?.customFields?.published_scores_meta?.publishedAt
+      setPublishedAt(typeof metaTime === "string" ? metaTime : null)
+    })
+      .catch((err) => console.error("Failed to load published scores:", err))
+      .finally(() => {
         if (active) setLoading(false)
-      }
-    }
-    load()
+      })
     return () => {
       active = false
     }

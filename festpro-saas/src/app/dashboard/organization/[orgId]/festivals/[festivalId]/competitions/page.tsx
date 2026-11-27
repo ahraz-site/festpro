@@ -15,16 +15,22 @@ import { getCategories } from "@/lib/actions/competition/categories"
 import { ExportPrintBar } from "@/components/ui/export-print-bar"
 import { ViewToggle, type ViewMode } from "@/components/ui/view-toggle"
 import type { Competition, CompetitionCategory } from "@/types/competition"
+import {
+  getCachedWorkspace,
+  fetchWorkspaceWithSWR,
+  invalidateFestivalWorkspace,
+} from "@/lib/cache/workspace-cache"
 
 export default function CompetitionsManagementPage() {
   const params = useParams()
   const orgId = params.orgId as string
   const festivalId = params.festivalId as string
 
-  const [competitions, setCompetitions] = useState<Competition[]>([])
-  const [categories, setCategories] = useState<CompetitionCategory[]>([])
-  const [maxLimit, setMaxLimit] = useState<number | null>(null)
-  const [loading, setLoading] = useState(true)
+  const initialCache = getCachedWorkspace(festivalId, "competitions")
+  const [competitions, setCompetitions] = useState<Competition[]>(() => (initialCache?.competitions || []) as Competition[])
+  const [categories, setCategories] = useState<CompetitionCategory[]>(() => (initialCache?.categories || []) as CompetitionCategory[])
+  const [maxLimit, setMaxLimit] = useState<number | null>(() => initialCache?.license?.max_competitions ?? null)
+  const [loading, setLoading] = useState(!initialCache)
   const [viewMode, setViewMode] = useState<ViewMode>("grid")
 
   // Filters
@@ -47,15 +53,15 @@ export default function CompetitionsManagementPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const res = await fetch(`/api/festival/${festivalId}/workspace?scope=competitions`, { cache: "no-store" })
-      if (res.ok) {
-        const json = await res.json()
+      await fetchWorkspaceWithSWR(festivalId, "competitions", (json) => {
         setCompetitions((json.competitions || []) as Competition[])
         const cats = (json.categories || []) as CompetitionCategory[]
         setCategories(cats)
-        setMaxLimit(json.license?.max_competitions ?? null)
+        if (json.license !== undefined) {
+          setMaxLimit(json.license?.max_competitions ?? null)
+        }
         if (cats[0]) setCategoryId((prev) => prev || cats[0].id)
-      }
+      })
     } catch (e) {
       console.error(e)
     } finally {
@@ -93,6 +99,7 @@ export default function CompetitionsManagementPage() {
     if (res.error) {
       toast.error(res.error)
     } else {
+      invalidateFestivalWorkspace(festivalId)
       toast.success("Program removed")
       setCompetitions((prev) => prev.filter((c) => c.id !== id))
     }
@@ -126,6 +133,7 @@ export default function CompetitionsManagementPage() {
     if (res.error) {
       toast.error(res.error)
     } else {
+      invalidateFestivalWorkspace(festivalId)
       toast.success(editingComp ? "Program updated" : "Program added successfully!")
       setShowAddModal(false)
       loadData()

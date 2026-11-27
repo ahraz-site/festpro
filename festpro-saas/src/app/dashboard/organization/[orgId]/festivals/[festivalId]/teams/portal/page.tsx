@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner"
 import { addFestParticipantAction } from "@/lib/actions/participant"
 import { ExportPrintBar } from "@/components/ui/export-print-bar"
+import { getCachedWorkspace, fetchWorkspaceWithSWR, invalidateFestivalWorkspace } from "@/lib/cache/workspace-cache"
 
 interface TeamMember {
   id: string
@@ -44,10 +45,11 @@ export default function TeamManagerPortalPage() {
   const orgId = params.orgId as string
   const festivalId = params.festivalId as string
 
+  const initialCache = getCachedWorkspace(festivalId, "portal")
   const [teams, setTeams] = useState<TeamHouse[]>([])
   const [selectedTeamId, setSelectedTeamId] = useState<string>("")
   const [search, setSearch] = useState("")
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!initialCache)
   const [submitting, setSubmitting] = useState(false)
 
   const [allMembers, setAllMembers] = useState<TeamMember[]>([])
@@ -61,73 +63,75 @@ export default function TeamManagerPortalPage() {
   const [newCategory, setNewCategory] = useState("")
   const [newProgram, setNewProgram] = useState("")
 
+  const applyTeamData = useCallback((data: any) => {
+    const dbTeams = Array.isArray(data?.teams) ? data.teams : []
+    const dbTeamPoints = Array.isArray(data?.teamPoints) ? data.teamPoints : []
+    const dbCategories = Array.isArray(data?.categories) ? data.categories : []
+    const dbComps = Array.isArray(data?.competitions) ? data.competitions : []
+    const dbParticipants = Array.isArray(data?.participants) ? data.participants : []
+    const dbRegs = Array.isArray(data?.registrations) ? data.registrations : []
+    const grMap = (data?.customFields?.green_room || {}) as Record<
+      string,
+      { status?: TeamMember["greenRoomStatus"] }
+    >
+
+    const tpByTeamId = new Map(dbTeamPoints.map((tp: any) => [tp.entity_id, Number(tp.total_points || 0)]))
+    const mappedTeams: TeamHouse[] = dbTeams
+      .map((t: any, idx: number) => ({
+        id: t.id,
+        name: t.name,
+        code: t.code || t.name.slice(0, 3).toUpperCase() || `T${idx + 1}`,
+        color: t.color || "#4f46e5",
+        totalPoints: tpByTeamId.get(t.id) ?? Number(t.total_points || 0),
+        rank: idx + 1,
+        managerName: t.leader_name || "Team Captain",
+        managerPhone: t.leader_phone || "",
+      }))
+      .sort((a: TeamHouse, b: TeamHouse) => b.totalPoints - a.totalPoints)
+      .map((t: TeamHouse, idx: number) => ({ ...t, rank: idx + 1 }))
+
+    setTeams(mappedTeams)
+    setSelectedTeamId((prev) => (prev && mappedTeams.some((t) => t.id === prev) ? prev : mappedTeams[0]?.id || ""))
+
+    setCategories(dbCategories)
+    setCompetitions(dbComps)
+    setNewCategory((prev) => prev || dbCategories[0]?.name || "General")
+
+    const compNameById = new Map<string, string>(dbComps.map((c: any) => [c.id, c.name]))
+    const regsByParticipant = new Map<string, string[]>()
+    dbRegs.forEach((r: any) => {
+      const compName = compNameById.get(r.competition_id)
+      if (!compName) return
+      const arr = regsByParticipant.get(r.participant_id) || []
+      arr.push(compName)
+      regsByParticipant.set(r.participant_id, arr)
+    })
+
+    const mappedMembers: TeamMember[] = dbParticipants.map((p: any, idx: number) => ({
+      id: p.id,
+      name: `${p.first_name || ""} ${p.last_name || ""}`.trim() || `Participant ${idx + 1}`,
+      chestNumber: p.chest_number || "—",
+      category: p.division || "General",
+      unit: p.unit || "",
+      teamId: p.team_id || undefined,
+      enrolledCompetitions: regsByParticipant.get(p.id) || [],
+      greenRoomStatus: grMap[p.id]?.status || "waiting",
+      phone: p.phone || "",
+    }))
+    setAllMembers(mappedMembers)
+  }, [])
+
   const loadTeamData = useCallback(async () => {
     if (!festivalId) return
+    if (initialCache) applyTeamData(initialCache)
     try {
-      const res = await fetch(`/api/festival/${festivalId}/workspace?scope=portal`, { cache: "no-store" })
-      const data = await res.json()
-
-      const dbTeams = Array.isArray(data?.teams) ? data.teams : []
-      const dbTeamPoints = Array.isArray(data?.teamPoints) ? data.teamPoints : []
-      const dbCategories = Array.isArray(data?.categories) ? data.categories : []
-      const dbComps = Array.isArray(data?.competitions) ? data.competitions : []
-      const dbParticipants = Array.isArray(data?.participants) ? data.participants : []
-      const dbRegs = Array.isArray(data?.registrations) ? data.registrations : []
-      const grMap = (data?.customFields?.green_room || {}) as Record<
-        string,
-        { status?: TeamMember["greenRoomStatus"] }
-      >
-
-      const tpByTeamId = new Map(dbTeamPoints.map((tp: any) => [tp.entity_id, Number(tp.total_points || 0)]))
-      const mappedTeams: TeamHouse[] = dbTeams
-        .map((t: any, idx: number) => ({
-          id: t.id,
-          name: t.name,
-          code: t.code || t.name.slice(0, 3).toUpperCase() || `T${idx + 1}`,
-          color: t.color || "#4f46e5",
-          totalPoints: tpByTeamId.get(t.id) ?? Number(t.total_points || 0),
-          rank: idx + 1,
-          managerName: t.leader_name || "Team Captain",
-          managerPhone: t.leader_phone || "",
-        }))
-        .sort((a: TeamHouse, b: TeamHouse) => b.totalPoints - a.totalPoints)
-        .map((t: TeamHouse, idx: number) => ({ ...t, rank: idx + 1 }))
-
-      setTeams(mappedTeams)
-      setSelectedTeamId((prev) => (prev && mappedTeams.some((t) => t.id === prev) ? prev : mappedTeams[0]?.id || ""))
-
-      setCategories(dbCategories)
-      setCompetitions(dbComps)
-      setNewCategory((prev) => prev || dbCategories[0]?.name || "General")
-
-      const compNameById = new Map<string, string>(dbComps.map((c: any) => [c.id, c.name]))
-      const regsByParticipant = new Map<string, string[]>()
-      dbRegs.forEach((r: any) => {
-        const compName = compNameById.get(r.competition_id)
-        if (!compName) return
-        const arr = regsByParticipant.get(r.participant_id) || []
-        arr.push(compName)
-        regsByParticipant.set(r.participant_id, arr)
-      })
-
-      const mappedMembers: TeamMember[] = dbParticipants.map((p: any, idx: number) => ({
-        id: p.id,
-        name: `${p.first_name || ""} ${p.last_name || ""}`.trim() || `Participant ${idx + 1}`,
-        chestNumber: p.chest_number || "—",
-        category: p.division || "General",
-        unit: p.unit || "",
-        teamId: p.team_id || undefined,
-        enrolledCompetitions: regsByParticipant.get(p.id) || [],
-        greenRoomStatus: grMap[p.id]?.status || "waiting",
-        phone: p.phone || "",
-      }))
-      setAllMembers(mappedMembers)
+      await fetchWorkspaceWithSWR(festivalId, "portal", applyTeamData)
     } catch (err) {
       console.warn("loadTeamData notice:", err)
     } finally {
       setLoading(false)
     }
-  }, [festivalId])
+  }, [festivalId, applyTeamData])
 
   useEffect(() => {
     loadTeamData()
@@ -193,6 +197,7 @@ export default function TeamManagerPortalPage() {
         })
       }
 
+      invalidateFestivalWorkspace(festivalId)
       toast.success(`Registered ${newStudentName.trim()} for ${selectedTeam.name}`)
       setShowAddModal(false)
       setNewStudentName("")

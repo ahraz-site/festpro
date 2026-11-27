@@ -15,16 +15,22 @@ import {
   Layers, Plus, Loader2, Trash2, Edit3, Search,
   Tv, X, Check, AlertCircle, ExternalLink
 } from "lucide-react"
+import {
+  getCachedWorkspace,
+  fetchWorkspaceWithSWR,
+  invalidateFestivalWorkspace,
+} from "@/lib/cache/workspace-cache"
 
 export default function FestivalStagesPage() {
   const params = useParams()
   const orgId = params.orgId as string
   const festivalId = params.festivalId as string
 
-  const [stages, setStages] = useState<FestivalStage[]>([])
+  const initialCache = getCachedWorkspace(festivalId, "stages")
+  const [stages, setStages] = useState<FestivalStage[]>(() => (initialCache?.stages || []) as FestivalStage[])
   const [venues, setVenues] = useState<FestivalVenue[]>([])
-  const [maxStages, setMaxStages] = useState<number | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [maxStages, setMaxStages] = useState<number | null>(() => initialCache?.license?.max_stages ?? null)
+  const [loading, setLoading] = useState(!initialCache)
   const [search, setSearch] = useState("")
   const [viewMode, setViewMode] = useState<ViewMode>("grid")
 
@@ -37,12 +43,16 @@ export default function FestivalStagesPage() {
   async function load() {
     try {
       const [wsRes, venuesData] = await Promise.all([
-        fetch(`/api/festival/${festivalId}/workspace?scope=stages`, { cache: "no-store" }).then((r) => r.json()),
+        fetchWorkspaceWithSWR(festivalId, "stages", (json) => {
+          setStages((json.stages || []) as FestivalStage[])
+          if (json.license !== undefined) {
+            setMaxStages(json.license?.max_stages ?? null)
+          }
+        }),
         getFestivalVenues(festivalId).catch(() => []),
       ])
-      setStages((wsRes?.stages || []) as FestivalStage[])
+      if (wsRes?.stages) setStages(wsRes.stages as FestivalStage[])
       setVenues((venuesData || []) as FestivalVenue[])
-      setMaxStages(wsRes?.license?.max_stages ?? null)
     } catch (err) {
       console.error("Failed to load stages:", err)
     } finally {
@@ -97,6 +107,7 @@ export default function FestivalStagesPage() {
       if (!res.ok || result.error) {
         toast.error(result.error || "Failed to save stage")
       } else {
+        invalidateFestivalWorkspace(festivalId)
         toast.success(editingStage ? "Stage updated" : "Stage created")
         setShowModal(false)
         await load()
@@ -120,6 +131,7 @@ export default function FestivalStagesPage() {
       if (!res.ok || result.error) {
         toast.error(result.error || "Failed to delete stage")
       } else {
+        invalidateFestivalWorkspace(festivalId)
         toast.success("Stage deleted")
         await load()
       }

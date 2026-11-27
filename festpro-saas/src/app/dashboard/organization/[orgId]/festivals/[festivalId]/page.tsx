@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { FestProFavicon } from "@/components/ui/logo"
 import { createClient } from "@/lib/supabase/client"
 import { getFestivalDashboardData } from "@/lib/actions/festival"
+import { prefetchFestivalWorkspace } from "@/lib/cache/workspace-cache"
 import type { FestivalDashboardData } from "@/types/festival"
 import {
   Users, Trophy, Settings, Radio, Layers, RefreshCw,
@@ -85,7 +86,12 @@ export default function FestivalOperationsDashboard() {
 
   useEffect(() => {
     loadData()
-  }, [loadData])
+    // Warm workspace tabs cleanly in background after dashboard renders
+    const timer = setTimeout(() => {
+      if (festivalId) prefetchFestivalWorkspace(festivalId)
+    }, 350)
+    return () => clearTimeout(timer)
+  }, [loadData, festivalId])
 
   const handleRefresh = () => {
     setRefreshing(true)

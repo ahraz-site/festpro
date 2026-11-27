@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { Monitor, Search, Loader2 } from "lucide-react"
+import { getCachedWorkspace, fetchWorkspaceWithSWR, invalidateFestivalWorkspace } from "@/lib/cache/workspace-cache"
 
 type StageDeskTab = "NOT STARTED" | "REPORTING" | "STARTED" | "FINISHED"
 
@@ -17,17 +18,18 @@ export default function StageDeskPage() {
   const orgId = params.orgId as string
   const festivalId = params.festivalId as string
 
-  const [competitions, setCompetitions] = useState<Competition[]>([])
-  const [stages, setStages] = useState<FestivalStage[]>([])
-  const [registrations, setRegistrations] = useState<any[]>([])
-  const [participants, setParticipants] = useState<any[]>([])
-  const [codeLettersMap, setCodeLettersMap] = useState<Record<string, any[]>>({})
-  const [greenRoomMap, setGreenRoomMap] = useState<Record<string, any>>({})
+  const initialCache = getCachedWorkspace(festivalId, "stage-desk")
+  const [competitions, setCompetitions] = useState<Competition[]>(() => (initialCache?.competitions || []) as Competition[])
+  const [stages, setStages] = useState<FestivalStage[]>(() => (initialCache?.stages || []) as FestivalStage[])
+  const [registrations, setRegistrations] = useState<any[]>(() => initialCache?.registrations || [])
+  const [participants, setParticipants] = useState<any[]>(() => initialCache?.participants || [])
+  const [codeLettersMap, setCodeLettersMap] = useState<Record<string, any[]>>(() => (initialCache?.customFields?.code_letters || {}) as Record<string, any[]>)
+  const [greenRoomMap, setGreenRoomMap] = useState<Record<string, any>>(() => (initialCache?.customFields?.green_room || {}) as Record<string, any>)
   const [stageAssignments, setStageAssignments] = useState<Record<string, string>>({})
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!initialCache)
 
   // Filters
-  const [selectedStage, setSelectedStage] = useState<string>("")
+  const [selectedStage, setSelectedStage] = useState<string>(() => initialCache?.stages?.[0]?.id || "")
   const [search, setSearch] = useState("")
   const [activeTab, setActiveTab] = useState<StageDeskTab>("NOT STARTED")
 
@@ -36,60 +38,55 @@ export default function StageDeskPage() {
 
   useEffect(() => {
     let active = true
-    async function load() {
-      try {
-        const res = await fetch(`/api/festival/${festivalId}/workspace?scope=stage-desk`, {
-          cache: "no-store",
-        })
-        const data = await res.json()
-        if (!active) return
+    const applyData = (data: any) => {
+      if (!active) return
+      const compList = (Array.isArray(data?.competitions) ? data.competitions : []) as Competition[]
+      const stageList = (Array.isArray(data?.stages) ? data.stages : []) as FestivalStage[]
+      const liveStatuses = (data?.customFields?.live_stage_statuses || {}) as Record<
+        string,
+        { stageId?: string; deskStatus?: StageDeskTab }
+      >
 
-        const compList = (Array.isArray(data?.competitions) ? data.competitions : []) as Competition[]
-        const stageList = (Array.isArray(data?.stages) ? data.stages : []) as FestivalStage[]
-        const liveStatuses = (data?.customFields?.live_stage_statuses || {}) as Record<
-          string,
-          { stageId?: string; deskStatus?: StageDeskTab }
-        >
+      setCompetitions(compList)
+      setStages(stageList)
+      setRegistrations(Array.isArray(data?.registrations) ? data.registrations : [])
+      setParticipants(Array.isArray(data?.participants) ? data.participants : [])
+      setCodeLettersMap((data?.customFields?.code_letters || {}) as Record<string, any[]>)
+      setGreenRoomMap((data?.customFields?.green_room || {}) as Record<string, any>)
+      if (stageList[0]) setSelectedStage((prev) => prev || stageList[0].id)
 
-        setCompetitions(compList)
-        setStages(stageList)
-        setRegistrations(Array.isArray(data?.registrations) ? data.registrations : [])
-        setParticipants(Array.isArray(data?.participants) ? data.participants : [])
-        setCodeLettersMap((data?.customFields?.code_letters || {}) as Record<string, any[]>)
-        setGreenRoomMap((data?.customFields?.green_room || {}) as Record<string, any>)
-        if (stageList[0]) setSelectedStage(stageList[0].id)
-
-        const initialStatus: Record<string, StageDeskTab> = {}
-        const initialStages: Record<string, string> = {}
-        compList.forEach((c) => {
-          const saved = liveStatuses[c.id]
-          if (saved?.deskStatus) {
-            initialStatus[c.id] = saved.deskStatus
+      const initialStatus: Record<string, StageDeskTab> = {}
+      const initialStages: Record<string, string> = {}
+      compList.forEach((c) => {
+        const saved = liveStatuses[c.id]
+        if (saved?.deskStatus) {
+          initialStatus[c.id] = saved.deskStatus
+        } else {
+          const dbStatus = String(c.status || "").toLowerCase()
+          if (dbStatus === "running" || dbStatus === "live" || dbStatus === "in_progress") {
+            initialStatus[c.id] = "STARTED"
+          } else if (dbStatus === "completed" || dbStatus === "finished") {
+            initialStatus[c.id] = "FINISHED"
+          } else if (dbStatus === "registration_closed" || dbStatus === "reporting") {
+            initialStatus[c.id] = "REPORTING"
           } else {
-            const dbStatus = String(c.status || "").toLowerCase()
-            if (dbStatus === "running" || dbStatus === "live" || dbStatus === "in_progress") {
-              initialStatus[c.id] = "STARTED"
-            } else if (dbStatus === "completed" || dbStatus === "finished") {
-              initialStatus[c.id] = "FINISHED"
-            } else if (dbStatus === "registration_closed" || dbStatus === "reporting") {
-              initialStatus[c.id] = "REPORTING"
-            } else {
-              initialStatus[c.id] = "NOT STARTED"
-            }
+            initialStatus[c.id] = "NOT STARTED"
           }
-          if (saved?.stageId || (c as any).venue_id) {
-            initialStages[c.id] = saved?.stageId || (c as any).venue_id
-          }
-        })
-        setCompStatuses(initialStatus)
-        setStageAssignments(initialStages)
-      } catch (err) {
-        console.error("Failed to load stage desk:", err)
-      } finally {
-        if (active) setLoading(false)
-      }
+        }
+        if (saved?.stageId || (c as any).venue_id) {
+          initialStages[c.id] = saved?.stageId || (c as any).venue_id
+        }
+      })
+      setCompStatuses(initialStatus)
+      setStageAssignments(initialStages)
     }
-    load()
+
+    if (initialCache) applyData(initialCache)
+    fetchWorkspaceWithSWR(festivalId, "stage-desk", applyData)
+      .catch((err) => console.error("Failed to load stage desk:", err))
+      .finally(() => {
+        if (active) setLoading(false)
+      })
     return () => {
       active = false
     }
@@ -123,6 +120,7 @@ export default function StageDeskPage() {
       if (!res.ok || !data.success) {
         throw new Error(data.error || "Failed to save stage status")
       }
+      invalidateFestivalWorkspace(festivalId)
       toast.success(`Program moved to ${newStatus}`)
     } catch (err: any) {
       toast.error(err?.message || "Failed to persist status")

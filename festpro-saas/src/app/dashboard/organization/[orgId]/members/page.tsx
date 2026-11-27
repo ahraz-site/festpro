@@ -32,8 +32,23 @@ export default function PeopleAndAccessPage() {
   const orgId = params.orgId as string
   const festivalId = (params.festivalId as string) || null
 
-  const [members, setMembers] = useState<StaffMember[]>([])
-  const [loading, setLoading] = useState(true)
+  const [members, setMembers] = useState<StaffMember[]>(() => {
+    if (typeof window === "undefined") return []
+    try {
+      const cached = sessionStorage.getItem(`festpro_members_${orgId}`)
+      return cached ? JSON.parse(cached) : []
+    } catch {
+      return []
+    }
+  })
+  const [loading, setLoading] = useState(() => {
+    if (typeof window === "undefined") return true
+    try {
+      return !sessionStorage.getItem(`festpro_members_${orgId}`)
+    } catch {
+      return true
+    }
+  })
   const [search, setSearch] = useState("")
   const [roleFilter, setRoleFilter] = useState("all")
   const [viewMode, setViewMode] = useState<ViewMode>("grid")
@@ -54,6 +69,9 @@ export default function PeopleAndAccessPage() {
     try {
       const data = await getOrganizationStaff(orgId)
       setMembers(data)
+      try {
+        sessionStorage.setItem(`festpro_members_${orgId}`, JSON.stringify(data))
+      } catch {}
     } catch (e) {
       console.error(e)
     } finally {

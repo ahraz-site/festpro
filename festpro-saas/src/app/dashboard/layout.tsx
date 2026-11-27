@@ -21,6 +21,9 @@ import { FestProLogo, AhrazFestProLogo, FestProFavicon } from "@/components/ui/l
 import { AccountStatusBanner } from "@/components/license/account-status-banner"
 import { getOrCreateOrganizationFestivalAction } from "@/lib/actions/festival"
 import { getStaffSessionAction } from "@/lib/actions/staff-auth"
+import { clearAllClientSessionCaches } from "@/lib/cache/workspace-cache"
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -42,11 +45,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   } | null>(() => {
     if (typeof window !== "undefined") {
       try {
-        const parts = window.location.pathname.split("/")
-        const orgIdx = parts.findIndex((p) => p === "organization")
-        const orgId = orgIdx >= 0 ? parts[orgIdx + 1] : null
-        if (orgId) {
-          const cached = sessionStorage.getItem(`festpro_active_fest_${orgId}`)
+        const segs = window.location.pathname.split("/")
+        const orgIdx = segs.findIndex((p) => p === "organization")
+        const rawOrg = orgIdx >= 0 ? segs[orgIdx + 1] : null
+        if (rawOrg && UUID_RE.test(rawOrg)) {
+          const cached = sessionStorage.getItem(`festpro_active_fest_${rawOrg}`)
           if (cached) return JSON.parse(cached)
         }
       } catch {}
@@ -54,12 +57,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return null
   })
 
-  const isOrgRoute = pathname.startsWith("/dashboard/organization")
-  const currentOrgId = isOrgRoute ? pathname.split("/")[3] : profile?.organization_id
-  const isFestivalRoute = pathname.includes("/festivals/")
   const parts = pathname.split("/")
+  const isOrgRoute = pathname.startsWith("/dashboard/organization")
+  const rawUrlOrg = isOrgRoute ? parts[3] : null
+  const validUrlOrgId = rawUrlOrg && UUID_RE.test(rawUrlOrg) ? rawUrlOrg : null
+  const currentOrgId = validUrlOrgId || profile?.organization_id || organizations[0]?.id || undefined
+  const isFestivalRoute = pathname.includes("/festivals/")
   const festivalSectionIdx = parts.findIndex((p) => p === "festivals")
-  const currentFestivalId = isFestivalRoute && festivalSectionIdx >= 0 ? parts[festivalSectionIdx + 1] : null
+  const rawUrlFest = isFestivalRoute && festivalSectionIdx >= 0 ? parts[festivalSectionIdx + 1] : null
+  const currentFestivalId = rawUrlFest && UUID_RE.test(rawUrlFest) ? rawUrlFest : null
+  const festSubpath = currentFestivalId ? parts.slice(festivalSectionIdx + 2).join("/") : ""
 
   // Restore cached profile/orgs for instant render
   useEffect(() => {
@@ -72,34 +79,42 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     async function load() {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      // Read instant cookie/local session first to avoid network auth stall before fetching profile/orgs
+      const { data: sessionData } = await supabase.auth.getSession()
+      let user = sessionData?.session?.user || null
+      if (!user) {
+        const { data: userRes } = await supabase.auth.getUser()
+        user = userRes?.user || null
+      }
       if (!user) {
         // Check if user is logged in via Staff / Judge / People credentials
         const staffSess = await getStaffSessionAction()
         if (staffSess) {
-          const defaultOrgId = staffSess.organizationId || "a3b0972c-a447-4934-8d26-3bad6c9a9cc9"
+          const defaultOrgId = staffSess.organizationId || ""
           const staffProf: any = {
             id: staffSess.id,
             email: `${staffSess.username}@festpro.internal`,
             first_name: staffSess.name,
             last_name: "",
             role: staffSess.role || "judge",
-            organization_id: defaultOrgId,
+            organization_id: defaultOrgId || undefined,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           }
           setProfile(staffProf)
           try { sessionStorage.setItem("festpro_cached_profile", JSON.stringify(staffProf)) } catch {}
-          setOrganizations([{
-            id: defaultOrgId,
-            name: "Default Organization",
-            slug: "default-org",
-          } as any])
+          if (defaultOrgId) {
+            setOrganizations([{
+              id: defaultOrgId,
+              name: "Organization Workspace",
+              slug: "org",
+            } as any])
+          }
           if (staffSess.festivalId) {
-            setCurrentFestival({
-              id: staffSess.festivalId,
-              name: "optimuz",
-              short_name: "OP",
+            const staffFestId = staffSess.festivalId
+            setCurrentFestival((prev) => prev || {
+              id: staffFestId,
+              name: "Festival Workspace",
               status: "active",
             })
           }
@@ -113,7 +128,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       const [profRes, memRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
-        supabase.from("organization_members").select("organization_id").eq("user_id", user.id)
+        supabase.from("organization_members").select("organization_id").eq("user_id", user.id),
       ])
 
       let prof = profRes.data
@@ -145,6 +160,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           setOrganizations(orgs as ExtendedOrganization[])
           try { sessionStorage.setItem("festpro_cached_orgs", JSON.stringify(orgs)) } catch {}
         }
+      } else if (prof?.organization_id) {
+        const { data: org } = await supabase
+          .from("organizations")
+          .select("*")
+          .eq("id", prof.organization_id)
+          .is("deleted_at", null)
+          .maybeSingle()
+        if (org) {
+          setOrganizations([org as ExtendedOrganization])
+          try { sessionStorage.setItem("festpro_cached_orgs", JSON.stringify([org])) } catch {}
+        }
+      } else {
+        const { data: orgs } = await supabase
+          .from("organizations")
+          .select("*")
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false })
+          .limit(3)
+        if (orgs?.length) {
+          setOrganizations(orgs as ExtendedOrganization[])
+          try { sessionStorage.setItem("festpro_cached_orgs", JSON.stringify(orgs)) } catch {}
+        }
       }
 
       setLoading(false)
@@ -152,16 +189,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     load()
   }, [router])
 
-  // Fetch festival info
+  // Fetch festival info (guarded strictly to valid UUID org/festival IDs)
   useEffect(() => {
     if (!currentFestivalId) {
-      if (currentOrgId) {
-        // Try session cache first
+      if (currentOrgId && UUID_RE.test(currentOrgId)) {
         try {
           const cached = sessionStorage.getItem(`festpro_active_fest_${currentOrgId}`)
           if (cached) {
             const parsed = JSON.parse(cached)
-            if (parsed?.id) setCurrentFestival(parsed)
+            if (parsed?.id) {
+              setCurrentFestival(parsed)
+              return
+            }
           }
         } catch {}
 
@@ -191,6 +230,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return
     }
 
+    if (currentFestival?.id === currentFestivalId && currentFestival.name && currentFestival.name !== "Festival Workspace") {
+      return
+    }
+
     const supabase = createClient()
     supabase
       .from("festivals")
@@ -206,15 +249,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
       })
       .catch(() => {})
-  }, [currentFestivalId, currentOrgId])
+  }, [currentFestivalId, currentOrgId, currentFestival?.id, currentFestival?.name])
 
-  const handleSignOut = useCallback(async () => { await signOut() }, [])
+  const handleSignOut = useCallback(async () => {
+    clearAllClientSessionCaches()
+    await signOut()
+  }, [])
 
   const effectiveFestivalId = currentFestivalId || currentFestival?.id
   const dashboardHref = effectiveFestivalId && currentOrgId
     ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}`
     : currentOrgId ? `/dashboard/organization/${currentOrgId}` : "/dashboard"
-  const isDashboardActive = pathname === dashboardHref
+  const isDashboardActive = currentFestivalId
+    ? festSubpath === ""
+    : currentOrgId
+    ? pathname === `/dashboard/organization/${currentOrgId}`
+    : pathname === "/dashboard"
 
   const festSlug =
     currentFestival?.short_name?.toLowerCase() ||
@@ -237,13 +287,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     userEmail === "ahrazfestpro@gmail.com"
 
   // 1. OVERVIEW
-  // 2. PEOPLE & PROGRAM (With individual distinct active checks)
+  // 2. PEOPLE & PROGRAM (Strictly mutually exclusive active checks)
   const peopleProgramItems = currentOrgId ? [
     {
       label: "People & access",
       href: `/dashboard/organization/${currentOrgId}/members`,
       icon: Shield,
-      isActive: pathname.includes("/members"),
+      isActive: pathname === `/dashboard/organization/${currentOrgId}/members` || pathname.startsWith(`/dashboard/organization/${currentOrgId}/members/`),
     },
     {
       label: "Teams",
@@ -251,7 +301,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/teams`
         : `/dashboard/organization/${currentOrgId}/festivals?target=teams`,
       icon: Users,
-      isActive: pathname.includes("/teams"),
+      isActive: festSubpath === "teams" || festSubpath.startsWith("teams/"),
     },
     {
       label: "Participants",
@@ -259,7 +309,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/participants`
         : `/dashboard/organization/${currentOrgId}/festivals?target=participants`,
       icon: Bookmark,
-      isActive: pathname.includes("/participants"),
+      isActive: festSubpath === "participants" || festSubpath.startsWith("participants/"),
     },
     {
       label: "Categories",
@@ -267,7 +317,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/competitions/categories`
         : `/dashboard/organization/${currentOrgId}/festivals?target=categories`,
       icon: LayoutGrid,
-      isActive: pathname.includes("/competitions/categories"),
+      isActive: festSubpath === "competitions/categories" || festSubpath.startsWith("competitions/categories/"),
     },
     {
       label: "Programs",
@@ -275,7 +325,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/competitions`
         : `/dashboard/organization/${currentOrgId}/festivals?target=competitions`,
       icon: Trophy,
-      isActive: pathname.includes("/competitions") && !pathname.includes("/competitions/categories"),
+      isActive: festSubpath === "competitions" || (festSubpath.startsWith("competitions/") && !festSubpath.startsWith("competitions/categories")),
     },
     {
       label: "Scheduler",
@@ -283,11 +333,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/schedules`
         : `/dashboard/organization/${currentOrgId}/festivals?target=schedules`,
       icon: Calendar,
-      isActive: pathname.includes("/schedules"),
+      isActive: festSubpath === "schedules" || festSubpath.startsWith("schedules/"),
     },
   ] : []
 
-  // 3. LIVE OPERATIONS (Matching Screenshots 1 to 7)
+  // 3. LIVE OPERATIONS
   const liveOpsItems = currentOrgId ? [
     {
       label: "Live programs",
@@ -295,7 +345,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/live-programs`
         : `/dashboard/organization/${currentOrgId}/festivals?target=live-programs`,
       icon: Gamepad2,
-      isActive: pathname.includes("/live-programs"),
+      isActive: festSubpath === "live-programs" || festSubpath.startsWith("live-programs/"),
     },
     {
       label: "Stages",
@@ -303,7 +353,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/stages`
         : `/dashboard/organization/${currentOrgId}/festivals?target=stages`,
       icon: Layers,
-      isActive: pathname.includes("/stages"),
+      isActive: festSubpath === "stages" || festSubpath.startsWith("stages/"),
     },
     {
       label: "Stage desk",
@@ -311,7 +361,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/stage-desk`
         : `/dashboard/organization/${currentOrgId}/festivals?target=stage-desk`,
       icon: Monitor,
-      isActive: pathname.includes("/stage-desk"),
+      isActive: festSubpath === "stage-desk" || festSubpath.startsWith("stage-desk/"),
     },
     {
       label: "TV displays",
@@ -319,7 +369,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/tv-displays`
         : `/dashboard/organization/${currentOrgId}/festivals?target=tv-displays`,
       icon: Tv,
-      isActive: pathname.includes("/tv-displays"),
+      isActive: festSubpath === "tv-displays" || festSubpath.startsWith("tv-displays/"),
     },
     {
       label: "Judges panel",
@@ -327,7 +377,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/judges-panel`
         : `/dashboard/organization/${currentOrgId}/festivals?target=judges-panel`,
       icon: ShieldCheck,
-      isActive: pathname.includes("/judges-panel"),
+      isActive: festSubpath === "judges-panel" || festSubpath.startsWith("judges-panel/"),
     },
     {
       label: "Green room",
@@ -335,7 +385,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/green-room`
         : `/dashboard/organization/${currentOrgId}/festivals?target=green-room`,
       icon: DoorOpen,
-      isActive: pathname.includes("/green-room"),
+      isActive: festSubpath === "green-room" || festSubpath.startsWith("green-room/"),
     },
     {
       label: "Announcer desk",
@@ -343,7 +393,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/announcements`
         : `/dashboard/organization/${currentOrgId}/festivals?target=announcements`,
       icon: Megaphone,
-      isActive: pathname.includes("/announcements"),
+      isActive: festSubpath === "announcements" || festSubpath.startsWith("announcements/"),
     },
     {
       label: "Media panel",
@@ -351,7 +401,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/media-panel`
         : `/dashboard/organization/${currentOrgId}/festivals?target=media-panel`,
       icon: Camera,
-      isActive: pathname.includes("/media-panel"),
+      isActive: festSubpath === "media-panel" || festSubpath.startsWith("media-panel/"),
     },
     {
       label: "Enter Marks",
@@ -359,7 +409,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/enter-marks`
         : `/dashboard/organization/${currentOrgId}/festivals?target=enter-marks`,
       icon: ClipboardCheck,
-      isActive: pathname.includes("/enter-marks"),
+      isActive: festSubpath === "enter-marks" || festSubpath.startsWith("enter-marks/"),
     },
     {
       label: "Code letters",
@@ -367,7 +417,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/code-letters`
         : `/dashboard/organization/${currentOrgId}/festivals?target=code-letters`,
       icon: Keyboard,
-      isActive: pathname.includes("/code-letters"),
+      isActive: festSubpath === "code-letters" || festSubpath.startsWith("code-letters/"),
     },
     {
       label: "Subject picker",
@@ -375,7 +425,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/subject-picker`
         : `/dashboard/organization/${currentOrgId}/festivals?target=subject-picker`,
       icon: Dices,
-      isActive: pathname.includes("/subject-picker") || pathname.includes("/random-picker"),
+      isActive: festSubpath === "subject-picker" || pathname.includes("/random-picker"),
     },
   ] : []
 
@@ -387,7 +437,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/team-scores`
         : `/dashboard/organization/${currentOrgId}/festivals?target=team-scores`,
       icon: Trophy,
-      isActive: pathname.includes("/team-scores"),
+      isActive: festSubpath === "team-scores" || festSubpath.startsWith("team-scores/"),
     },
     {
       label: "Results",
@@ -395,7 +445,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/results`
         : `/dashboard/organization/${currentOrgId}/festivals?target=results`,
       icon: Award,
-      isActive: pathname.endsWith("/results"),
+      isActive: festSubpath === "results" || festSubpath.startsWith("results/"),
     },
     {
       label: "Result planner",
@@ -403,7 +453,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/result-planner`
         : `/dashboard/organization/${currentOrgId}/festivals?target=result-planner`,
       icon: ListFilter,
-      isActive: pathname.includes("/result-planner"),
+      isActive: festSubpath === "result-planner" || festSubpath.startsWith("result-planner/"),
     },
     {
       label: "Published team scores",
@@ -411,7 +461,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/published-team-scores`
         : `/dashboard/organization/${currentOrgId}/festivals?target=published-team-scores`,
       icon: BarChart2,
-      isActive: pathname.includes("/published-team-scores"),
+      isActive: festSubpath === "published-team-scores" || festSubpath.startsWith("published-team-scores/"),
     },
     {
       label: "Top candidates",
@@ -419,7 +469,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/top-candidates`
         : `/dashboard/organization/${currentOrgId}/festivals?target=top-candidates`,
       icon: Star,
-      isActive: pathname.includes("/top-candidates"),
+      isActive: festSubpath === "top-candidates" || festSubpath.startsWith("top-candidates/"),
     },
     {
       label: "Prizes",
@@ -427,7 +477,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/prizes`
         : `/dashboard/organization/${currentOrgId}/festivals?target=prizes`,
       icon: Gift,
-      isActive: pathname.includes("/prizes"),
+      isActive: festSubpath === "prizes" || festSubpath.startsWith("prizes/"),
     },
     {
       label: "Grade points",
@@ -435,11 +485,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/grade-points`
         : `/dashboard/organization/${currentOrgId}/festivals?target=grade-points`,
       icon: Medal,
-      isActive: pathname.includes("/grade-points"),
+      isActive: festSubpath === "grade-points" || festSubpath.startsWith("grade-points/"),
     },
   ] : []
 
-  // 5. DESIGN & OUTPUT (Screenshots 1-11)
+  // 5. DESIGN & OUTPUT
   const designOutputItems = currentOrgId ? [
     {
       label: "ID card setup",
@@ -447,7 +497,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/id-cards`
         : `/dashboard/organization/${currentOrgId}/festivals?target=id-cards`,
       icon: CreditCard,
-      isActive: pathname.includes("/id-cards"),
+      isActive: festSubpath === "id-cards" || festSubpath.startsWith("id-cards/"),
     },
     {
       label: "Certificates",
@@ -455,7 +505,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/certificates`
         : `/dashboard/organization/${currentOrgId}/festivals?target=certificates`,
       icon: Award,
-      isActive: pathname.includes("/certificates"),
+      isActive: festSubpath === "certificates" || festSubpath.startsWith("certificates/"),
     },
     {
       label: "Reports & printouts",
@@ -463,7 +513,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/reports`
         : `/dashboard/organization/${currentOrgId}/festivals?target=reports`,
       icon: Printer,
-      isActive: pathname.includes("/reports") || pathname.includes("/printouts"),
+      isActive: festSubpath === "reports" || festSubpath.startsWith("reports/") || festSubpath.startsWith("printouts"),
     },
     {
       label: "Poster templates",
@@ -471,7 +521,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/poster-templates`
         : `/dashboard/organization/${currentOrgId}/festivals?target=poster-templates`,
       icon: LayoutTemplate,
-      isActive: pathname.includes("/poster-templates"),
+      isActive: festSubpath === "poster-templates" || festSubpath.startsWith("poster-templates/"),
     },
     {
       label: "Poster ads",
@@ -479,7 +529,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/poster-ads`
         : `/dashboard/organization/${currentOrgId}/festivals?target=poster-ads`,
       icon: Megaphone,
-      isActive: pathname.includes("/poster-ads"),
+      isActive: festSubpath === "poster-ads" || festSubpath.startsWith("poster-ads/"),
     },
     {
       label: "Fonts",
@@ -487,7 +537,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/fonts`
         : `/dashboard/organization/${currentOrgId}/festivals?target=fonts`,
       icon: Type,
-      isActive: pathname.includes("/fonts"),
+      isActive: festSubpath === "fonts" || festSubpath.startsWith("fonts/"),
     },
     {
       label: "FesPro Studio",
@@ -495,11 +545,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/website`
         : `/dashboard/organization/${currentOrgId}/festivals?target=website`,
       icon: Globe,
-      isActive: pathname.includes("/website") || pathname.includes("/page-builder"),
+      isActive: festSubpath === "website" || pathname.includes("/page-builder"),
     },
   ] : []
 
-  // 6. FEST SETUP (Screenshots 1-5)
+  // 6. FEST SETUP
   const festSetupItems = currentOrgId ? [
     {
       label: "API keys",
@@ -507,7 +557,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/api-keys`
         : `/dashboard/organization/${currentOrgId}/festivals?target=api-keys`,
       icon: KeyRound,
-      isActive: pathname.includes("/api-keys"),
+      isActive: festSubpath === "api-keys" || festSubpath.startsWith("api-keys/"),
     },
     {
       label: "Settings",
@@ -515,11 +565,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/settings`
         : `/dashboard/organization/${currentOrgId}/festivals?target=settings`,
       icon: Settings,
-      isActive: pathname.endsWith("/settings"),
+      isActive: festSubpath === "settings" || festSubpath.startsWith("settings/"),
     },
   ] : []
 
-  // 7. SUPPORT (Screenshot 6)
+  // 7. SUPPORT
   const supportItems = currentOrgId ? [
     {
       label: "Help",
@@ -527,7 +577,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/help`
         : `/dashboard/organization/${currentOrgId}/festivals?target=help`,
       icon: HelpCircle,
-      isActive: pathname.includes("/help"),
+      isActive: festSubpath === "help" || festSubpath.startsWith("help/"),
     },
   ] : []
 
@@ -723,7 +773,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </span>
               </div>
               <Link
-                prefetch={true}
                 href="/dashboard/admin"
                 className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold transition-all ${
                   pathname === "/dashboard/admin"
@@ -739,7 +788,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {pathname === "/dashboard/admin" && <span className="h-1.5 w-1.5 rounded-full bg-amber-600" />}
               </Link>
               <Link
-                prefetch={true}
                 href="/dashboard/licensing"
                 className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold transition-all ${
                   pathname === "/dashboard/licensing"
@@ -765,7 +813,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           <Link
-            prefetch={true}
             href={dashboardHref}
             className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold transition-all ${
               isDashboardActive
@@ -793,7 +840,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const Icon = item.icon
             return (
               <Link
-                prefetch={true}
                 key={item.label}
                 href={item.href}
                 className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition-all min-h-[38px] ${
@@ -824,7 +870,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const Icon = item.icon
             return (
               <Link
-                prefetch={true}
                 key={item.label}
                 href={item.href}
                 className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition-all min-h-[38px] ${
@@ -843,7 +888,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )
           })}
 
-          {/* 4. RESULTS (Screenshot Reference) */}
+          {/* 4. RESULTS */}
           <div className="pt-5 pb-1.5 px-3">
             <span className="text-[11px] font-bold text-slate-400 tracking-wider uppercase block">
               RESULTS
@@ -855,7 +900,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const Icon = item.icon
             return (
               <Link
-                prefetch={true}
                 key={item.label}
                 href={item.href}
                 className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition-all min-h-[38px] ${
@@ -886,7 +930,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const Icon = item.icon
             return (
               <Link
-                prefetch={true}
                 key={item.label}
                 href={item.href}
                 className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition-all min-h-[38px] ${
@@ -905,7 +948,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )
           })}
 
-          {/* 6. FEST SETUP (Screenshot 1-5) */}
+          {/* 6. FEST SETUP */}
           <div className="pt-5 pb-1.5 px-3">
             <span className="text-[11px] font-bold text-slate-400 tracking-wider uppercase block">
               FEST SETUP
@@ -917,7 +960,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const Icon = item.icon
             return (
               <Link
-                prefetch={true}
                 key={item.label}
                 href={item.href}
                 className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition-all min-h-[38px] ${
@@ -936,7 +978,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )
           })}
 
-          {/* 7. SUPPORT (Screenshot 6) */}
+          {/* 7. SUPPORT */}
           <div className="pt-5 pb-1.5 px-3">
             <span className="text-[11px] font-bold text-slate-400 tracking-wider uppercase block">
               SUPPORT
@@ -948,7 +990,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const Icon = item.icon
             return (
               <Link
-                prefetch={true}
                 key={item.label}
                 href={item.href}
                 className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition-all min-h-[38px] ${
@@ -1013,7 +1054,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Link
             href={effectiveFestivalId && currentOrgId ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/competitions` : dashboardHref}
             className={`flex flex-col items-center justify-center py-1 rounded-xl transition-colors ${
-              pathname.includes("/competitions") && !pathname.includes("/competitions/categories") ? "text-indigo-600 font-bold" : "text-slate-500 hover:text-slate-800"
+              festSubpath === "competitions" || (festSubpath.startsWith("competitions/") && !festSubpath.startsWith("competitions/categories")) ? "text-indigo-600 font-bold" : "text-slate-500 hover:text-slate-800"
             }`}
           >
             <Trophy className="h-4 w-4 mb-0.5" />
@@ -1024,7 +1065,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Link
             href={effectiveFestivalId && currentOrgId ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/stages` : dashboardHref}
             className={`flex flex-col items-center justify-center py-1 rounded-xl transition-colors ${
-              pathname.includes("/stages") ? "text-indigo-600 font-bold" : "text-slate-500 hover:text-slate-800"
+              festSubpath === "stages" || festSubpath.startsWith("stages/") ? "text-indigo-600 font-bold" : "text-slate-500 hover:text-slate-800"
             }`}
           >
             <div className="relative">
@@ -1038,7 +1079,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Link
             href={effectiveFestivalId && currentOrgId ? `/dashboard/organization/${currentOrgId}/festivals/${effectiveFestivalId}/live/display` : dashboardHref}
             className={`flex flex-col items-center justify-center py-1 rounded-xl transition-colors ${
-              pathname.includes("/live/display") ? "text-indigo-600 font-bold" : "text-slate-500 hover:text-slate-800"
+              festSubpath === "live/display" || festSubpath === "tv-displays" ? "text-indigo-600 font-bold" : "text-slate-500 hover:text-slate-800"
             }`}
           >
             <Tv className="h-4 w-4 mb-0.5" />

@@ -8,6 +8,7 @@ import { ExportPrintBar } from "@/components/ui/export-print-bar"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { ClipboardCheck, Loader2, Save, Send, Users } from "lucide-react"
+import { getCachedWorkspace, fetchWorkspaceWithSWR, invalidateFestivalWorkspace } from "@/lib/cache/workspace-cache"
 
 interface CandidateMark {
   id: string
@@ -25,31 +26,28 @@ export default function EnterMarksPage() {
   const params = useParams()
   const festivalId = params.festivalId as string
 
-  const [competitions, setCompetitions] = useState<Competition[]>([])
-  const [participants, setParticipants] = useState<Participant[]>([])
-  const [registrations, setRegistrations] = useState<any[]>([])
-  const [programMarksMap, setProgramMarksMap] = useState<Record<string, CandidateMark[]>>({})
-  const [resultItems, setResultItems] = useState<any[]>([])
+  const initialCache = getCachedWorkspace(festivalId, "enter-marks")
+  const [competitions, setCompetitions] = useState<Competition[]>(() => (initialCache?.competitions || []) as Competition[])
+  const [participants, setParticipants] = useState<Participant[]>(() => (initialCache?.participants || []) as Participant[])
+  const [registrations, setRegistrations] = useState<any[]>(() => initialCache?.registrations || [])
+  const [programMarksMap, setProgramMarksMap] = useState<Record<string, CandidateMark[]>>(() => initialCache?.customFields?.program_marks || {})
+  const [resultItems, setResultItems] = useState<any[]>(() => initialCache?.resultItems || [])
 
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!initialCache)
   const [selectedCompId, setSelectedCompId] = useState<string>("")
   const [candidates, setCandidates] = useState<CandidateMark[]>([])
   const [saving, setSaving] = useState(false)
   const [isPublished, setIsPublished] = useState(false)
 
   const loadWorkspace = useCallback(async () => {
-    setLoading(true)
     try {
-      const res = await fetch(`/api/festival/${festivalId}/workspace?scope=enter-marks`, {
-        cache: "no-store",
+      await fetchWorkspaceWithSWR(festivalId, "enter-marks", (json) => {
+        setCompetitions((json.competitions || []) as Competition[])
+        setParticipants((json.participants || []) as Participant[])
+        setRegistrations(json.registrations || [])
+        setProgramMarksMap(json.customFields?.program_marks || {})
+        setResultItems(json.resultItems || [])
       })
-      if (!res.ok) return
-      const json = await res.json()
-      setCompetitions((json.competitions || []) as Competition[])
-      setParticipants((json.participants || []) as Participant[])
-      setRegistrations(json.registrations || [])
-      setProgramMarksMap(json.customFields?.program_marks || {})
-      setResultItems(json.resultItems || [])
     } catch (err) {
       console.error("Failed to load enter-marks workspace:", err)
     } finally {
