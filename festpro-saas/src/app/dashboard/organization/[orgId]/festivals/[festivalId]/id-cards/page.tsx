@@ -59,19 +59,19 @@ export default function IdCardDesignerPage() {
   const [selectedFieldId, setSelectedFieldId] = useState<string>("1")
   const [isStyleOpen, setIsStyleOpen] = useState(false)
 
-  // Demo participant data
+  // Template Preview Sample Data
   const sampleData = previewLongest
     ? {
-        chest: "BL999",
-        name: "Muhammad Zainul Abideen Al-Baqir",
-        team: "Blue Falcons Super Champions",
-        category: "Senior Category",
+        chest: "CH-999",
+        name: "Sample Contestant Full Name (Extended)",
+        team: "Sample House / Team (Extended)",
+        category: "Sample Category",
       }
     : {
-        chest: "BL001",
-        name: "Muhammad Zainul Abideen",
-        team: "Blue Falcons",
-        category: "Senior",
+        chest: "CH-001",
+        name: "Participant Name",
+        team: "Team Name",
+        category: "Category",
       }
 
   const toggleFieldVisibility = (id: string) => {

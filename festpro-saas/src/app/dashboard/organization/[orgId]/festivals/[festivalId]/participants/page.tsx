@@ -10,13 +10,16 @@ import {
   Trophy, Check, X, Bookmark, Layers, Sparkles
 } from "lucide-react"
 import { toast } from "sonner"
-import { getParticipants, softDeleteParticipant, addFestParticipantAction, bulkAddParticipantsAction } from "@/lib/actions/participant"
-import { getCategories } from "@/lib/actions/competition/categories"
-import { createClient } from "@/lib/supabase/client"
+import {
+  softDeleteParticipant,
+  addFestParticipantAction,
+  updateFestParticipantAction,
+  bulkAddParticipantsAction,
+} from "@/lib/actions/participant"
 import { ExportPrintBar } from "@/components/ui/export-print-bar"
 import { ViewToggle, type ViewMode } from "@/components/ui/view-toggle"
 import type { Participant } from "@/types/participant"
-import type { CompetitionCategory } from "@/types/competition"
+import type { CompetitionCategory, Competition } from "@/types/competition"
 
 export default function ParticipantsManagementPage() {
   const params = useParams()
@@ -26,6 +29,9 @@ export default function ParticipantsManagementPage() {
   const [participants, setParticipants] = useState<Participant[]>([])
   const [categories, setCategories] = useState<CompetitionCategory[]>([])
   const [teams, setTeams] = useState<{ id: string; name: string; code: string }[]>([])
+  const [competitions, setCompetitions] = useState<Competition[]>([])
+  const [registrations, setRegistrations] = useState<Array<{ participant_id: string; competition_id: string }>>([])
+  const [maxLimit, setMaxLimit] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>("table")
 
@@ -36,10 +42,13 @@ export default function ParticipantsManagementPage() {
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [showBulkModal, setShowBulkModal] = useState(false)
+  const [programModalParticipant, setProgramModalParticipant] = useState<Participant | null>(null)
+  const [selectedProgramIds, setSelectedProgramIds] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
 
-  // Single Add Form
+  // Single Add / Edit Form
   const [formName, setFormName] = useState("")
   const [formNameMl, setFormNameMl] = useState("")
   const [formDob, setFormDob] = useState("")
@@ -53,28 +62,38 @@ export default function ParticipantsManagementPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const supabase = createClient()
-      const [partsRes, catsData, teamsRes] = await Promise.all([
-        getParticipants(festivalId, { limit: 100 }),
-        getCategories(festivalId),
-        supabase.from("teams").select("id, name, code").eq("festival_id", festivalId),
-      ])
-
-      setParticipants(partsRes.data as Participant[])
-      setCategories(catsData as CompetitionCategory[])
-      if (teamsRes.data) {
-        setTeams(teamsRes.data)
-        if (teamsRes.data[0]) {
-          setFormTeam(teamsRes.data[0].code || teamsRes.data[0].name)
-          setBulkTeam(teamsRes.data[0].code || teamsRes.data[0].name)
-        }
+      const res = await fetch(`/api/festival/${festivalId}/workspace?scope=participants`, {
+        cache: "no-store",
+      })
+      if (!res.ok) {
+        setLoading(false)
+        return
       }
-      if (catsData && (catsData as any[])[0]) {
-        setFormCategory((catsData as any[])[0].name)
-        setBulkCategory((catsData as any[])[0].name)
+      const json = await res.json()
+      const partsList = (json.participants || []) as Participant[]
+      const catsList = (json.categories || []) as CompetitionCategory[]
+      const teamsList = (json.teams || []) as { id: string; name: string; code: string }[]
+      const compsList = (json.competitions || []) as Competition[]
+      const regsList = (json.registrations || []) as Array<{ participant_id: string; competition_id: string }>
+
+      setParticipants(partsList)
+      setCategories(catsList)
+      setTeams(teamsList)
+      setCompetitions(compsList)
+      setRegistrations(regsList)
+      setMaxLimit(json.license?.max_participants ?? null)
+
+      if (teamsList[0]) {
+        setFormTeam((prev) => prev || teamsList[0].code || teamsList[0].name)
+        setBulkTeam((prev) => prev || teamsList[0].code || teamsList[0].name)
+      }
+      if (catsList[0]) {
+        setFormCategory((prev) => prev || catsList[0].name)
+        setBulkCategory((prev) => prev || catsList[0].name)
       }
     } catch (err) {
-      console.error(err)
+      console.error("Failed to load participants workspace:", err)
+      toast.error("Failed to load participants")
     } finally {
       setLoading(false)
     }
@@ -95,6 +114,64 @@ export default function ParticipantsManagementPage() {
     }
   }
 
+  const handleOpenAdd = () => {
+    setEditingId(null)
+    setFormName("")
+    setFormNameMl("")
+    setFormDob("")
+    setFormCategory(categories[0]?.name || "")
+    setFormTeam(teams[0]?.code || teams[0]?.name || "")
+    setShowAddModal(true)
+  }
+
+  const handleOpenEdit = (p: Participant) => {
+    setEditingId(p.id)
+    setFormName(`${p.first_name || ""} ${p.last_name || ""}`.trim())
+    setFormNameMl(p.notes || "")
+    setFormDob(p.date_of_birth || "")
+    setFormCategory(p.division || categories[0]?.name || "")
+    setFormTeam(p.unit || teams[0]?.code || teams[0]?.name || "")
+    setShowAddModal(true)
+  }
+
+  const handleOpenProgramsModal = (p: Participant) => {
+    const enrolled = registrations
+      .filter((r) => r.participant_id === p.id)
+      .map((r) => r.competition_id)
+    setSelectedProgramIds(enrolled)
+    setProgramModalParticipant(p)
+  }
+
+  const handleSavePrograms = async () => {
+    if (!programModalParticipant) return
+    setSubmitting(true)
+    try {
+      const res = await fetch(`/api/festival/${festivalId}/operations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "sync_participant_programs",
+          payload: {
+            participantId: programModalParticipant.id,
+            competitionIds: selectedProgramIds,
+          },
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok || json.error) {
+        toast.error(json.error || "Failed to save program enrollments")
+      } else {
+        toast.success("Program enrollments updated!")
+        setProgramModalParticipant(null)
+        loadData()
+      }
+    } catch {
+      toast.error("Failed to update enrollments")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   const handleSingleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formName.trim()) {
@@ -102,20 +179,29 @@ export default function ParticipantsManagementPage() {
       return
     }
     setSubmitting(true)
-    const res = await addFestParticipantAction(festivalId, {
-      name: formName,
-      name_ml: formNameMl,
-      date_of_birth: formDob,
-      team: formTeam || teams[0]?.code || "Team A",
-      category: formCategory || categories[0]?.name || "General",
-    })
+    const res = editingId
+      ? await updateFestParticipantAction(editingId, festivalId, {
+          name: formName,
+          name_ml: formNameMl,
+          date_of_birth: formDob,
+          team: formTeam || teams[0]?.code || teams[0]?.name || "",
+          category: formCategory || categories[0]?.name || "General",
+        })
+      : await addFestParticipantAction(festivalId, {
+          name: formName,
+          name_ml: formNameMl,
+          date_of_birth: formDob,
+          team: formTeam || teams[0]?.code || teams[0]?.name || "",
+          category: formCategory || categories[0]?.name || "General",
+        })
 
     setSubmitting(false)
     if (res.error) {
       toast.error(res.error)
     } else {
-      toast.success("Participant added successfully!")
+      toast.success(editingId ? "Participant updated!" : "Participant added successfully!")
       setShowAddModal(false)
+      setEditingId(null)
       setFormName("")
       setFormNameMl("")
       setFormDob("")
@@ -132,7 +218,7 @@ export default function ParticipantsManagementPage() {
     setSubmitting(true)
     const res = await bulkAddParticipantsAction(
       festivalId,
-      bulkTeam || teams[0]?.code || "TA",
+      bulkTeam || teams[0]?.code || teams[0]?.name || "",
       bulkCategory || categories[0]?.name || "General",
       bulkNames
     )
@@ -175,13 +261,12 @@ export default function ParticipantsManagementPage() {
     { header: "Status", accessor: (p: Participant) => (p as any).status || "active" },
   ]
 
-  const maxLimit = 20
   const count = participants.length
-  const remaining = Math.max(0, maxLimit - count)
+  const remaining = maxLimit !== null ? Math.max(0, maxLimit - count) : null
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16 font-sans">
-      {/* ── HEADER (Reference Screenshot 4) ── */}
+      {/* ── HEADER ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-2xl bg-indigo-50 text-indigo-600 shadow-xs">
@@ -218,7 +303,7 @@ export default function ParticipantsManagementPage() {
 
           <Button
             size="sm"
-            onClick={() => setShowAddModal(true)}
+            onClick={handleOpenAdd}
             className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
           >
             <Plus className="h-4 w-4 mr-1" />
@@ -227,11 +312,17 @@ export default function ParticipantsManagementPage() {
         </div>
       </div>
 
-      {/* ── CAPACITY STATUS BAR (Screenshot 4) ── */}
+      {/* ── SUMMARY BAR (Real Count + License Quota if applicable) ── */}
       <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200/90 bg-white text-xs font-semibold text-slate-700 shadow-xs">
         <Check className="h-4 w-4 text-indigo-600 shrink-0" />
         <span>
-          <strong className="text-slate-900">{count} of {maxLimit} participants</strong> · {remaining} remaining
+          {maxLimit !== null ? (
+            <>
+              <strong className="text-slate-900">{count} of {maxLimit} participants</strong> · {remaining} remaining
+            </>
+          ) : (
+            <strong className="text-slate-900">{count} registered participants</strong>
+          )}
         </span>
       </div>
 
@@ -284,7 +375,7 @@ export default function ParticipantsManagementPage() {
             Get started by adding participants individually or bulk paste a list of participant names.
           </p>
           <div className="flex justify-center gap-2 pt-2">
-            <Button size="sm" onClick={() => setShowAddModal(true)} className="rounded-xl text-xs bg-indigo-600 hover:bg-indigo-700 text-white">
+            <Button size="sm" onClick={handleOpenAdd} className="rounded-xl text-xs bg-indigo-600 hover:bg-indigo-700 text-white">
               <Plus className="h-3.5 w-3.5 mr-1" /> Add Participant
             </Button>
             <Button size="sm" variant="outline" onClick={() => setShowBulkModal(true)} className="rounded-xl text-xs">
@@ -293,7 +384,7 @@ export default function ParticipantsManagementPage() {
           </div>
         </div>
       ) : viewMode === "table" ? (
-        /* ── 1. LINE / TABLE VIEW (Exact layout from Screenshot 4) ── */
+        /* ── 1. LINE / TABLE VIEW ── */
         <div className="rounded-2xl border border-slate-200/90 bg-white overflow-hidden shadow-xs">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
@@ -320,40 +411,34 @@ export default function ParticipantsManagementPage() {
                       </td>
                       <td className="py-3.5 px-4">
                         <span className="inline-block px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-semibold border border-slate-200">
-                          {p.division || "Senior"}
+                          {p.division || "General"}
                         </span>
                       </td>
                       <td className="py-3.5 px-4">
                         <span className="inline-block px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-bold border border-indigo-200">
-                          {p.unit || "CJP"}
+                          {p.unit || "Unassigned"}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <div className="inline-flex items-center gap-1.5">
                           <button
                             type="button"
-                            onClick={() => {
-                              setFormName(fullName)
-                              setFormNameMl(p.notes || "")
-                              setFormCategory(p.division || "")
-                              setFormTeam(p.unit || "")
-                              setShowAddModal(true)
-                            }}
-                            className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 text-[11px] font-semibold transition-colors"
+                            onClick={() => handleOpenEdit(p)}
+                            className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 text-[11px] font-semibold transition-colors cursor-pointer"
                           >
                             Edit
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDelete(p.id)}
-                            className="px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-semibold transition-colors"
+                            className="px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-semibold transition-colors cursor-pointer"
                           >
                             Delete
                           </button>
                           <button
                             type="button"
-                            onClick={() => toast.info(`Assigned to programs for ${fullName}`)}
-                            className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 text-[11px] font-semibold transition-colors"
+                            onClick={() => handleOpenProgramsModal(p)}
+                            className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 text-[11px] font-semibold transition-colors cursor-pointer"
                           >
                             Programs
                           </button>
@@ -367,7 +452,7 @@ export default function ParticipantsManagementPage() {
           </div>
         </div>
       ) : (
-        /* ── 2. GRID / CARDS VIEW (Exact layout from Screenshot 7) ── */
+        /* ── 2. GRID / CARDS VIEW ── */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
           {filtered.map((p) => {
             const fullName = `${p.first_name || ""} ${p.last_name || ""}`.trim()
@@ -389,11 +474,11 @@ export default function ParticipantsManagementPage() {
                   <div className="mt-3 space-y-1 text-xs">
                     <div className="flex items-center gap-2">
                       <span className="text-slate-400 text-[11px]">Category:</span>
-                      <span className="font-semibold text-slate-700">{p.division || "Senior"}</span>
+                      <span className="font-semibold text-slate-700">{p.division || "General"}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-slate-400 text-[11px]">Team:</span>
-                      <span className="font-bold text-indigo-700">{p.unit || "CJP"}</span>
+                      <span className="font-bold text-indigo-700">{p.unit || "Unassigned"}</span>
                     </div>
                   </div>
                 </div>
@@ -401,28 +486,22 @@ export default function ParticipantsManagementPage() {
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-1.5">
                   <button
                     type="button"
-                    onClick={() => {
-                      setFormName(fullName)
-                      setFormNameMl(p.notes || "")
-                      setFormCategory(p.division || "")
-                      setFormTeam(p.unit || "")
-                      setShowAddModal(true)
-                    }}
-                    className="flex-1 px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors text-center"
+                    onClick={() => handleOpenEdit(p)}
+                    className="flex-1 px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors text-center cursor-pointer"
                   >
                     Edit
                   </button>
                   <button
                     type="button"
                     onClick={() => handleDelete(p.id)}
-                    className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-colors"
+                    className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-colors cursor-pointer"
                   >
                     Delete
                   </button>
                   <button
                     type="button"
-                    onClick={() => toast.info(`Assigned to programs for ${fullName}`)}
-                    className="flex-1 px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors text-center"
+                    onClick={() => handleOpenProgramsModal(p)}
+                    className="flex-1 px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors text-center cursor-pointer"
                   >
                     Programs
                   </button>
@@ -433,12 +512,14 @@ export default function ParticipantsManagementPage() {
         </div>
       )}
 
-      {/* ── MODAL 1: ADD PARTICIPANT (Exact layout from Screenshot 7) ── */}
+      {/* ── MODAL 1: ADD / EDIT PARTICIPANT ── */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
           <div className="w-full max-w-md rounded-2xl bg-white border border-slate-200 shadow-2xl p-6 space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h2 className="text-lg font-black text-slate-900">Add participant</h2>
+              <h2 className="text-lg font-black text-slate-900">
+                {editingId ? "Edit participant" : "Add participant"}
+              </h2>
               <button
                 type="button"
                 onClick={() => setShowAddModal(false)}
@@ -453,7 +534,7 @@ export default function ParticipantsManagementPage() {
                 <label className="block text-slate-600">Name</label>
                 <Input
                   required
-                  placeholder="e.g. Ajmal"
+                  placeholder="Enter full name"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   className="h-10 rounded-xl border-slate-200 text-xs"
@@ -520,7 +601,7 @@ export default function ParticipantsManagementPage() {
                   disabled={submitting}
                   className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"
                 >
-                  {submitting ? "Adding..." : "Add participant"}
+                  {submitting ? "Saving..." : editingId ? "Update participant" : "Add participant"}
                 </Button>
               </div>
             </form>
@@ -579,7 +660,7 @@ export default function ParticipantsManagementPage() {
                 <label className="block text-slate-600">Participants</label>
                 <textarea
                   rows={6}
-                  placeholder="Ajmal&#10;Faslu&#10;Hamid&#10;Mazin&#10;Rashid&#10;Ruhaib"
+                  placeholder="Participant 1&#10;Participant 2&#10;Participant 3"
                   value={bulkNames}
                   onChange={(e) => setBulkNames(e.target.value)}
                   className="w-full p-3 rounded-xl border border-slate-200 text-xs font-medium focus:outline-hidden focus:border-indigo-500"
@@ -605,6 +686,89 @@ export default function ParticipantsManagementPage() {
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL 3: ENROLL IN PROGRAMS ── */}
+      {programModalParticipant && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="w-full max-w-md rounded-2xl bg-white border border-slate-200 shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h2 className="text-base font-black text-slate-900">
+                  Programs for {programModalParticipant.first_name} {programModalParticipant.last_name}
+                </h2>
+                <p className="text-[11px] text-slate-500">
+                  Select competitions to enroll this participant
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setProgramModalParticipant(null)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {competitions.length === 0 ? (
+              <div className="py-8 text-center text-xs text-slate-400">
+                No programs created yet. Add competitions first under Programs.
+              </div>
+            ) : (
+              <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
+                {competitions.map((comp) => {
+                  const checked = selectedProgramIds.includes(comp.id)
+                  return (
+                    <label
+                      key={comp.id}
+                      className={`flex items-center justify-between p-3 rounded-xl border text-xs cursor-pointer transition-colors ${
+                        checked ? "border-indigo-500 bg-indigo-50/70" : "border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      <div>
+                        <span className="font-bold text-slate-900 block">{comp.name}</span>
+                        <span className="text-[10px] text-slate-500">
+                          {(comp as any).category?.name || "General"}
+                        </span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedProgramIds((prev) => [...prev, comp.id])
+                          } else {
+                            setSelectedProgramIds((prev) => prev.filter((id) => id !== comp.id))
+                          }
+                        }}
+                        className="h-4 w-4 accent-indigo-600 rounded"
+                      />
+                    </label>
+                  )
+                })}
+              </div>
+            )}
+
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setProgramModalParticipant(null)}
+                className="rounded-xl text-xs font-semibold"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={submitting || competitions.length === 0}
+                onClick={handleSavePrograms}
+                className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
+                {submitting ? "Saving..." : "Save Enrollments"}
+              </Button>
+            </div>
           </div>
         </div>
       )}

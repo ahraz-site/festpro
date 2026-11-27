@@ -53,25 +53,45 @@ export default function GreenRoomPage() {
 
   const loadData = () => {
     setLoading(true)
-    Promise.all([
-      getParticipants(festivalId, { limit: 100 }),
-      getCompetitions(festivalId),
-    ])
-      .then(([pRes, cRes]) => {
-        if (pRes?.data) {
-          const mapped: ParticipantCard[] = pRes.data.map((p: any, idx: number) => ({
+    fetch(`/api/festival/${festivalId}/workspace?scope=green-room`, { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        const pList = Array.isArray(data?.participants) ? data.participants : []
+        const cList = Array.isArray(data?.competitions) ? data.competitions : []
+        const greenRoomMap = (data?.customFields?.green_room || {}) as Record<
+          string,
+          { status?: GreenRoomStatus; codeLetter?: string; reportedTime?: string }
+        >
+        const codeLettersObj = (data?.customFields?.code_letters || {}) as Record<
+          string,
+          Array<{ id: string; codeLetter?: string; isReported?: boolean }>
+        >
+        const fallbackCodeByParticipant = new Map<string, string>()
+        Object.values(codeLettersObj).forEach((entries) => {
+          if (Array.isArray(entries)) {
+            entries.forEach((entry) => {
+              if (entry?.id && entry?.codeLetter && !fallbackCodeByParticipant.has(entry.id)) {
+                fallbackCodeByParticipant.set(entry.id, entry.codeLetter)
+              }
+            })
+          }
+        })
+
+        const mapped: ParticipantCard[] = pList.map((p: any, idx: number) => {
+          const saved = greenRoomMap[p.id]
+          return {
             id: p.id,
-            name: `${p.first_name || ""} ${p.last_name || ""}`.trim() || `Contestant ${idx + 1}`,
-            chestNumber: p.chest_number || `P${String(idx + 1).padStart(3, "0")}`,
-            team: p.unit || "Team Alpha",
+            name: `${p.first_name || ""} ${p.last_name || ""}`.trim() || `Participant ${idx + 1}`,
+            chestNumber: p.chest_number || "—",
+            team: p.unit || "Unassigned",
             category: p.division || "General",
-            codeLetter: idx < 8 ? CODE_LETTERS[idx % CODE_LETTERS.length] : undefined,
-            greenRoomStatus: idx === 0 ? "on_stage" : idx < 3 ? "ready_for_stage" : idx < 6 ? "reported" : "waiting",
-            reportedTime: idx < 6 ? "09:30 AM" : undefined,
-          }))
-          setParticipants(mapped)
-        }
-        if (Array.isArray(cRes)) setCompetitions(cRes)
+            codeLetter: saved?.codeLetter || fallbackCodeByParticipant.get(p.id) || undefined,
+            greenRoomStatus: saved?.status || "waiting",
+            reportedTime: saved?.reportedTime || undefined,
+          }
+        })
+        setParticipants(mapped)
+        setCompetitions(cList)
       })
       .catch((err) => toast.error(err.message || "Failed to load green room candidates"))
       .finally(() => setLoading(false))
@@ -81,19 +101,51 @@ export default function GreenRoomPage() {
     if (festivalId) loadData()
   }, [festivalId])
 
-  const updateStatus = (id: string, newStatus: GreenRoomStatus) => {
+  const updateStatus = async (id: string, newStatus: GreenRoomStatus) => {
+    const existing = participants.find((p) => p.id === id)
+    const nowTime =
+      newStatus === "waiting"
+        ? undefined
+        : existing?.reportedTime || new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    const nextCodeLetter =
+      existing?.codeLetter ||
+      (newStatus === "waiting" ? undefined : CODE_LETTERS[Math.max(0, participants.findIndex((p) => p.id === id)) % CODE_LETTERS.length])
+
     setParticipants((prev) =>
       prev.map((p) => {
         if (p.id !== id) return p
         return {
           ...p,
           greenRoomStatus: newStatus,
-          reportedTime: p.reportedTime || new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          codeLetter: p.codeLetter || CODE_LETTERS[Math.floor(Math.random() * CODE_LETTERS.length)],
+          reportedTime: nowTime,
+          codeLetter: nextCodeLetter,
         }
       })
     )
-    toast.success(`Candidate status updated: ${newStatus.replace(/_/g, " ").toUpperCase()}`)
+
+    try {
+      const res = await fetch(`/api/festival/${festivalId}/operations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update_green_room",
+          payload: {
+            participantId: id,
+            status: newStatus,
+            codeLetter: nextCodeLetter,
+            reportedTime: nowTime,
+          },
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to update status")
+      }
+      toast.success(`Candidate status updated: ${newStatus.replace(/_/g, " ").toUpperCase()}`)
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to save green room status")
+      loadData()
+    }
   }
 
   const callCandidateAudio = (p: ParticipantCard) => {

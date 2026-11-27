@@ -41,51 +41,23 @@ export default function FestivalSchedulerPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const supabase = createClient()
-      const [sRes, stagesData, compsData] = await Promise.all([
-        supabase
-          .from("stage_schedules")
-          .select("*, competition:competitions(*), stage:festival_stages(*)")
-          .eq("festival_id", festivalId),
-        getFestivalStages(festivalId),
-        getCompetitions(festivalId),
-      ])
-
-      if (sRes.data && sRes.data.length > 0) {
-        setSchedules(sRes.data)
-      } else {
-        // Fallback schedule item
-        setSchedules([
-          {
-            id: "s1",
-            festival_id: festivalId,
-            scheduled_date: selectedDate,
-            start_time: "10:00",
-            end_time: "10:30",
-            duration_minutes: 30,
-            status: "scheduled",
-            competition: { id: "c1", name: "Madh Song" },
-            stage: { id: "st1", name: "Stage 1" },
-          },
-        ])
-      }
-
-      const stList = (stagesData as FestivalStage[]) || []
-      if (stList.length === 0) {
-        setStages([{ id: "st1", name: "Stage 1", code: "ST1" } as any])
-      } else {
+      const res = await fetch(`/api/festival/${festivalId}/workspace?scope=schedules`, { cache: "no-store" })
+      if (res.ok) {
+        const json = await res.json()
+        setSchedules(json.schedules || [])
+        const stList = (json.stages || []) as FestivalStage[]
+        const compsList = (json.competitions || []) as Competition[]
         setStages(stList)
+        setCompetitions(compsList)
+        if (compsList[0]) setSelectedProgram((prev) => prev || compsList[0].id)
+        if (stList[0]) setSelectedStage((prev) => prev || stList[0].id)
       }
-
-      setCompetitions(compsData as Competition[])
-      if (compsData && compsData[0]) setSelectedProgram(compsData[0].id)
-      if (stList[0]) setSelectedStage(stList[0].id)
     } catch (e) {
       console.error(e)
     } finally {
       setLoading(false)
     }
-  }, [festivalId, selectedDate])
+  }, [festivalId])
 
   useEffect(() => {
     loadData()
@@ -282,7 +254,7 @@ export default function FestivalSchedulerPage() {
           <div className="flex items-center justify-between text-xs font-bold text-amber-900">
             <div className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-amber-600" />
-              <span>Issues (1 conflict detected)</span>
+              <span>Schedule Check ({unscheduledPrograms.length} unscheduled programs)</span>
             </div>
             <button
               type="button"
@@ -297,7 +269,9 @@ export default function FestivalSchedulerPage() {
               Notice
             </span>
             <span>
-              &ldquo;Madh Song&rdquo; has been scheduled on Stage 1. Ensure audio console and mic setup is configured in advance.
+              {unscheduledPrograms.length > 0
+                ? `${unscheduledPrograms.length} program(s) are not yet assigned to a stage time slot.`
+                : "All competition programs are scheduled without stage overlap."}
             </span>
           </div>
         </div>

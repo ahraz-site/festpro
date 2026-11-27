@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { verifyFestivalAccess } from "@/lib/auth/session-guard"
 import type { UserRole } from "@/types"
 import type {
   Competition, CompetitionRound, CompetitionRule, CompetitionMaterial,
@@ -18,14 +19,14 @@ async function getAuth() {
 }
 
 async function checkOrgAccess(festivalId: string) {
-  const user = await getAuth()
-  if (!user) return { allowed: false, error: "Not authenticated" } as const
-  const admin = createAdminClient()
-  const { data: fest } = await admin.from("festivals").select("organization_id").eq("id", festivalId).single()
-  if (!fest) return { allowed: false, error: "Festival not found" } as const
-  const { data: member } = await admin.from("organization_members").select("role").eq("organization_id", fest.organization_id).eq("user_id", user.id).single()
-  if (!member) return { allowed: false, error: "Not a member" } as const
-  return { allowed: true, user, festival: fest, member: member as { role: UserRole } } as const
+  const access = await verifyFestivalAccess(festivalId)
+  if (!access.allowed) return { allowed: false, error: access.error } as const
+  return {
+    allowed: true,
+    user: { id: access.mode === "supabase" ? access.userId || null : null },
+    festival: { organization_id: access.organizationId },
+    member: { role: access.role as UserRole },
+  } as const
 }
 
 async function logActivity(festivalId: string, action: string, metadata: Record<string, any> = {}) {

@@ -245,10 +245,10 @@ export default function PeopleAndAccessPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16 font-sans">
-      {/* ── HEADER (Festize Style) ── */}
+      {/* ── HEADER (FesPro Enterprise Style) ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl bg-teal-50 text-teal-600 shadow-xs">
+          <div className="p-2.5 rounded-2xl bg-indigo-50 text-indigo-600 shadow-xs">
             <Users className="h-6 w-6" />
           </div>
           <div>
@@ -275,7 +275,7 @@ export default function PeopleAndAccessPage() {
           <Button
             size="sm"
             onClick={handleOpenAdd}
-            className="rounded-xl text-xs font-bold bg-[#149377] hover:bg-[#107c64] text-white shadow-xs cursor-pointer"
+            className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer"
           >
             <Plus className="h-4 w-4 mr-1.5" />
             Add person
@@ -283,12 +283,12 @@ export default function PeopleAndAccessPage() {
         </div>
       </div>
 
-      {/* ── 7 ROLE SUMMARY COUNTERS (Exact layout from Festize screenshot) ── */}
+      {/* ── 7 ROLE SUMMARY COUNTERS ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
         {roleSummaries.map((item) => (
           <div
             key={item.code}
-            className="rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-xs flex flex-col justify-between h-24 hover:border-teal-400 transition-colors"
+            className="rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-xs flex flex-col justify-between h-24 hover:border-indigo-400 transition-colors"
           >
             <div className="flex items-start justify-between">
               <span className="text-[11px] font-bold text-slate-600 leading-tight truncate pr-1">
@@ -335,7 +335,7 @@ export default function PeopleAndAccessPage() {
       {/* ── CONTENT AREA (Grid View vs Line View) ── */}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-500">
-          <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
+          <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
           <p className="text-xs font-bold uppercase tracking-wider">Loading team credentials...</p>
         </div>
       ) : filtered.length === 0 ? (
@@ -343,12 +343,12 @@ export default function PeopleAndAccessPage() {
           <Users className="h-10 w-10 text-slate-300 mx-auto" />
           <h3 className="text-sm font-bold text-slate-700">No members found</h3>
           <p className="text-xs text-slate-400">Add judges, media managers, and coordinators with username and password.</p>
-          <Button size="sm" onClick={handleOpenAdd} className="rounded-xl text-xs bg-[#149377] hover:bg-[#107c64] text-white">
+          <Button size="sm" onClick={handleOpenAdd} className="rounded-xl text-xs bg-indigo-600 hover:bg-indigo-700 text-white">
             <Plus className="h-3.5 w-3.5 mr-1" /> Add Person
           </Button>
         </div>
       ) : viewMode === "grid" ? (
-        /* ── GRID VIEW (Exact layout from Festize screenshot) ── */
+        /* ── GRID VIEW ── */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((m) => {
             const fullName = m.name || "User"
@@ -359,7 +359,7 @@ export default function PeopleAndAccessPage() {
             return (
               <div
                 key={m.id}
-                className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs hover:border-teal-400 hover:shadow-md transition-all flex flex-col justify-between space-y-4"
+                className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs hover:border-indigo-400 hover:shadow-md transition-all flex flex-col justify-between space-y-4"
               >
                 <div>
                   <h3 className="text-base font-black text-slate-900">{fullName}</h3>
@@ -497,7 +497,7 @@ export default function PeopleAndAccessPage() {
                 <label className="block text-slate-700 font-bold">Full Name *</label>
                 <Input
                   required
-                  placeholder="e.g. Sinan or Ahraz"
+                  placeholder="e.g. Judge 1 or Staff Coordinator"
                   value={name}
                   onChange={(e) => handleNameChange(e.target.value)}
                   className="h-10 rounded-xl border-slate-200 text-xs"
@@ -510,7 +510,7 @@ export default function PeopleAndAccessPage() {
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 focus:outline-hidden focus:border-teal-500"
+                  className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 focus:outline-hidden focus:border-indigo-500"
                 >
                   <option value="fest_administrator">Fest administrator</option>
                   <option value="team_manager">Team manager</option>
@@ -528,10 +528,10 @@ export default function PeopleAndAccessPage() {
                 <label className="block text-slate-700 font-bold">Username (used for login) *</label>
                 <Input
                   required
-                  placeholder="e.g. sinan"
+                  placeholder="e.g. stage1.judge"
                   value={username}
                   onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s+/g, ""))}
-                  className="h-10 rounded-xl border-slate-200 font-mono text-xs font-bold text-teal-800"
+                  className="h-10 rounded-xl border-slate-200 font-mono text-xs font-bold text-indigo-800"
                 />
                 <p className="text-[10px] text-slate-400">
                   This username will be entered on the login screen to sign in.
@@ -545,7 +545,7 @@ export default function PeopleAndAccessPage() {
                   <button
                     type="button"
                     onClick={() => setPassword(generateRandomPassword())}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-600 hover:text-teal-700 cursor-pointer"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-700 cursor-pointer"
                   >
                     <Sparkles className="h-3 w-3" />
                     Generate password
@@ -572,7 +572,7 @@ export default function PeopleAndAccessPage() {
                     <button
                       type="button"
                       onClick={handleCopyPassword}
-                      className="p-1 hover:text-teal-600 cursor-pointer"
+                      className="p-1 hover:text-indigo-600 cursor-pointer"
                       title="Copy password"
                     >
                       {copiedPass ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
@@ -605,7 +605,7 @@ export default function PeopleAndAccessPage() {
                 <Button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-xl text-xs font-bold bg-[#149377] hover:bg-[#107c64] text-white shadow-xs cursor-pointer"
+                  className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer"
                 >
                   {submitting ? (
                     <>

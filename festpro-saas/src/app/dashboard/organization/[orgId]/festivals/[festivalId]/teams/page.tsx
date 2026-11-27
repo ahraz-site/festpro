@@ -41,25 +41,13 @@ export default function FestivalTeamsPage() {
 
   const fetchTeams = useCallback(async () => {
     try {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from("teams")
-        .select("*")
-        .eq("festival_id", festivalId)
-        .order("name", { ascending: true })
-
-      if (data && data.length > 0) {
-        setTeams(data as unknown as Team[])
-      } else {
-        // Default starter teams if none exist
-        const starter = [
-          { id: "1", name: "Team A", code: "TA", color: "#3B82F6", total_points: 0 },
-          { id: "2", name: "Team B", code: "TB", color: "#EF4444", total_points: 0 },
-        ]
-        setTeams(starter as Team[])
+      const res = await fetch(`/api/festival/${festivalId}/workspace?scope=teams`, { cache: "no-store" })
+      if (res.ok) {
+        const json = await res.json()
+        setTeams((json.teams || []) as Team[])
       }
     } catch (e) {
-      console.error(e)
+      console.error("Failed to fetch teams:", e)
     } finally {
       setLoading(false)
     }
@@ -88,8 +76,16 @@ export default function FestivalTeamsPage() {
   const handleDeleteTeam = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete "${name}"?`)) return
     try {
-      const supabase = createClient()
-      await supabase.from("teams").delete().eq("id", id)
+      const res = await fetch(`/api/festival/${festivalId}/operations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete_team", payload: { id } }),
+      })
+      const json = await res.json()
+      if (!res.ok || json.error) {
+        toast.error(json.error || "Failed to delete team")
+        return
+      }
       setTeams((prev) => prev.filter((t) => t.id !== id))
       toast.success(`Team "${name}" deleted`)
     } catch {
@@ -105,30 +101,34 @@ export default function FestivalTeamsPage() {
     }
 
     setSubmitting(true)
-    const supabase = createClient()
     const code = teamCode.trim().toUpperCase() || teamName.trim().slice(0, 3).toUpperCase()
-
-    if (editingTeam) {
-      await supabase
-        .from("teams")
-        .update({ name: teamName, code, color: teamColor })
-        .eq("id", editingTeam.id)
-      toast.success("Team updated successfully")
-    } else {
-      await supabase.from("teams").insert([
-        {
-          festival_id: festivalId,
-          name: teamName,
-          code,
-          color: teamColor,
-        },
-      ])
-      toast.success(`Team "${teamName}" created!`)
+    try {
+      const res = await fetch(`/api/festival/${festivalId}/operations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "save_team",
+          payload: {
+            id: editingTeam?.id,
+            name: teamName.trim(),
+            code,
+            color: teamColor,
+          },
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok || json.error) {
+        toast.error(json.error || "Failed to save team")
+        return
+      }
+      toast.success(editingTeam ? "Team updated successfully" : `Team "${teamName}" created!`)
+      setIsModalOpen(false)
+      fetchTeams()
+    } catch {
+      toast.error("Failed to save team")
+    } finally {
+      setSubmitting(false)
     }
-
-    setSubmitting(false)
-    setIsModalOpen(false)
-    fetchTeams()
   }
 
   const filtered = teams.filter((t) => {
@@ -143,12 +143,11 @@ export default function FestivalTeamsPage() {
     { header: "Total Points", accessor: (t: Team) => t.total_points || 0 },
   ]
 
-  const maxLimit = 2
   const count = teams.length
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16 font-sans">
-      {/* ── HEADER (Screenshot 3) ── */}
+      {/* ── HEADER ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-2xl bg-indigo-50 text-indigo-600 shadow-xs">
@@ -192,23 +191,7 @@ export default function FestivalTeamsPage() {
         </div>
       </div>
 
-      {/* ── LIMIT / CAPACITY ALERT (Screenshot 3) ── */}
-      {count >= maxLimit && (
-        <div className="flex items-center justify-between px-4 py-3 rounded-2xl border border-red-200 bg-red-50/70 text-xs text-red-700">
-          <div className="flex items-center gap-2 font-semibold">
-            <span className="h-4 w-4 rounded-full border-2 border-red-500 flex items-center justify-center text-[10px] font-bold">!</span>
-            <span>{count} of {maxLimit} teams · Free Tier Capacity reached</span>
-          </div>
-          <a
-            href="/pricing"
-            className="font-bold underline hover:text-red-900"
-          >
-            Upgrade Tier
-          </a>
-        </div>
-      )}
-
-      {/* ── TOTAL TEAMS METRIC CARD (Screenshot 3) ── */}
+      {/* ── TOTAL TEAMS METRIC CARD ── */}
       <div className="w-full sm:w-64">
         <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex items-center justify-between">
           <div>
@@ -363,7 +346,7 @@ export default function FestivalTeamsPage() {
                 <label className="block text-slate-600">Team Name</label>
                 <Input
                   required
-                  placeholder="e.g. BJP or Red Challengers"
+                  placeholder="e.g. Emerald House"
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
                   className="h-10 rounded-xl border-slate-200 text-xs"
@@ -373,7 +356,7 @@ export default function FestivalTeamsPage() {
               <div className="space-y-1.5">
                 <label className="block text-slate-600">Team Code</label>
                 <Input
-                  placeholder="e.g. BJ"
+                  placeholder="e.g. EMR"
                   value={teamCode}
                   onChange={(e) => setTeamCode(e.target.value.toUpperCase())}
                   className="h-10 rounded-xl border-slate-200 text-xs font-mono"

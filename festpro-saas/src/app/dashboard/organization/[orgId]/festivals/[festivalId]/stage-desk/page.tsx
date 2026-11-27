@@ -3,18 +3,12 @@
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
-import { createClient } from "@/lib/supabase/client"
-import { getCompetitions } from "@/lib/actions/competition"
-import { getFestivalStages } from "@/lib/actions/festival"
 import type { Competition } from "@/types/competition"
 import type { FestivalStage } from "@/types/festival"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import {
-  Monitor, Search, Loader2, Play, CheckCircle2,
-  Users, Clock, AlertCircle, ArrowRight
-} from "lucide-react"
+import { Monitor, Search, Loader2 } from "lucide-react"
 
 type StageDeskTab = "NOT STARTED" | "REPORTING" | "STARTED" | "FINISHED"
 
@@ -25,42 +19,80 @@ export default function StageDeskPage() {
 
   const [competitions, setCompetitions] = useState<Competition[]>([])
   const [stages, setStages] = useState<FestivalStage[]>([])
+  const [registrations, setRegistrations] = useState<any[]>([])
+  const [participants, setParticipants] = useState<any[]>([])
+  const [codeLettersMap, setCodeLettersMap] = useState<Record<string, any[]>>({})
+  const [greenRoomMap, setGreenRoomMap] = useState<Record<string, any>>({})
+  const [stageAssignments, setStageAssignments] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
 
-  // Filters (Screenshot 3)
+  // Filters
   const [selectedStage, setSelectedStage] = useState<string>("")
   const [search, setSearch] = useState("")
   const [activeTab, setActiveTab] = useState<StageDeskTab>("NOT STARTED")
 
-  // Local runtime status map for stage desk
+  // Runtime status map for stage desk
   const [compStatuses, setCompStatuses] = useState<Record<string, StageDeskTab>>({})
 
   useEffect(() => {
+    let active = true
     async function load() {
       try {
-        const [comps, stgs] = await Promise.all([
-          getCompetitions(festivalId),
-          getFestivalStages(festivalId),
-        ])
-        const compList = (comps || []) as Competition[]
-        const stageList = (stgs || []) as FestivalStage[]
+        const res = await fetch(`/api/festival/${festivalId}/workspace?scope=stage-desk`, {
+          cache: "no-store",
+        })
+        const data = await res.json()
+        if (!active) return
+
+        const compList = (Array.isArray(data?.competitions) ? data.competitions : []) as Competition[]
+        const stageList = (Array.isArray(data?.stages) ? data.stages : []) as FestivalStage[]
+        const liveStatuses = (data?.customFields?.live_stage_statuses || {}) as Record<
+          string,
+          { stageId?: string; deskStatus?: StageDeskTab }
+        >
+
         setCompetitions(compList)
         setStages(stageList)
+        setRegistrations(Array.isArray(data?.registrations) ? data.registrations : [])
+        setParticipants(Array.isArray(data?.participants) ? data.participants : [])
+        setCodeLettersMap((data?.customFields?.code_letters || {}) as Record<string, any[]>)
+        setGreenRoomMap((data?.customFields?.green_room || {}) as Record<string, any>)
         if (stageList[0]) setSelectedStage(stageList[0].id)
 
-        // Initialize status
         const initialStatus: Record<string, StageDeskTab> = {}
-        compList.forEach((c, idx) => {
-          initialStatus[c.id] = idx === 0 ? "STARTED" : idx === 1 ? "REPORTING" : "NOT STARTED"
+        const initialStages: Record<string, string> = {}
+        compList.forEach((c) => {
+          const saved = liveStatuses[c.id]
+          if (saved?.deskStatus) {
+            initialStatus[c.id] = saved.deskStatus
+          } else {
+            const dbStatus = String(c.status || "").toLowerCase()
+            if (dbStatus === "running" || dbStatus === "live" || dbStatus === "in_progress") {
+              initialStatus[c.id] = "STARTED"
+            } else if (dbStatus === "completed" || dbStatus === "finished") {
+              initialStatus[c.id] = "FINISHED"
+            } else if (dbStatus === "registration_closed" || dbStatus === "reporting") {
+              initialStatus[c.id] = "REPORTING"
+            } else {
+              initialStatus[c.id] = "NOT STARTED"
+            }
+          }
+          if (saved?.stageId || (c as any).venue_id) {
+            initialStages[c.id] = saved?.stageId || (c as any).venue_id
+          }
         })
         setCompStatuses(initialStatus)
+        setStageAssignments(initialStages)
       } catch (err) {
         console.error("Failed to load stage desk:", err)
       } finally {
-        setLoading(false)
+        if (active) setLoading(false)
       }
     }
     load()
+    return () => {
+      active = false
+    }
   }, [festivalId])
 
   const handleClearFilters = () => {
@@ -69,18 +101,41 @@ export default function StageDeskPage() {
     if (stages[0]) setSelectedStage(stages[0].id)
   }
 
-  const handleUpdateStatus = (compId: string, newStatus: StageDeskTab) => {
+  const handleUpdateStatus = async (compId: string, newStatus: StageDeskTab) => {
     setCompStatuses((prev) => ({
       ...prev,
       [compId]: newStatus,
     }))
-    toast.success(`Program moved to ${newStatus}`)
+    try {
+      const res = await fetch(`/api/festival/${festivalId}/operations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update_stage_status",
+          payload: {
+            competitionId: compId,
+            stageId: stageAssignments[compId] || selectedStage || "",
+            deskStatus: newStatus,
+          },
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to save stage status")
+      }
+      toast.success(`Program moved to ${newStatus}`)
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to persist status")
+    }
   }
 
   const filtered = competitions.filter((c) => {
     const s = search.toLowerCase()
     const matchesSearch = c.name.toLowerCase().includes(s) || (c.code && c.code.toLowerCase().includes(s))
     if (!matchesSearch) return false
+
+    const assigned = stageAssignments[c.id]
+    if (selectedStage && assigned && assigned !== selectedStage) return false
 
     const status = compStatuses[c.id] || "NOT STARTED"
     if (status !== activeTab) return false
@@ -110,10 +165,13 @@ export default function StageDeskPage() {
             onChange={(e) => setSelectedStage(e.target.value)}
             className="h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 w-full sm:w-56 focus:outline-hidden focus:border-indigo-500 shadow-xs"
           >
-            {stages.map((stg) => (
-              <option key={stg.id} value={stg.id}>{stg.name}</option>
-            ))}
-            {stages.length === 0 && <option value="stage1">Stage 1</option>}
+            {stages.length > 0 ? (
+              stages.map((stg) => (
+                <option key={stg.id} value={stg.id}>{stg.name}</option>
+              ))
+            ) : (
+              <option value="">No stages created</option>
+            )}
           </select>
 
           {/* Search programs input */}
@@ -179,7 +237,22 @@ export default function StageDeskPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filtered.map((comp) => {
             const status = compStatuses[comp.id] || "NOT STARTED"
-            const catName = (comp as any).category?.name || "Senior"
+            const catName = (comp as any).category?.name || "General"
+            const enrolledRegs = registrations.filter((r: any) => r.competition_id === comp.id)
+            const enrolledIds = new Set(enrolledRegs.map((r: any) => r.participant_id))
+            const codeEntries = codeLettersMap[comp.id] || []
+            const reportedCount = codeEntries.length > 0
+              ? codeEntries.filter((e: any) => e.isReported).length
+              : enrolledRegs.filter((r: any) => {
+                  const gr = greenRoomMap[r.participant_id]?.status
+                  return r.is_attended || gr === "reported" || gr === "ready_for_stage" || gr === "on_stage"
+                }).length
+            const onStageParticipant = participants.find(
+              (p: any) => enrolledIds.has(p.id) && greenRoomMap[p.id]?.status === "on_stage"
+            )
+            const onStageLabel = onStageParticipant
+              ? `Chest #${onStageParticipant.chest_number || "—"}`
+              : "—"
 
             return (
               <div
@@ -200,15 +273,15 @@ export default function StageDeskPage() {
                   <div className="grid grid-cols-3 gap-2 p-3 rounded-xl bg-slate-50 border border-slate-100 text-center">
                     <div>
                       <span className="text-[10px] uppercase font-bold text-slate-400 block">Participants</span>
-                      <strong className="text-sm font-black text-slate-800">8</strong>
+                      <strong className="text-sm font-black text-slate-800">{enrolledRegs.length}</strong>
                     </div>
                     <div>
                       <span className="text-[10px] uppercase font-bold text-slate-400 block">Reported</span>
-                      <strong className="text-sm font-black text-indigo-600">6</strong>
+                      <strong className="text-sm font-black text-indigo-600">{reportedCount}</strong>
                     </div>
                     <div>
                       <span className="text-[10px] uppercase font-bold text-slate-400 block">On Stage</span>
-                      <strong className="text-sm font-black text-indigo-600">Chest #104</strong>
+                      <strong className="text-sm font-black text-indigo-600">{onStageLabel}</strong>
                     </div>
                   </div>
                 </div>

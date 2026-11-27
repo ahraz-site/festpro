@@ -36,16 +36,10 @@ export default function CategoriesPage() {
 
   const load = useCallback(async () => {
     try {
-      const data = await getCategories(festivalId)
-      if (data && data.length > 0) {
-        setCategories(data as CompetitionCategory[])
-      } else {
-        // Fallback default starter categories matching reference
-        setCategories([
-          { id: "1", festival_id: festivalId, name: "General", description: "Common", short_name: "GEN", color: "#10B981" } as any,
-          { id: "2", festival_id: festivalId, name: "Junior", description: "Regular", short_name: "JUN", color: "#6366F1" } as any,
-          { id: "3", festival_id: festivalId, name: "Senior", description: "Regular", short_name: "SEN", color: "#8B5CF6" } as any,
-        ])
+      const res = await fetch(`/api/festival/${festivalId}/workspace?scope=categories`, { cache: "no-store" })
+      if (res.ok) {
+        const json = await res.json()
+        setCategories((json.categories || []) as CompetitionCategory[])
       }
     } catch (e) {
       console.error(e)

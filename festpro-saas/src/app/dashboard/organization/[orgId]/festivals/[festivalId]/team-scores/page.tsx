@@ -1,17 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState, useCallback } from "react"
 import { useParams } from "next/navigation"
-import Link from "next/link"
-import { createClient } from "@/lib/supabase/client"
 import { ExportPrintBar } from "@/components/ui/export-print-bar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import {
-  Users, Search, Loader2, Plus, Minus,
-  Sparkles, Check, X, SlidersHorizontal, Send
-} from "lucide-react"
+import { Users, Loader2, X } from "lucide-react"
 
 interface TeamScoreRow {
   id: string
@@ -19,20 +14,23 @@ interface TeamScoreRow {
   name: string
   code: string
   totalScore: number
-  category?: string
 }
 
 export default function TeamScoresPage() {
   const params = useParams()
-  const orgId = params.orgId as string
   const festivalId = params.festivalId as string
 
-  const [teamScores, setTeamScores] = useState<TeamScoreRow[]>([])
+  const [teams, setTeams] = useState<any[]>([])
+  const [teamPoints, setTeamPoints] = useState<any[]>([])
+  const [categories, setCategories] = useState<any[]>([])
+  const [competitions, setCompetitions] = useState<any[]>([])
+  const [participants, setParticipants] = useState<any[]>([])
+  const [resultItems, setResultItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [search, setSearch] = useState("")
-  const [resultsDeclared, setResultsDeclared] = useState(0)
 
-  // Screenshot 1 Controls
+  // Controls
   const [viewType, setViewType] = useState<"overall" | "by_category">("overall")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [isPublished, setIsPublished] = useState(false)
@@ -43,80 +41,179 @@ export default function TeamScoresPage() {
   const [adjustPoints, setAdjustPoints] = useState("0")
   const [adjustReason, setAdjustReason] = useState("")
 
-  async function load() {
+  const load = useCallback(async () => {
     try {
-      const supabase = createClient()
-      const [{ data: teams }, { data: points }, { count: resCount }] = await Promise.all([
-        supabase.from("teams").select("*").eq("festival_id", festivalId).order("name", { ascending: true }),
-        supabase.from("team_points").select("*").eq("festival_id", festivalId),
-        supabase.from("result_items").select("id", { count: "exact", head: true }).eq("festival_id", festivalId).eq("status", "published"),
-      ])
-
-      setResultsDeclared(resCount || 0)
-
-      const pointsMap = new Map((points || []).map((p: any) => [p.entity_id, p]))
-      const scores: TeamScoreRow[] = (teams || []).map((t: any, idx: number) => {
-        const tp = pointsMap.get(t.id) as any
-        return {
-          id: t.id,
-          rank: tp?.rank || idx + 1,
-          name: t.name,
-          code: t.code || `TEAM-${idx + 1}`,
-          totalScore: Number(tp?.total_points || 0),
-          category: t.category || "General",
-        }
+      const res = await fetch(`/api/festival/${festivalId}/workspace?scope=team-scores`, {
+        cache: "no-store",
       })
-
-      scores.sort((a, b) => b.totalScore - a.totalScore)
-      scores.forEach((s, idx) => { s.rank = idx + 1 })
-      setTeamScores(scores)
-      if (scores[0]) setAdjustTeamId(scores[0].id)
+      const data = await res.json()
+      const dbTeams = Array.isArray(data?.teams) ? data.teams : []
+      setTeams(dbTeams)
+      setTeamPoints(Array.isArray(data?.teamPoints) ? data.teamPoints : [])
+      setCategories(Array.isArray(data?.categories) ? data.categories : [])
+      setCompetitions(Array.isArray(data?.competitions) ? data.competitions : [])
+      setParticipants(Array.isArray(data?.participants) ? data.participants : [])
+      setResultItems(Array.isArray(data?.resultItems) ? data.resultItems : [])
+      setIsPublished(Boolean(data?.customFields?.published_scores_meta?.publishedAt))
+      if (dbTeams[0]) {
+        setAdjustTeamId((prev) => (prev && dbTeams.some((t: any) => t.id === prev) ? prev : dbTeams[0].id))
+      }
     } catch (err) {
       console.error("Failed to load team scores:", err)
     } finally {
       setLoading(false)
     }
-  }
+  }, [festivalId])
 
-  useEffect(() => { load() }, [festivalId])
+  useEffect(() => {
+    load()
+  }, [load])
 
-  const handleAdjustPointsSubmit = (e: React.FormEvent) => {
+  const resultsDeclared = useMemo(() => {
+    const liveIds = new Set(
+      resultItems
+        .filter((r: any) => !r.status || r.status === "live" || r.status === "published")
+        .map((r: any) => r.competition_id)
+        .filter(Boolean)
+    )
+    return liveIds.size
+  }, [resultItems])
+
+  const teamScores = useMemo<TeamScoreRow[]>(() => {
+    if (viewType === "by_category" && selectedCategory !== "all") {
+      const catById = new Map(categories.map((c: any) => [c.id, String(c.name || "")]))
+      const compCatById = new Map<string, string>()
+      competitions.forEach((c: any) => {
+        compCatById.set(c.id, String(c.category?.name || catById.get(c.category_id) || ""))
+      })
+      const partById = new Map(participants.map((p: any) => [p.id, p]))
+      const teamTotals = new Map<string, number>()
+      teams.forEach((t: any) => teamTotals.set(t.id, 0))
+
+      resultItems.forEach((item: any) => {
+        const compCat = compCatById.get(item.competition_id) || ""
+        const part = partById.get(item.participant_id)
+        const partCat = String(part?.division || "")
+        if (
+          compCat.toLowerCase() !== selectedCategory.toLowerCase() &&
+          partCat.toLowerCase() !== selectedCategory.toLowerCase()
+        ) {
+          return
+        }
+        const matchedTeam = teams.find(
+          (t: any) =>
+            t.id === part?.team_id ||
+            (part?.unit &&
+              (t.code?.toLowerCase() === part.unit.toLowerCase() ||
+                t.name?.toLowerCase() === part.unit.toLowerCase()))
+        )
+        if (!matchedTeam) return
+        const pts = Number(
+          item.total_points ??
+            item.points ??
+            (item.rank === 1 ? 5 : item.rank === 2 ? 3 : item.rank === 3 ? 1 : 0)
+        )
+        teamTotals.set(matchedTeam.id, (teamTotals.get(matchedTeam.id) || 0) + pts)
+      })
+
+      return teams
+        .map((t: any, idx: number) => ({
+          id: t.id,
+          rank: idx + 1,
+          name: t.name,
+          code: t.code || t.name.slice(0, 3).toUpperCase() || `T${idx + 1}`,
+          totalScore: teamTotals.get(t.id) || 0,
+        }))
+        .sort((a, b) => b.totalScore - a.totalScore)
+        .map((row, idx) => ({ ...row, rank: idx + 1 }))
+    }
+
+    const pointsMap = new Map(teamPoints.map((p: any) => [p.entity_id, p]))
+    return teams
+      .map((t: any, idx: number) => {
+        const tp = pointsMap.get(t.id) as any
+        return {
+          id: t.id,
+          rank: tp?.rank || idx + 1,
+          name: t.name,
+          code: t.code || t.name.slice(0, 3).toUpperCase() || `T${idx + 1}`,
+          totalScore: Number(tp?.total_points ?? t.total_points ?? 0),
+        }
+      })
+      .sort((a, b) => b.totalScore - a.totalScore)
+      .map((row, idx) => ({ ...row, rank: idx + 1 }))
+  }, [viewType, selectedCategory, teams, teamPoints, categories, competitions, participants, resultItems])
+
+  const handleAdjustPointsSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const pts = parseFloat(adjustPoints) || 0
     if (pts === 0) {
       toast.error("Please enter non-zero adjustment points")
       return
     }
-
-    setTeamScores((prev) => {
-      const updated = prev.map((t) => (t.id === adjustTeamId ? { ...t, totalScore: Math.max(0, t.totalScore + pts) } : t))
-      updated.sort((a, b) => b.totalScore - a.totalScore)
-      updated.forEach((s, idx) => { s.rank = idx + 1 })
-      return updated
-    })
-
     const teamObj = teamScores.find((t) => t.id === adjustTeamId)
-    toast.success(`Adjusted ${pts > 0 ? `+${pts}` : pts} points for ${teamObj?.name || "Team"}`)
-    setShowAdjustModal(false)
-    setAdjustPoints("0")
-    setAdjustReason("")
+    if (!teamObj) {
+      toast.error("Please select a team")
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const res = await fetch(`/api/festival/${festivalId}/operations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "adjust_team_points",
+          payload: {
+            teamId: teamObj.id,
+            teamName: teamObj.name,
+            delta: pts,
+          },
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to adjust team points")
+      }
+      toast.success(`Adjusted ${pts > 0 ? `+${pts}` : pts} points for ${teamObj.name}`)
+      setShowAdjustModal(false)
+      setAdjustPoints("0")
+      setAdjustReason("")
+      await load()
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to adjust points")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  const handlePublishTeamScores = () => {
-    setIsPublished(true)
-    toast.success("Team scores published to live portal & leaderboard!")
+  const handlePublishTeamScores = async () => {
+    setSubmitting(true)
+    try {
+      const res = await fetch(`/api/festival/${festivalId}/operations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "publish_team_scores",
+          payload: {},
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to publish team scores")
+      }
+      setIsPublished(true)
+      toast.success("Team scores published to live portal & leaderboard!")
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to publish scores")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const filtered = teamScores.filter((t) => {
     const q = search.toLowerCase()
-    const matchesSearch = t.name.toLowerCase().includes(q) || t.code.toLowerCase().includes(q)
-    if (!matchesSearch) return false
-
-    if (viewType === "by_category" && selectedCategory !== "all") {
-      if (t.category?.toLowerCase() !== selectedCategory.toLowerCase()) return false
-    }
-
-    return true
+    return t.name.toLowerCase().includes(q) || t.code.toLowerCase().includes(q)
   })
 
   const exportColumns = [
@@ -201,9 +298,9 @@ export default function TeamScoresPage() {
             className="h-9 px-3.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 focus:outline-hidden focus:border-indigo-500 shadow-xs animate-in fade-in"
           >
             <option value="all">Select category</option>
-            <option value="Senior">Senior</option>
-            <option value="Junior">Junior</option>
-            <option value="Sub Junior">Sub Junior</option>
+            {categories.map((cat: any) => (
+              <option key={cat.id} value={cat.name}>{cat.name}</option>
+            ))}
           </select>
         )}
       </div>

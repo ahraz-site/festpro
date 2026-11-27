@@ -661,68 +661,14 @@ export async function createFestOrganizerAction(formData: {
       return { error: "Festival workspace creation failed: " + (festError?.message || "Unknown error") }
     }
 
-    // 6. Seed starter data matching Festize template:
+    // 6. Initialize clean festival_settings row without demo/mock seed data
     try {
-      // 2 Teams
-      const { data: teamsData } = await adminClient.from("teams").insert([
-        { festival_id: fest.id, name: "Team A", code: "TA", color: "#3B82F6" },
-        { festival_id: fest.id, name: "Team B", code: "TB", color: "#EF4444" },
-      ]).select()
-
-      // 1 Stage
-      const { data: stageData } = await adminClient.from("festival_stages").insert([
-        { festival_id: fest.id, name: "Stage 1", code: "ST1", venue_name: "Main Ground", is_active: true },
-      ]).select().single()
-
-      // 1 Category
-      const { data: catData } = await adminClient.from("competition_categories").insert([
-        { festival_id: fest.id, name: "Senior", code: "SNR" },
-      ]).select().single()
-
-      // 1 Program / Competition
-      const { data: compData } = await adminClient.from("competitions").insert([
-        {
-          festival_id: fest.id,
-          name: "Madh Song",
-          code: "MS01",
-          category_id: catData?.id,
-          type: "individual",
-          status: "started",
-        },
-      ]).select().single()
-
-      // 8 Participants (4 in Team A, 4 in Team B)
-      if (teamsData && teamsData.length >= 2) {
-        const teamA = teamsData[0]
-        const teamB = teamsData[1]
-        await adminClient.from("participants").insert([
-          { festival_id: fest.id, team_id: teamA.id, first_name: "Ahmed", last_name: "Razi", chest_number: "101", status: "active" },
-          { festival_id: fest.id, team_id: teamA.id, first_name: "Bilal", last_name: "K", chest_number: "102", status: "active" },
-          { festival_id: fest.id, team_id: teamA.id, first_name: "Faris", last_name: "M", chest_number: "103", status: "active" },
-          { festival_id: fest.id, team_id: teamA.id, first_name: "Haneen", last_name: "P", chest_number: "104", status: "active" },
-          { festival_id: fest.id, team_id: teamB.id, first_name: "Zayan", last_name: "T", chest_number: "105", status: "active" },
-          { festival_id: fest.id, team_id: teamB.id, first_name: "Rayyan", last_name: "S", chest_number: "106", status: "active" },
-          { festival_id: fest.id, team_id: teamB.id, first_name: "Nihal", last_name: "V", chest_number: "107", status: "active" },
-          { festival_id: fest.id, team_id: teamB.id, first_name: "Adil", last_name: "C", chest_number: "108", status: "active" },
-        ])
-      }
-
-      // Schedule for the program on Stage 1
-      if (compData && stageData) {
-        await adminClient.from("stage_schedules").insert([
-          {
-            festival_id: fest.id,
-            competition_id: compData.id,
-            stage_id: stageData.id,
-            scheduled_date: today,
-            start_time: "10:00:00",
-            status: "started",
-          },
-        ])
-      }
-    } catch (seedErr) {
-      console.warn("Seeding initial fest data failed non-critically:", seedErr)
-    }
+      await adminClient.from("festival_settings").insert({
+        festival_id: fest.id,
+        custom_fields: {},
+        updated_at: new Date().toISOString(),
+      })
+    } catch {}
 
     // Ensure session is set by signing in with password
     try {

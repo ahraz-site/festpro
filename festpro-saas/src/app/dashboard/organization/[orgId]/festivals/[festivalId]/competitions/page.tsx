@@ -23,10 +23,11 @@ export default function CompetitionsManagementPage() {
 
   const [competitions, setCompetitions] = useState<Competition[]>([])
   const [categories, setCategories] = useState<CompetitionCategory[]>([])
+  const [maxLimit, setMaxLimit] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>("grid")
 
-  // Filters (Screenshot 9 & 10)
+  // Filters
   const [search, setSearch] = useState("")
   const [typeFilter, setTypeFilter] = useState("all") // all, individual, group
   const [stageFilter, setStageFilter] = useState("all") // all, stage, no_stage
@@ -46,31 +47,14 @@ export default function CompetitionsManagementPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const [comps, cats] = await Promise.all([
-        getCompetitions(festivalId),
-        getCategories(festivalId),
-      ])
-      if (comps && comps.length > 0) {
-        setCompetitions(comps as Competition[])
-      } else {
-        // Starter fallback program
-        setCompetitions([
-          {
-            id: "1",
-            festival_id: festivalId,
-            name: "Madh Song",
-            code: "PRG-01",
-            competition_type: "individual",
-            stage_required: true,
-            status: "published",
-            duration_minutes: 15,
-            category: { id: "c1", name: "Senior" } as any,
-          } as any,
-        ])
-      }
-      setCategories(cats as CompetitionCategory[])
-      if (cats && cats[0]) {
-        setCategoryId(cats[0].id)
+      const res = await fetch(`/api/festival/${festivalId}/workspace?scope=competitions`, { cache: "no-store" })
+      if (res.ok) {
+        const json = await res.json()
+        setCompetitions((json.competitions || []) as Competition[])
+        const cats = (json.categories || []) as CompetitionCategory[]
+        setCategories(cats)
+        setMaxLimit(json.license?.max_competitions ?? null)
+        if (cats[0]) setCategoryId((prev) => prev || cats[0].id)
       }
     } catch (e) {
       console.error(e)
@@ -188,13 +172,12 @@ export default function CompetitionsManagementPage() {
     { header: "Code", accessor: (c: Competition) => c.code || "-" },
   ]
 
-  const maxLimit = 5
   const count = competitions.length
-  const remaining = Math.max(0, maxLimit - count)
+  const remaining = maxLimit !== null ? Math.max(0, maxLimit - count) : null
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16 font-sans">
-      {/* ── HEADER (Screenshot 9) ── */}
+      {/* ── HEADER ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-2xl bg-indigo-50 text-indigo-600 shadow-xs">
@@ -230,11 +213,17 @@ export default function CompetitionsManagementPage() {
         </div>
       </div>
 
-      {/* ── CAPACITY INDICATOR (Screenshot 9) ── */}
+      {/* ── SUMMARY BAR (Real Count + License Quota if applicable) ── */}
       <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200/90 bg-white text-xs font-semibold text-slate-700 shadow-xs">
         <Check className="h-4 w-4 text-indigo-600 shrink-0" />
         <span>
-          <strong className="text-slate-900">{count} of {maxLimit} programs</strong> · {remaining} remaining
+          {maxLimit !== null ? (
+            <>
+              <strong className="text-slate-900">{count} of {maxLimit} programs</strong> · {remaining} remaining
+            </>
+          ) : (
+            <strong className="text-slate-900">{count} competition programs</strong>
+          )}
         </span>
       </div>
 
@@ -454,7 +443,7 @@ export default function CompetitionsManagementPage() {
                 <label className="block text-slate-600">Program Name</label>
                 <Input
                   required
-                  placeholder="e.g. Madh Song, Mime, Group Dance"
+                  placeholder="e.g. Solo Song, Group Dance, Elocution"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="h-10 rounded-xl border-slate-200 text-xs"

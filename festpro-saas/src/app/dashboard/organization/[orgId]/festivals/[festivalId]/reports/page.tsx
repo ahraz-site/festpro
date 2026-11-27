@@ -1,20 +1,34 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import { toast } from "sonner"
-import {
-  Printer, FileText, Download, CheckCircle, ShieldCheck,
-  FileSpreadsheet, ArrowUpDown, ChevronDown, Check
-} from "lucide-react"
+import { Printer, Download, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
+
+function escapeCsvCell(val: unknown): string {
+  const s = String(val ?? "")
+  if (/[",\n\r]/.test(s)) {
+    return `"${s.replace(/"/g, '""')}"`
+  }
+  return s
+}
 
 export default function FestivalReportsPrintoutsPage() {
   const params = useParams()
-  const orgId = params.orgId as string
   const festivalId = params.festivalId as string
 
-  // Report Form State (Screenshot 7)
+  const [teams, setTeams] = useState<any[]>([])
+  const [categories, setCategories] = useState<any[]>([])
+  const [competitions, setCompetitions] = useState<any[]>([])
+  const [participants, setParticipants] = useState<any[]>([])
+  const [registrations, setRegistrations] = useState<any[]>([])
+  const [schedules, setSchedules] = useState<any[]>([])
+  const [resultItems, setResultItems] = useState<any[]>([])
+  const [teamPoints, setTeamPoints] = useState<any[]>([])
+  const [customFields, setCustomFields] = useState<any>({})
+
+  // Report Form State
   const [reportType, setReportType] = useState("participant_list")
   const [fileType, setFileType] = useState<"PDF" | "Excel">("PDF")
   const [programScope, setProgramScope] = useState("all_permitted")
@@ -24,6 +38,28 @@ export default function FestivalReportsPrintoutsPage() {
   const [sortBy, setSortBy] = useState("chest_number")
   const [sortOrder, setSortOrder] = useState("ascending")
   const [downloading, setDownloading] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    fetch(`/api/festival/${festivalId}/workspace?scope=reports`, { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!active) return
+        setTeams(Array.isArray(data?.teams) ? data.teams : [])
+        setCategories(Array.isArray(data?.categories) ? data.categories : [])
+        setCompetitions(Array.isArray(data?.competitions) ? data.competitions : [])
+        setParticipants(Array.isArray(data?.participants) ? data.participants : [])
+        setRegistrations(Array.isArray(data?.registrations) ? data.registrations : [])
+        setSchedules(Array.isArray(data?.schedules) ? data.schedules : [])
+        setResultItems(Array.isArray(data?.resultItems) ? data.resultItems : [])
+        setTeamPoints(Array.isArray(data?.teamPoints) ? data.teamPoints : [])
+        setCustomFields(data?.customFields || {})
+      })
+      .catch((err) => console.error("Failed to load reports data:", err))
+    return () => {
+      active = false
+    }
+  }, [festivalId])
 
   const reportDescriptions: Record<string, string> = {
     participant_list: "Participants grouped by category and program.",
@@ -44,26 +80,139 @@ export default function FestivalReportsPrintoutsPage() {
   }
 
   const handleDownload = () => {
-    setDownloading(true)
-    toast.info(`Generating ${fileType} for ${reportNames[reportType]}...`)
+    if (fileType === "PDF") {
+      window.print()
+      return
+    }
 
-    setTimeout(() => {
-      setDownloading(false)
-      if (fileType === "PDF") {
-        window.print()
-      } else {
-        // Download sample CSV
-        const csvContent = "data:text/csv;charset=utf-8,Chest,Name,Team,Category,Program,Status\nSNR-101,Amina Rahman,Blue Falcons,Senior,English Speech,1st Place\nSNR-108,Zuhair Abdullah,Red Eagles,Senior,English Speech,2nd Place"
-        const encodedUri = encodeURI(csvContent)
-        const link = document.createElement("a")
-        link.setAttribute("href", encodedUri)
-        link.setAttribute("download", `${reportType}_report.csv`)
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        toast.success("Excel/CSV export downloaded successfully!")
+    setDownloading(true)
+    try {
+      const partById = new Map(participants.map((p: any) => [p.id, p]))
+      const compById = new Map(competitions.map((c: any) => [c.id, c]))
+
+      const matchesFilters = (team?: string, category?: string, compId?: string) => {
+        if (selectedTeam !== "all_permitted" && String(team || "").toLowerCase() !== selectedTeam.toLowerCase()) {
+          return false
+        }
+        if (selectedCategory !== "all_permitted" && String(category || "").toLowerCase() !== selectedCategory.toLowerCase()) {
+          return false
+        }
+        if (selectedProgram !== "all_permitted" && compId !== selectedProgram) {
+          return false
+        }
+        return true
       }
-    }, 700)
+
+      let headers: string[] = []
+      let rows: string[][] = []
+
+      if (reportType === "participant_list") {
+        headers = ["Chest #", "Name", "Team", "Category", "Program"]
+        if (registrations.length > 0 && selectedProgram !== "all_permitted") {
+          rows = registrations
+            .map((r: any) => {
+              const p = partById.get(r.participant_id)
+              const comp = compById.get(r.competition_id)
+              const name = p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() : ""
+              const team = p?.unit || ""
+              const cat = p?.division || comp?.category?.name || ""
+              return { chest: p?.chest_number || r.chest_number || "", name, team, cat, compId: r.competition_id, compName: comp?.name || "" }
+            })
+            .filter((x) => x.name && matchesFilters(x.team, x.cat, x.compId))
+            .map((x) => [x.chest, x.name, x.team, x.cat, x.compName])
+        } else {
+          rows = participants
+            .filter((p: any) => matchesFilters(p.unit, p.division, undefined))
+            .map((p: any) => [
+              p.chest_number || "",
+              `${p.first_name || ""} ${p.last_name || ""}`.trim(),
+              p.unit || "",
+              p.division || "",
+              registrations
+                .filter((r: any) => r.participant_id === p.id)
+                .map((r: any) => compById.get(r.competition_id)?.name)
+                .filter(Boolean)
+                .join("; ") || "—",
+            ])
+        }
+      } else if (reportType === "team_points") {
+        headers = ["Rank", "Team", "Code", "Total Points"]
+        const tpByTeamId = new Map(teamPoints.map((tp: any) => [tp.entity_id, Number(tp.total_points || 0)]))
+        rows = teams
+          .filter((t: any) => selectedTeam === "all_permitted" || t.name.toLowerCase() === selectedTeam.toLowerCase() || (t.code || "").toLowerCase() === selectedTeam.toLowerCase())
+          .map((t: any) => ({ name: t.name, code: t.code || "", pts: tpByTeamId.get(t.id) ?? Number(t.total_points || 0) }))
+          .sort((a, b) => b.pts - a.pts)
+          .map((t, idx) => [String(idx + 1), t.name, t.code, String(t.pts)])
+      } else if (reportType === "schedule_summary") {
+        headers = ["Program", "Stage / Venue", "Start Time", "Status"]
+        rows = schedules.map((s: any) => [
+          compById.get(s.competition_id)?.name || s.title || "Program",
+          s.stage_name || s.venue || "—",
+          s.start_time ? new Date(s.start_time).toLocaleString() : "—",
+          s.status || "scheduled",
+        ])
+      } else if (reportType === "judge_scores" || reportType === "prizes_list") {
+        headers = ["Rank", "Chest #", "Participant", "Team", "Program", "Total Score", "Grade"]
+        rows = resultItems
+          .map((item: any) => {
+            const p = partById.get(item.participant_id)
+            const comp = compById.get(item.competition_id)
+            const team = p?.unit || ""
+            const cat = p?.division || comp?.category?.name || ""
+            return { item, p, comp, team, cat }
+          })
+          .filter((x) => matchesFilters(x.team, x.cat, x.item.competition_id))
+          .map((x) => [
+            String(x.item.rank || ""),
+            x.p?.chest_number || x.item.chest_number || "",
+            x.p ? `${x.p.first_name || ""} ${x.p.last_name || ""}`.trim() : "",
+            x.team,
+            x.comp?.name || "",
+            String(x.item.total_score ?? ""),
+            x.item.grade || "",
+          ])
+      } else if (reportType === "code_letters") {
+        headers = ["Program", "Chest #", "Participant", "Code Letter", "Reported"]
+        const cl = (customFields?.code_letters || {}) as Record<string, any[]>
+        Object.entries(cl).forEach(([compId, entries]) => {
+          const comp = compById.get(compId)
+          ;(entries || []).forEach((e: any) => {
+            const p = partById.get(e.id)
+            if (!matchesFilters(p?.unit, p?.division, compId)) return
+            rows.push([
+              comp?.name || compId,
+              p?.chest_number || "",
+              p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() : e.id,
+              e.codeLetter || "",
+              e.isReported ? "Yes" : "No",
+            ])
+          })
+        })
+      }
+
+      if (rows.length === 0) {
+        toast.info("No records match the current report filters.")
+        return
+      }
+
+      if (sortOrder === "descending") {
+        rows.reverse()
+      }
+
+      const csvLines = [headers.map(escapeCsvCell).join(","), ...rows.map((r) => r.map(escapeCsvCell).join(","))]
+      const blob = new Blob([csvLines.join("\n")], { type: "text/csv;charset=utf-8;" })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.setAttribute("href", url)
+      link.setAttribute("download", `${reportType}_report.csv`)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+      toast.success(`Exported ${rows.length} record(s) to CSV!`)
+    } finally {
+      setDownloading(false)
+    }
   }
 
   return (
@@ -152,8 +301,9 @@ export default function FestivalReportsPrintoutsPage() {
                 className="w-full h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800"
               >
                 <option value="all_permitted">All permitted</option>
-                <option value="blue">Blue Falcons</option>
-                <option value="red">Red Eagles</option>
+                {teams.map((t: any) => (
+                  <option key={t.id} value={t.code || t.name}>{t.name}</option>
+                ))}
               </select>
             </div>
 
@@ -165,8 +315,9 @@ export default function FestivalReportsPrintoutsPage() {
                 className="w-full h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800"
               >
                 <option value="all_permitted">All permitted</option>
-                <option value="senior">Senior</option>
-                <option value="junior">Junior</option>
+                {categories.map((c: any) => (
+                  <option key={c.id} value={c.name}>{c.name}</option>
+                ))}
               </select>
             </div>
 
@@ -178,8 +329,9 @@ export default function FestivalReportsPrintoutsPage() {
                 className="w-full h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800"
               >
                 <option value="all_permitted">All permitted</option>
-                <option value="madh_song">Madh Song</option>
-                <option value="english_speech">English Speech</option>
+                {competitions.map((c: any) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
               </select>
             </div>
           </div>

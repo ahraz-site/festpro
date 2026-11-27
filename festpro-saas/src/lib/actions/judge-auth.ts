@@ -71,13 +71,17 @@ export async function loginJudgeAction(username: string, password: string): Prom
           .from("festival_settings")
           .select("festival_id, custom_fields")
           .order("updated_at", { ascending: false })
-          .limit(20)
+          .limit(50)
 
         if (settingsList) {
           for (const s of settingsList) {
             const list = s.custom_fields?.judges || []
             const match = list.find(
-              (j: any) => String(j.username || "").toLowerCase() === cleanUser
+              (j: any) =>
+                String(j.username || "").toLowerCase() === cleanUser &&
+                (j.raw_password === cleanPass ||
+                  j.password === cleanPass ||
+                  j.password_hash === cleanPass)
             )
             if (match) {
               foundJudge = { ...match, festival_id: s.festival_id }
@@ -87,19 +91,6 @@ export async function loginJudgeAction(username: string, password: string): Prom
         }
       } catch (e) {
         console.warn("festival_settings judges check notice:", e)
-      }
-    }
-
-    // 3. Built-in Demo Judge fallback if database has not yet been seeded
-    if (!foundJudge && (cleanUser === "judge1" || cleanUser === "judge")) {
-      foundJudge = {
-        id: "demo-judge-1",
-        festival_id: "c66d0281-bc93-4cb8-b94e-e54bf27c7119",
-        name: "Official Stage Judge 1",
-        username: "judge1",
-        raw_password: "123",
-        stage_name: "Main Stage 1",
-        is_lead: true,
       }
     }
 
@@ -230,33 +221,6 @@ export async function getFestivalJudgesAction(festivalId: string): Promise<{
       console.warn("Fetch from festival_settings custom_fields notice:", e)
     }
 
-    // If zero judges exist, supply starter judge accounts
-    if (judgesMap.size === 0) {
-      const defaultJudges: JudgeAccount[] = [
-        {
-          id: `j-${festivalId}-1`,
-          festival_id: festivalId,
-          name: "Jury Panel Judge 1",
-          username: "judge1",
-          password: "123",
-          stage_name: "Main Stage",
-          is_lead: true,
-          status: "active",
-        },
-        {
-          id: `j-${festivalId}-2`,
-          festival_id: festivalId,
-          name: "Jury Panel Judge 2",
-          username: "judge2",
-          password: "123",
-          stage_name: "Stage 2",
-          is_lead: false,
-          status: "active",
-        },
-      ]
-      for (const dj of defaultJudges) judgesMap.set(dj.id, dj)
-    }
-
     return { success: true, data: Array.from(judgesMap.values()) }
   } catch (err: any) {
     return { success: false, error: err?.message || "Failed to fetch judges" }
@@ -340,10 +304,18 @@ export async function saveFestivalJudgeAction(
       filtered.unshift(newJudgeRecord)
       currentFields.judges = filtered
 
-      await admin
-        .from("festival_settings")
-        .update({ custom_fields: currentFields, updated_at: new Date().toISOString() })
-        .eq("festival_id", festivalId)
+      if (s?.id) {
+        await admin
+          .from("festival_settings")
+          .update({ custom_fields: currentFields, updated_at: new Date().toISOString() })
+          .eq("id", s.id)
+      } else {
+        await admin.from("festival_settings").insert({
+          festival_id: festivalId,
+          custom_fields: currentFields,
+          updated_at: new Date().toISOString(),
+        })
+      }
     } catch (e) {
       console.warn("Dual-save to festival_settings notice:", e)
     }

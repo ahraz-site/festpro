@@ -874,50 +874,9 @@ export default function FestivalSiteRenderer({
     setActiveTab(defaultTab)
   }
 
-  // Realistic mock data for Studio Canvas when festival database is still being configured
-  const displayResults =
-    results.length > 0
-      ? results
-      : isEditorMode
-      ? [
-          {
-            id: "mock-r1",
-            rank: 1,
-            grade: "A+",
-            total_points: 10,
-            participant: { first_name: "Aadhya", last_name: "Menon", chest_number: "101" },
-            competition: { name: "Classical Bharatanatyam" },
-          },
-          {
-            id: "mock-r2",
-            rank: 2,
-            grade: "A",
-            total_points: 8,
-            participant: { first_name: "Farhan", last_name: "Ahmed", chest_number: "114" },
-            competition: { name: "Mappilapattu Solo" },
-          },
-          {
-            id: "mock-r3",
-            rank: 3,
-            grade: "B+",
-            total_points: 5,
-            participant: { first_name: "Devika", last_name: "Nair", chest_number: "108" },
-            competition: { name: "Elocution English" },
-          },
-        ]
-      : []
+  const displayResults = results
 
-  const displayTeamPoints =
-    teamPoints.length > 0
-      ? teamPoints
-      : isEditorMode
-      ? [
-          { id: "mock-t1", rank: 1, team_name: "Emerald House", total_points: 142 },
-          { id: "mock-t2", rank: 2, team_name: "Ruby House", total_points: 128 },
-          { id: "mock-t3", rank: 3, team_name: "Sapphire House", total_points: 115 },
-          { id: "mock-t4", rank: 4, team_name: "Topaz House", total_points: 98 },
-        ]
-      : []
+  const displayTeamPoints = teamPoints
 
   // Render Individual Widget / Section Content
   const renderSectionWidget = (section: BuilderSection) => {

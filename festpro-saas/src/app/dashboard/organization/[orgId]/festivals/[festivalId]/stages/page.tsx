@@ -23,6 +23,7 @@ export default function FestivalStagesPage() {
 
   const [stages, setStages] = useState<FestivalStage[]>([])
   const [venues, setVenues] = useState<FestivalVenue[]>([])
+  const [maxStages, setMaxStages] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [viewMode, setViewMode] = useState<ViewMode>("grid")
@@ -35,12 +36,13 @@ export default function FestivalStagesPage() {
 
   async function load() {
     try {
-      const [stagesData, venuesData] = await Promise.all([
-        getFestivalStages(festivalId),
-        getFestivalVenues(festivalId),
+      const [wsRes, venuesData] = await Promise.all([
+        fetch(`/api/festival/${festivalId}/workspace?scope=stages`, { cache: "no-store" }).then((r) => r.json()),
+        getFestivalVenues(festivalId).catch(() => []),
       ])
-      setStages((stagesData || []) as FestivalStage[])
+      setStages((wsRes?.stages || []) as FestivalStage[])
       setVenues((venuesData || []) as FestivalVenue[])
+      setMaxStages(wsRes?.license?.max_stages ?? null)
     } catch (err) {
       console.error("Failed to load stages:", err)
     } finally {
@@ -75,35 +77,54 @@ export default function FestivalStagesPage() {
       return
     }
     setSaving(true)
-    const payload = {
-      name: form.name,
-      code: form.code || null,
-      venue_id: form.venue_id || null,
-      capacity: form.capacity ? parseInt(form.capacity) : 0,
-      stage_type: form.stage_type || "Main",
+    try {
+      const res = await fetch(`/api/festival/${festivalId}/operations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "save_stage",
+          payload: {
+            id: editingStage?.id,
+            name: form.name,
+            code: form.code || null,
+            venue_id: form.venue_id || null,
+            capacity: form.capacity ? parseInt(form.capacity) : 500,
+            stage_type: form.stage_type || "Main",
+          },
+        }),
+      })
+      const result = await res.json()
+      if (!res.ok || result.error) {
+        toast.error(result.error || "Failed to save stage")
+      } else {
+        toast.success(editingStage ? "Stage updated" : "Stage created")
+        setShowModal(false)
+        await load()
+      }
+    } catch {
+      toast.error("Failed to save stage")
+    } finally {
+      setSaving(false)
     }
-    const result = editingStage
-      ? await updateFestivalStage(editingStage.id, payload)
-      : await createFestivalStage(festivalId, payload)
-
-    if (result.error) {
-      toast.error(result.error)
-    } else {
-      toast.success(editingStage ? "Stage updated" : "Stage created")
-      setShowModal(false)
-      await load()
-    }
-    setSaving(false)
   }
 
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Are you sure you want to delete "${name}"?`)) return
-    const result = await deleteFestivalStage(id)
-    if (result.error) {
-      toast.error(result.error)
-    } else {
-      toast.success("Stage deleted")
-      await load()
+    try {
+      const res = await fetch(`/api/festival/${festivalId}/operations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete_stage", payload: { id } }),
+      })
+      const result = await res.json()
+      if (!res.ok || result.error) {
+        toast.error(result.error || "Failed to delete stage")
+      } else {
+        toast.success("Stage deleted")
+        await load()
+      }
+    } catch {
+      toast.error("Failed to delete stage")
     }
   }
 
@@ -119,12 +140,11 @@ export default function FestivalStagesPage() {
     { header: "Type", accessor: (s: FestivalStage) => s.stage_type || "Main" },
   ]
 
-  const maxStages = 1
   const count = stages.length
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16 font-sans">
-      {/* ── HEADER (Screenshot 2) ── */}
+      {/* ── HEADER ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">Stages</h1>
@@ -142,7 +162,7 @@ export default function FestivalStagesPage() {
 
           <ViewToggle mode={viewMode} onChange={setViewMode} />
 
-          {/* TV Displays Button (Screenshot 2) */}
+          {/* TV Displays Button */}
           <Link
             href={`/dashboard/organization/${orgId}/festivals/${festivalId}/tv-displays`}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition-colors"
@@ -151,7 +171,7 @@ export default function FestivalStagesPage() {
             <span>TV displays</span>
           </Link>
 
-          {/* Add Stage Button (Screenshot 2) */}
+          {/* Add Stage Button */}
           <Button
             size="sm"
             onClick={handleOpenAdd}
@@ -163,31 +183,25 @@ export default function FestivalStagesPage() {
         </div>
       </div>
 
-      {/* ── LIMIT REACHED BANNER (Screenshot 2) ── */}
-      {count >= maxStages && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl border border-red-200 bg-red-50/60 text-xs text-red-900 shadow-xs">
+      {/* ── LICENSE LIMIT REACHED BANNER (Only if license explicitly defines max_stages) ── */}
+      {maxStages !== null && count >= maxStages && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl border border-amber-200 bg-amber-50/70 text-xs text-amber-900 shadow-xs">
           <div className="flex items-center gap-2.5 font-semibold">
-            <div className="p-1 rounded-full bg-red-100 text-red-600">
+            <div className="p-1 rounded-full bg-amber-100 text-amber-700">
               <AlertCircle className="h-4 w-4" />
             </div>
             <span>
-              <strong>{count} of {maxStages} stage</strong> · Limit reached
+              <strong>{count} of {maxStages} stages</strong> configured in current plan
             </span>
           </div>
 
           <div className="flex items-center gap-2">
             <Link
               href="/contact"
-              className="px-3 py-1.5 rounded-xl border border-red-200 bg-white hover:bg-red-50 text-red-700 font-bold text-xs transition-colors"
+              className="px-3 py-1.5 rounded-xl border border-amber-200 bg-white hover:bg-amber-50 text-amber-800 font-bold text-xs transition-colors"
             >
-              Chat with FestPro
+              Upgrade Plan
             </Link>
-            <button
-              onClick={load}
-              className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-colors"
-            >
-              Check again
-            </button>
           </div>
         </div>
       )}

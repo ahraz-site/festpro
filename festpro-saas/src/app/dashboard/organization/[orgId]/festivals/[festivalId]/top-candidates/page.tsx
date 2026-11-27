@@ -1,17 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useParams } from "next/navigation"
-import Link from "next/link"
-import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ExportPrintBar } from "@/components/ui/export-print-bar"
-import { toast } from "sonner"
-import {
-  Trophy, Search, Award, Check, X,
-  Medal, Star, Users, ArrowRight
-} from "lucide-react"
+import { Trophy, X, Loader2 } from "lucide-react"
 
 interface CandidateRank {
   rank: number
@@ -24,31 +18,139 @@ interface CandidateRank {
 
 export default function TopCandidatesPage() {
   const params = useParams()
-  const orgId = params.orgId as string
   const festivalId = params.festivalId as string
 
-  // Screenshot 5 Toggles
   const [includeCommon, setIncludeCommon] = useState(true)
   const [includeStage, setIncludeStage] = useState(true)
   const [includeOffStage, setIncludeOffStage] = useState(true)
   const [searchCategory, setSearchCategory] = useState("")
+  const [loading, setLoading] = useState(true)
+
+  const [dbCategories, setDbCategories] = useState<any[]>([])
+  const [competitions, setCompetitions] = useState<any[]>([])
+  const [participants, setParticipants] = useState<any[]>([])
+  const [resultItems, setResultItems] = useState<any[]>([])
 
   // Ranking Modal
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [rankedList, setRankedList] = useState<CandidateRank[]>([])
 
-  const categories = ["Junior", "Senior", "Sub Junior"]
+  useEffect(() => {
+    let active = true
+    async function load() {
+      try {
+        const res = await fetch(`/api/festival/${festivalId}/workspace?scope=top-candidates`, {
+          cache: "no-store",
+        })
+        const data = await res.json()
+        if (!active) return
+        setDbCategories(Array.isArray(data?.categories) ? data.categories : [])
+        setCompetitions(Array.isArray(data?.competitions) ? data.competitions : [])
+        setParticipants(Array.isArray(data?.participants) ? data.participants : [])
+        setResultItems(Array.isArray(data?.resultItems) ? data.resultItems : [])
+      } catch (err) {
+        console.error("Failed to load top candidates data:", err)
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+    load()
+    return () => {
+      active = false
+    }
+  }, [festivalId])
+
+  const categories = useMemo(() => {
+    const set = new Set<string>()
+    dbCategories.forEach((c: any) => {
+      if (c?.name) set.add(String(c.name).trim())
+    })
+    competitions.forEach((c: any) => {
+      if (c?.category?.name) set.add(String(c.category.name).trim())
+    })
+    participants.forEach((p: any) => {
+      if (p?.division) set.add(String(p.division).trim())
+    })
+    return Array.from(set).filter(Boolean)
+  }, [dbCategories, competitions, participants])
+
+  const computeRankings = (catName: string): CandidateRank[] => {
+    const isOverall = catName === "Overall (All Categories)"
+    const catById = new Map(dbCategories.map((c: any) => [c.id, String(c.name || "")]))
+    const compById = new Map(competitions.map((c: any) => [c.id, c]))
+    const partById = new Map(participants.map((p: any) => [p.id, p]))
+
+    const agg = new Map<
+      string,
+      { chestNumber: string; name: string; team: string; points: number; compIds: Set<string> }
+    >()
+
+    resultItems.forEach((item: any) => {
+      const comp = compById.get(item.competition_id)
+      const part = partById.get(item.participant_id)
+      if (!part && !item.participant_name) return
+
+      const compCatName = String(
+        comp?.category?.name || catById.get(comp?.category_id) || part?.division || ""
+      ).trim()
+      const isCommon =
+        compCatName.toLowerCase() === "general" ||
+        compCatName.toLowerCase() === "common" ||
+        Boolean(comp?.is_common)
+      if (!includeCommon && isCommon) return
+
+      const stageFlag = String(comp?.stage_type || comp?.type || "").toLowerCase()
+      const isOffStage = comp?.is_stage === false || stageFlag.includes("off")
+      if (isOffStage && !includeOffStage) return
+      if (!isOffStage && !includeStage) return
+
+      if (!isOverall) {
+        const partCat = String(part?.division || "").trim()
+        if (
+          compCatName.toLowerCase() !== catName.toLowerCase() &&
+          partCat.toLowerCase() !== catName.toLowerCase()
+        ) {
+          return
+        }
+      }
+
+      const key = item.participant_id || `${item.participant_name || ""}:${item.chest_number || ""}`
+      const fullName = part
+        ? `${part.first_name || ""} ${part.last_name || ""}`.trim()
+        : String(item.participant_name || "Participant")
+      const existing = agg.get(key) || {
+        chestNumber: String(part?.chest_number || item.chest_number || "—"),
+        name: fullName,
+        team: String(part?.unit || item.team_name || "Unassigned"),
+        points: 0,
+        compIds: new Set<string>(),
+      }
+      const pts = Number(
+        item.total_points ??
+          item.points ??
+          (item.rank === 1 ? 5 : item.rank === 2 ? 3 : item.rank === 3 ? 1 : 0)
+      )
+      existing.points += pts
+      if (item.competition_id) existing.compIds.add(item.competition_id)
+      agg.set(key, existing)
+    })
+
+    return Array.from(agg.values())
+      .filter((entry) => entry.points > 0)
+      .sort((a, b) => b.points - a.points)
+      .map((entry, idx) => ({
+        rank: idx + 1,
+        chestNumber: entry.chestNumber,
+        name: entry.name,
+        team: entry.team,
+        points: entry.points,
+        programsCount: entry.compIds.size || 1,
+      }))
+  }
 
   const handleOpenRanking = (catName: string) => {
     setSelectedCategory(catName)
-    // Mock top candidates for this category
-    const list: CandidateRank[] = [
-      { rank: 1, chestNumber: "104", name: "Rujhan Muhammad", team: "BJP", points: 30, programsCount: 3 },
-      { rank: 2, chestNumber: "108", name: "Ahmed Sinan", team: "CJP", points: 26, programsCount: 3 },
-      { rank: 3, chestNumber: "112", name: "Fathima Noor", team: "BJP", points: 22, programsCount: 2 },
-      { rank: 4, chestNumber: "115", name: "Bilal K.", team: "CJP", points: 18, programsCount: 2 },
-    ]
-    setRankedList(list)
+    setRankedList(computeRankings(catName))
   }
 
   const handleOpenOverall = () => {
@@ -162,20 +264,35 @@ export default function TopCandidatesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
-              {filteredCategories.map((cat) => (
-                <tr key={cat} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="py-4 px-3 font-bold text-slate-900 text-sm">{cat}</td>
-                  <td className="py-4 px-3 text-right">
-                    <Button
-                      size="sm"
-                      onClick={() => handleOpenRanking(cat)}
-                      className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-4"
-                    >
-                      View ranking
-                    </Button>
+              {loading ? (
+                <tr>
+                  <td colSpan={2} className="py-10 text-center text-xs text-slate-500">
+                    <Loader2 className="h-4 w-4 animate-spin inline mr-2 text-indigo-600" />
+                    Loading categories...
                   </td>
                 </tr>
-              ))}
+              ) : filteredCategories.length === 0 ? (
+                <tr>
+                  <td colSpan={2} className="py-10 text-center text-xs text-slate-500">
+                    No categories found. Add categories and publish results to view top candidates.
+                  </td>
+                </tr>
+              ) : (
+                filteredCategories.map((cat) => (
+                  <tr key={cat} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="py-4 px-3 font-bold text-slate-900 text-sm">{cat}</td>
+                    <td className="py-4 px-3 text-right">
+                      <Button
+                        size="sm"
+                        onClick={() => handleOpenRanking(cat)}
+                        className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-4"
+                      >
+                        View ranking
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -206,7 +323,12 @@ export default function TopCandidatesPage() {
             </div>
 
             <div className="space-y-2.5 max-h-[350px] overflow-y-auto">
-              {rankedList.map((c) => (
+              {rankedList.length === 0 ? (
+                <div className="py-10 text-center text-xs text-slate-500">
+                  No published points yet for {selectedCategory}.
+                </div>
+              ) : (
+                rankedList.map((c) => (
                 <div
                   key={c.chestNumber}
                   className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 bg-slate-50/70"
@@ -236,7 +358,8 @@ export default function TopCandidatesPage() {
                     <span className="text-[10px] text-slate-400">{c.programsCount} programs</span>
                   </div>
                 </div>
-              ))}
+                ))
+              )}
             </div>
 
             <div className="pt-3 border-t border-slate-100 flex justify-end">

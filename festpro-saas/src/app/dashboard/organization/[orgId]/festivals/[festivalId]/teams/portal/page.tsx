@@ -1,31 +1,19 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import {
   Users,
   Trophy,
-  Award,
   Clock,
   Search,
   Plus,
-  Printer,
-  ChevronRight,
-  Shield,
-  CheckCircle2,
-  AlertCircle,
   ExternalLink,
-  RefreshCw,
-  Sparkles,
-  Phone,
-  Mail,
-  UserCheck,
+  Loader2,
 } from "lucide-react"
 import { toast } from "sonner"
-import { createClient } from "@/lib/supabase/client"
-import { getParticipants } from "@/lib/actions/participant"
-import { getCompetitions } from "@/lib/actions/competition"
+import { addFestParticipantAction } from "@/lib/actions/participant"
 import { ExportPrintBar } from "@/components/ui/export-print-bar"
 
 interface TeamMember {
@@ -33,6 +21,8 @@ interface TeamMember {
   name: string
   chestNumber: string
   category: string
+  unit: string
+  teamId?: string
   enrolledCompetitions: string[]
   greenRoomStatus: "waiting" | "reported" | "on_stage" | "completed"
   phone?: string
@@ -49,175 +39,170 @@ interface TeamHouse {
   managerPhone: string
 }
 
-const DEMO_TEAMS: TeamHouse[] = [
-  {
-    id: "team-1",
-    name: "Team Alpha (Emerald)",
-    code: "ALP",
-    color: "#10b981",
-    totalPoints: 245,
-    rank: 1,
-    managerName: "Rashid K",
-    managerPhone: "+91 98471 23456",
-  },
-  {
-    id: "team-2",
-    name: "Team Beta (Sapphire)",
-    code: "BET",
-    color: "#3b82f6",
-    totalPoints: 210,
-    rank: 2,
-    managerName: "Shamil V",
-    managerPhone: "+91 98472 34567",
-  },
-  {
-    id: "team-3",
-    name: "Team Gamma (Ruby)",
-    code: "GAM",
-    color: "#ef4444",
-    totalPoints: 185,
-    rank: 3,
-    managerName: "Muhammed Ali",
-    managerPhone: "+91 98473 45678",
-  },
-]
-
 export default function TeamManagerPortalPage() {
   const params = useParams()
   const orgId = params.orgId as string
   const festivalId = params.festivalId as string
 
-  const [teams, setTeams] = useState<TeamHouse[]>(DEMO_TEAMS)
-  const [selectedTeamId, setSelectedTeamId] = useState<string>(DEMO_TEAMS[0].id)
+  const [teams, setTeams] = useState<TeamHouse[]>([])
+  const [selectedTeamId, setSelectedTeamId] = useState<string>("")
   const [search, setSearch] = useState("")
   const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
 
-  // Team contestants roster
-  const [members, setMembers] = useState<TeamMember[]>([
-    {
-      id: "tm-1",
-      name: "Aysha Fathima",
-      chestNumber: "101",
-      category: "Senior",
-      enrolledCompetitions: ["Classical Solo Dance", "Light Music Solo"],
-      greenRoomStatus: "on_stage",
-      phone: "+91 98470 11111",
-    },
-    {
-      id: "tm-2",
-      name: "Muhammed Sinan",
-      chestNumber: "105",
-      category: "Senior",
-      enrolledCompetitions: ["Madh Song", "Mappilappattu Solo"],
-      greenRoomStatus: "reported",
-      phone: "+91 98470 22222",
-    },
-    {
-      id: "tm-3",
-      name: "Fathima Nihala",
-      chestNumber: "112",
-      category: "Junior",
-      enrolledCompetitions: ["Elocution (English)", "Essay Writing"],
-      greenRoomStatus: "waiting",
-      phone: "+91 98470 33333",
-    },
-    {
-      id: "tm-4",
-      name: "Bilal Ahmed",
-      chestNumber: "118",
-      category: "Sub Junior",
-      enrolledCompetitions: ["Pencil Drawing", "Water Color"],
-      greenRoomStatus: "waiting",
-      phone: "+91 98470 44444",
-    },
-    {
-      id: "tm-5",
-      name: "Zainab Mariyam",
-      chestNumber: "124",
-      category: "Junior",
-      enrolledCompetitions: ["Action Song", "Story Telling"],
-      greenRoomStatus: "completed",
-      phone: "+91 98470 55555",
-    },
-  ])
+  const [allMembers, setAllMembers] = useState<TeamMember[]>([])
+  const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([])
+  const [competitions, setCompetitions] = useState<Array<{ id: string; name: string }>>([])
 
   // Quick Register Modal
   const [showAddModal, setShowAddModal] = useState(false)
   const [newStudentName, setNewStudentName] = useState("")
   const [newChestNumber, setNewChestNumber] = useState("")
-  const [newCategory, setNewCategory] = useState("Senior")
-  const [newProgram, setNewProgram] = useState("Madh Song")
+  const [newCategory, setNewCategory] = useState("")
+  const [newProgram, setNewProgram] = useState("")
+
+  const loadTeamData = useCallback(async () => {
+    if (!festivalId) return
+    try {
+      const res = await fetch(`/api/festival/${festivalId}/workspace?scope=portal`, { cache: "no-store" })
+      const data = await res.json()
+
+      const dbTeams = Array.isArray(data?.teams) ? data.teams : []
+      const dbTeamPoints = Array.isArray(data?.teamPoints) ? data.teamPoints : []
+      const dbCategories = Array.isArray(data?.categories) ? data.categories : []
+      const dbComps = Array.isArray(data?.competitions) ? data.competitions : []
+      const dbParticipants = Array.isArray(data?.participants) ? data.participants : []
+      const dbRegs = Array.isArray(data?.registrations) ? data.registrations : []
+      const grMap = (data?.customFields?.green_room || {}) as Record<
+        string,
+        { status?: TeamMember["greenRoomStatus"] }
+      >
+
+      const tpByTeamId = new Map(dbTeamPoints.map((tp: any) => [tp.entity_id, Number(tp.total_points || 0)]))
+      const mappedTeams: TeamHouse[] = dbTeams
+        .map((t: any, idx: number) => ({
+          id: t.id,
+          name: t.name,
+          code: t.code || t.name.slice(0, 3).toUpperCase() || `T${idx + 1}`,
+          color: t.color || "#4f46e5",
+          totalPoints: tpByTeamId.get(t.id) ?? Number(t.total_points || 0),
+          rank: idx + 1,
+          managerName: t.leader_name || "Team Captain",
+          managerPhone: t.leader_phone || "",
+        }))
+        .sort((a: TeamHouse, b: TeamHouse) => b.totalPoints - a.totalPoints)
+        .map((t: TeamHouse, idx: number) => ({ ...t, rank: idx + 1 }))
+
+      setTeams(mappedTeams)
+      setSelectedTeamId((prev) => (prev && mappedTeams.some((t) => t.id === prev) ? prev : mappedTeams[0]?.id || ""))
+
+      setCategories(dbCategories)
+      setCompetitions(dbComps)
+      setNewCategory((prev) => prev || dbCategories[0]?.name || "General")
+
+      const compNameById = new Map<string, string>(dbComps.map((c: any) => [c.id, c.name]))
+      const regsByParticipant = new Map<string, string[]>()
+      dbRegs.forEach((r: any) => {
+        const compName = compNameById.get(r.competition_id)
+        if (!compName) return
+        const arr = regsByParticipant.get(r.participant_id) || []
+        arr.push(compName)
+        regsByParticipant.set(r.participant_id, arr)
+      })
+
+      const mappedMembers: TeamMember[] = dbParticipants.map((p: any, idx: number) => ({
+        id: p.id,
+        name: `${p.first_name || ""} ${p.last_name || ""}`.trim() || `Participant ${idx + 1}`,
+        chestNumber: p.chest_number || "—",
+        category: p.division || "General",
+        unit: p.unit || "",
+        teamId: p.team_id || undefined,
+        enrolledCompetitions: regsByParticipant.get(p.id) || [],
+        greenRoomStatus: grMap[p.id]?.status || "waiting",
+        phone: p.phone || "",
+      }))
+      setAllMembers(mappedMembers)
+    } catch (err) {
+      console.warn("loadTeamData notice:", err)
+    } finally {
+      setLoading(false)
+    }
+  }, [festivalId])
+
+  useEffect(() => {
+    loadTeamData()
+  }, [loadTeamData])
 
   const selectedTeam = teams.find((t) => t.id === selectedTeamId) || teams[0]
 
-  useEffect(() => {
-    async function loadTeamData() {
-      try {
-        const supabase = createClient()
-        const { data: dbTeams } = await supabase
-          .from("teams")
-          .select("*")
-          .eq("festival_id", festivalId)
+  const members = useMemo(() => {
+    if (!selectedTeam) return []
+    return allMembers.filter((m) => {
+      if (m.teamId && m.teamId === selectedTeam.id) return true
+      const unitLower = m.unit.trim().toLowerCase()
+      return (
+        unitLower === selectedTeam.name.trim().toLowerCase() ||
+        (Boolean(selectedTeam.code) && unitLower === selectedTeam.code.trim().toLowerCase())
+      )
+    })
+  }, [allMembers, selectedTeam])
 
-        if (dbTeams && dbTeams.length > 0) {
-          const mapped: TeamHouse[] = dbTeams.map((t: any, idx: number) => ({
-            id: t.id,
-            name: t.name,
-            code: t.code || `T${idx + 1}`,
-            color: t.color || "#4f46e5",
-            totalPoints: t.total_points || 0,
-            rank: idx + 1,
-            managerName: t.leader_name || "Team Captain",
-            managerPhone: "+91 98765 43210",
-          }))
-          setTeams(mapped)
-          setSelectedTeamId(mapped[0].id)
-        }
+  const activeStageMember = useMemo(() => {
+    return (
+      members.find((m) => m.greenRoomStatus === "on_stage") ||
+      members.find((m) => m.greenRoomStatus === "reported") ||
+      null
+    )
+  }, [members])
 
-        const pRes = await getParticipants(festivalId, { limit: 100 })
-        if (pRes?.data && pRes.data.length > 0) {
-          const list: TeamMember[] = pRes.data.slice(0, 15).map((p: any, idx: number) => ({
-            id: p.id,
-            name: `${p.first_name || ""} ${p.last_name || ""}`.trim() || `Student ${idx + 1}`,
-            chestNumber: p.chest_number || String(100 + idx + 1),
-            category: p.division || "Senior",
-            enrolledCompetitions: ["Madh Song", "Light Music"],
-            greenRoomStatus: idx === 0 ? "on_stage" : idx < 3 ? "reported" : "waiting",
-            phone: p.phone || "",
-          }))
-          setMembers(list)
-        }
-      } catch (err) {
-        console.warn("loadTeamData notice:", err)
-      } finally {
-        setLoading(false)
-      }
-    }
-    if (festivalId) loadTeamData()
-  }, [festivalId])
-
-  const handleAddStudent = (e: React.FormEvent) => {
+  const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!selectedTeam) {
+      toast.error("Please create a team first")
+      return
+    }
     if (!newStudentName.trim()) {
       toast.error("Please enter contestant name")
       return
     }
 
-    const chest = newChestNumber.trim() || String(Math.floor(100 + Math.random() * 899))
-    const newMember: TeamMember = {
-      id: `tm_${Date.now()}`,
-      name: newStudentName.trim(),
-      chestNumber: chest,
-      category: newCategory,
-      enrolledCompetitions: [newProgram],
-      greenRoomStatus: "waiting",
-    }
+    setSubmitting(true)
+    try {
+      const res = await addFestParticipantAction(festivalId, {
+        name: newStudentName.trim(),
+        team: selectedTeam.code || selectedTeam.name,
+        category: newCategory || categories[0]?.name || "General",
+      })
+      if (res.error) {
+        toast.error(res.error)
+        return
+      }
 
-    setMembers((prev) => [newMember, ...prev])
-    toast.success(`Registered #${chest} (${newMember.name}) for ${selectedTeam.name}`)
-    setShowAddModal(false)
-    setNewStudentName("")
-    setNewChestNumber("")
+      const createdId = (res as any)?.participant?.id || (res as any)?.data?.id
+      if (createdId && newProgram) {
+        await fetch(`/api/festival/${festivalId}/operations`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "sync_participant_programs",
+            payload: {
+              participantId: createdId,
+              competitionIds: [newProgram],
+            },
+          }),
+        })
+      }
+
+      toast.success(`Registered ${newStudentName.trim()} for ${selectedTeam.name}`)
+      setShowAddModal(false)
+      setNewStudentName("")
+      setNewChestNumber("")
+      await loadTeamData()
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to add contestant")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const filteredMembers = members.filter((m) => {
@@ -256,24 +241,48 @@ export default function TeamManagerPortalPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <ExportPrintBar
-            title={`${selectedTeam.name} - Official Contestant Roster`}
-            subtitle={`FestPro House Standing: Rank #${selectedTeam.rank} (${selectedTeam.totalPoints} pts)`}
-            data={filteredMembers}
-            columns={exportColumns}
-            filename={`${selectedTeam.code}-roster`}
-          />
+        {selectedTeam && (
+          <div className="flex items-center gap-2">
+            <ExportPrintBar
+              title={`${selectedTeam.name} - Official Contestant Roster`}
+              subtitle={`FestPro House Standing: Rank #${selectedTeam.rank} (${selectedTeam.totalPoints} pts)`}
+              data={filteredMembers}
+              columns={exportColumns}
+              filename={`${selectedTeam.code}-roster`}
+            />
 
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add Contestant</span>
-          </button>
-        </div>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Add Contestant</span>
+            </button>
+          </div>
+        )}
       </div>
+
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-500">
+          <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+          <p className="text-xs font-bold uppercase tracking-wider">Loading team portal...</p>
+        </div>
+      ) : !selectedTeam ? (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-14 text-center space-y-3">
+          <Users className="h-10 w-10 text-slate-300 mx-auto" />
+          <h3 className="text-base font-black text-slate-900">No Teams / Houses Configured Yet</h3>
+          <p className="text-xs text-slate-500 max-w-md mx-auto">
+            Create teams or houses first so team captains can manage contestants and monitor live calls.
+          </p>
+          <Link
+            href={`/dashboard/organization/${orgId}/festivals/${festivalId}/teams`}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"
+          >
+            Go to Teams
+          </Link>
+        </div>
+      ) : (
+        <>
 
       {/* ── TEAM / HOUSE SELECTOR TABS ── */}
       <div className="flex items-center gap-3 overflow-x-auto pb-1">
@@ -360,12 +369,27 @@ export default function TeamManagerPortalPage() {
           </div>
           <div>
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-300 block">
-              Urgent Green Room Call
+              Green Room Status
             </span>
-            <span className="text-sm font-black text-white">
-              Chest #105 (Muhammed Sinan) - Madh Song on Stage 1
-            </span>
-            <p className="text-xs text-indigo-200">Please ensure contestant is in the green room ready for call 2.</p>
+            {activeStageMember ? (
+              <>
+                <span className="text-sm font-black text-white">
+                  Chest #{activeStageMember.chestNumber} ({activeStageMember.name}) — {activeStageMember.greenRoomStatus === "on_stage" ? "Currently On Stage" : "Reported in Green Room"}
+                </span>
+                <p className="text-xs text-indigo-200">
+                  {activeStageMember.enrolledCompetitions[0] || activeStageMember.category}
+                </p>
+              </>
+            ) : (
+              <>
+                <span className="text-sm font-black text-white">
+                  {selectedTeam.name} Green Room Monitor
+                </span>
+                <p className="text-xs text-indigo-200">
+                  No active green room or on-stage calls for this team right now.
+                </p>
+              </>
+            )}
           </div>
         </div>
 
@@ -409,8 +433,14 @@ export default function TeamManagerPortalPage() {
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 font-medium">
-              {filteredMembers.map((m) => {
+              <tbody className="divide-y divide-slate-100 font-medium">
+              {filteredMembers.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-10 text-center text-xs text-slate-500">
+                    No contestants registered in {selectedTeam.name} yet.
+                  </td>
+                </tr>
+              ) : filteredMembers.map((m) => {
                 const isOnStage = m.greenRoomStatus === "on_stage"
                 const isReported = m.greenRoomStatus === "reported"
                 const isCompleted = m.greenRoomStatus === "completed"
@@ -505,25 +535,12 @@ export default function TeamManagerPortalPage() {
                   required
                   value={newStudentName}
                   onChange={(e) => setNewStudentName(e.target.value)}
-                  placeholder="e.g. Aysha Nihala"
+                  placeholder="Enter contestant full name"
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">
-                    Chest # (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={newChestNumber}
-                    onChange={(e) => setNewChestNumber(e.target.value)}
-                    placeholder="Auto if blank"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 font-mono focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700">
                     Category
@@ -533,30 +550,31 @@ export default function TeamManagerPortalPage() {
                     onChange={(e) => setNewCategory(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 focus:outline-none focus:border-indigo-500"
                   >
-                    <option value="Senior">Senior</option>
-                    <option value="Junior">Junior</option>
-                    <option value="Sub Junior">Sub Junior</option>
-                    <option value="General">General</option>
+                    {categories.length > 0 ? (
+                      categories.map((cat) => (
+                        <option key={cat.id} value={cat.name}>{cat.name}</option>
+                      ))
+                    ) : (
+                      <option value="General">General</option>
+                    )}
                   </select>
                 </div>
-              </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">
-                  Enrolled Program
-                </label>
-                <select
-                  value={newProgram}
-                  onChange={(e) => setNewProgram(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 focus:outline-none focus:border-indigo-500"
-                >
-                  <option value="Madh Song">Madh Song</option>
-                  <option value="Classical Solo Dance">Classical Solo Dance</option>
-                  <option value="Light Music Solo">Light Music Solo</option>
-                  <option value="Mappilappattu Solo">Mappilappattu Solo</option>
-                  <option value="Elocution (English)">Elocution (English)</option>
-                  <option value="Pencil Drawing">Pencil Drawing</option>
-                </select>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700">
+                    Enrolled Program (Optional)
+                  </label>
+                  <select
+                    value={newProgram}
+                    onChange={(e) => setNewProgram(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="">None (Assign later)</option>
+                    {competitions.map((comp) => (
+                      <option key={comp.id} value={comp.id}>{comp.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
@@ -569,14 +587,17 @@ export default function TeamManagerPortalPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm cursor-pointer"
+                  disabled={submitting}
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white shadow-sm cursor-pointer"
                 >
-                  Save &amp; Enroll
+                  {submitting ? "Saving..." : "Save & Enroll"}
                 </button>
               </div>
             </form>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   )

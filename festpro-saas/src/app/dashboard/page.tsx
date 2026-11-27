@@ -24,32 +24,31 @@ import {
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { getStaffSessionAction, type StaffSession } from "@/lib/actions/staff-auth"
-import { getParticipants } from "@/lib/actions/participant"
-import { getCompetitions } from "@/lib/actions/competition"
 
 export default function FestDashboardRoot() {
   const router = useRouter()
-  const [userName, setUserName] = useState("Sinan")
-  const [userRole, setUserRole] = useState("judge")
-  const [orgId, setOrgId] = useState("a3b0972c-a447-4934-8d26-3bad6c9a9cc9")
-  const [festivalId, setFestivalId] = useState("c66d0281-bc93-4cb8-b94e-e54bf27c7119")
-  const [festName, setFestName] = useState("optimuz")
-  const [stageProgramsCount, setStageProgramsCount] = useState<number>(1)
-  const [participantsCount, setParticipantsCount] = useState<number>(8)
+  const [userName, setUserName] = useState("Organizer")
+  const [userRole, setUserRole] = useState("organization_owner")
+  const [orgId, setOrgId] = useState("")
+  const [festivalId, setFestivalId] = useState("")
+  const [festName, setFestName] = useState("Festival Workspace")
+  const [stageProgramsCount, setStageProgramsCount] = useState<number>(0)
+  const [participantsCount, setParticipantsCount] = useState<number>(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function initDashboard() {
       try {
-        // 1. Check staff session first
+        let resolvedOrgId = ""
+        let resolvedFestId = ""
+
         const staff = await getStaffSessionAction()
         if (staff) {
           setUserName(staff.name || "Staff Member")
-          setUserRole(staff.role || "judge")
-          if (staff.organizationId) setOrgId(staff.organizationId)
-          if (staff.festivalId) setFestivalId(staff.festivalId)
+          setUserRole(staff.role || "staff")
+          resolvedOrgId = staff.organizationId || ""
+          resolvedFestId = staff.festivalId || ""
         } else {
-          // 2. Check Supabase auth
           const supabase = createClient()
           const {
             data: { user },
@@ -67,25 +66,48 @@ export default function FestDashboardRoot() {
             } else {
               setUserName(user.email?.split("@")[0] || "Organizer")
             }
-            if (prof?.organization_id) setOrgId(prof.organization_id)
+
+            if (prof?.organization_id) {
+              resolvedOrgId = prof.organization_id
+            } else {
+              const { data: mem } = await supabase
+                .from("organization_members")
+                .select("organization_id")
+                .eq("user_id", user.id)
+                .limit(1)
+                .maybeSingle()
+              if (mem?.organization_id) resolvedOrgId = mem.organization_id
+            }
+
+            if (resolvedOrgId) {
+              const { data: fests } = await supabase
+                .from("festivals")
+                .select("id, name")
+                .eq("organization_id", resolvedOrgId)
+                .is("deleted_at", null)
+                .order("created_at", { ascending: false })
+                .limit(1)
+              if (fests?.[0]) {
+                resolvedFestId = fests[0].id
+                setFestName(fests[0].name || "Festival Workspace")
+              }
+            }
           }
         }
 
-        // 3. Fetch live count of stage programs and participants
-        try {
-          const effectiveFestId = festivalId || "c66d0281-bc93-4cb8-b94e-e54bf27c7119"
-          const [pRes, cRes] = await Promise.all([
-            getParticipants(effectiveFestId, { limit: 100 }),
-            getCompetitions(effectiveFestId),
-          ])
-
-          if (pRes?.data && pRes.data.length > 0) {
-            setParticipantsCount(pRes.data.length)
-          }
-          if (Array.isArray(cRes) && cRes.length > 0) {
-            setStageProgramsCount(cRes.length)
-          }
-        } catch {}
+        if (resolvedOrgId) setOrgId(resolvedOrgId)
+        if (resolvedFestId) {
+          setFestivalId(resolvedFestId)
+          try {
+            const res = await fetch(`/api/festival/${resolvedFestId}/workspace?scope=all`, { cache: "no-store" })
+            if (res.ok) {
+              const json = await res.json()
+              if (json.festival?.name) setFestName(json.festival.name)
+              setParticipantsCount(Array.isArray(json.participants) ? json.participants.length : 0)
+              setStageProgramsCount(Array.isArray(json.competitions) ? json.competitions.length : 0)
+            }
+          } catch {}
+        }
       } catch (err) {
         console.warn("initDashboard notice:", err)
       } finally {
@@ -93,9 +115,9 @@ export default function FestDashboardRoot() {
       }
     }
     initDashboard()
-  }, [festivalId])
+  }, [])
 
-  const festBase = `/dashboard/organization/${orgId}/festivals/${festivalId}`
+  const festBase = orgId && festivalId ? `/dashboard/organization/${orgId}/festivals/${festivalId}` : "/dashboard/organization"
 
   // Tools matching Screenshot 1: Festize "Your tools"
   const tools = [

@@ -339,7 +339,7 @@ export default function FestProLandingPage() {
               <>
                 നിങ്ങൾ ഫെസ്റ്റ് രജിസ്റ്റർ ചെയ്യുമ്പോൾ തന്നെ സ്വന്തമായി ഒരു വെബ് അഡ്രസ്സ് ലഭിക്കുന്നു:{" "}
                 <span className="font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
-                  quaf.festpro.ahraz.site
+                  yourfest.ahraz.site
                 </span>
                 . പങ്കെടുക്കുന്നവർക്കും കാണികൾക്കും ലൈവ് സ്റ്റേജുകളും പോയിന്റ് നിലകളും തത്സമയം പരിശോധിക്കാം.
               </>
@@ -347,7 +347,7 @@ export default function FestProLandingPage() {
               <>
                 When you create your fest, you get a dedicated public URL like{" "}
                 <span className="font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
-                  quaf.festpro.ahraz.site
+                  yourfest.ahraz.site
                 </span>{" "}
                 where participants, judges, and spectators track live stages, published marks, and team points in real time.
               </>

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { verifyFestivalAccess } from "@/lib/auth/session-guard"
 import type { CompetitionCategory, CompetitionSubcategory, CompetitionGroup } from "@/types/competition"
 
 async function getAuth() {
@@ -29,7 +30,7 @@ async function logOrgActivity(festivalId: string, action: string, metadata: Reco
 
 export async function getCategories(festivalId: string): Promise<CompetitionCategory[]> {
   const admin = createAdminClient()
-  const { data } = await admin.from("competition_categories").select("*, _count:competitions(count)").eq("festival_id", festivalId).order("display_order", { ascending: true }).order("name", { ascending: true })
+  const { data } = await admin.from("competition_categories").select("*, _count:competitions(count)").eq("festival_id", festivalId).eq("is_active", true).order("display_order", { ascending: true }).order("name", { ascending: true })
   return (data || []) as unknown as CompetitionCategory[]
 }
 
@@ -40,15 +41,16 @@ export async function getCategory(categoryId: string): Promise<CompetitionCatego
 }
 
 export async function createCategory(festivalId: string, formData: { name: string; name_ml?: string; short_name?: string; code?: string; description?: string; color?: string; icon?: string }) {
-  const user = await getAuth()
-  if (!user) return { error: "Not authenticated" }
+  const access = await verifyFestivalAccess(festivalId)
+  if (!access.allowed) return { error: access.error }
 
   const admin = createAdminClient()
   const { data, error } = await admin.from("competition_categories").insert({
     festival_id: festivalId, name: formData.name, name_ml: formData.name_ml || null,
     short_name: formData.short_name || null, code: formData.code || null,
     description: formData.description || null, color: formData.color || "#4F46E5",
-    icon: formData.icon || "trophy", created_by: user.id,
+    icon: formData.icon || "trophy",
+    created_by: access.mode === "supabase" ? access.userId || null : null,
   }).select().single()
 
   if (error) return { error: error.message }

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { verifyFestivalAccess } from "@/lib/auth/session-guard"
 import type { UserRole } from "@/types"
 import type {
   Participant, ParticipantFormData,
@@ -17,14 +18,14 @@ async function getAuth() {
 }
 
 async function checkOrgAccess(festivalId: string) {
-  const user = await getAuth()
-  if (!user) return { allowed: false, error: "Not authenticated" } as const
-  const admin = createAdminClient()
-  const { data: fest } = await admin.from("festivals").select("organization_id").eq("id", festivalId).single()
-  if (!fest) return { allowed: false, error: "Festival not found" } as const
-  const { data: member } = await admin.from("organization_members").select("role").eq("organization_id", fest.organization_id).eq("user_id", user.id).single()
-  if (!member) return { allowed: false, error: "Not a member" } as const
-  return { allowed: true, user, festival: fest, member: member as { role: UserRole } } as const
+  const access = await verifyFestivalAccess(festivalId)
+  if (!access.allowed) return { allowed: false, error: access.error } as const
+  return {
+    allowed: true,
+    user: { id: access.mode === "supabase" ? access.userId || null : null },
+    festival: { organization_id: access.organizationId },
+    member: { role: access.role as UserRole },
+  } as const
 }
 
 async function logActivity(orgId: string, action: string, metadata: Record<string, any> = {}) {
@@ -106,6 +107,8 @@ export async function addFestParticipantAction(
   const { data: inserted, error } = await admin.from("participants").insert({
     festival_id: festivalId,
     organization_id: check.festival.organization_id,
+    participant_id: `PID-${Date.now().toString(36).toUpperCase()}`,
+    registration_number: `REG-${Date.now().toString(36).toUpperCase()}`,
     first_name: firstName,
     last_name: lastName,
     chest_number: chestNo,
@@ -113,7 +116,6 @@ export async function addFestParticipantAction(
     division: params.category,
     date_of_birth: params.date_of_birth || null,
     notes: params.name_ml || null,
-    status: "confirmed",
     created_by: check.user.id,
   }).select().single()
 
@@ -151,6 +153,7 @@ export async function bulkAddParticipantsAction(
   const startNum = (count || 0) + 1
   const prefix = (teamCode || "P").slice(0, 2).toUpperCase()
 
+  const baseTs = Date.now().toString(36).toUpperCase()
   const inserts = lines.map((line, idx) => {
     const parts = line.split(" ")
     const firstName = parts[0]
@@ -161,12 +164,13 @@ export async function bulkAddParticipantsAction(
     return {
       festival_id: festivalId,
       organization_id: check.festival.organization_id,
+      participant_id: `PID-${baseTs}-${idx + 1}`,
+      registration_number: `REG-${baseTs}-${idx + 1}`,
       first_name: firstName,
       last_name: lastName,
       chest_number: chestNo,
       unit: teamCode,
       division: categoryName,
-      status: "confirmed",
       created_by: check.user.id,
     }
   })
@@ -214,10 +218,47 @@ export async function updateParticipant(participantId: string, formData: Partial
   return { data }
 }
 
-export async function softDeleteParticipant(participantId: string) {
-  const user = await getAuth()
-  if (!user) return { error: "Not authenticated" }
+export async function updateFestParticipantAction(
+  participantId: string,
+  festivalId: string,
+  params: {
+    name: string
+    name_ml?: string
+    date_of_birth?: string
+    team: string
+    category: string
+  }
+) {
+  const check = await checkOrgAccess(festivalId)
+  if (!check.allowed) return { error: check.error }
 
+  const admin = createAdminClient()
+  const parts = params.name.trim().split(" ")
+  const firstName = parts[0]
+  const lastName = parts.slice(1).join(" ") || ""
+
+  const { data, error } = await admin
+    .from("participants")
+    .update({
+      first_name: firstName,
+      last_name: lastName,
+      unit: params.team || null,
+      division: params.category || null,
+      date_of_birth: params.date_of_birth || null,
+      notes: params.name_ml || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", participantId)
+    .eq("festival_id", festivalId)
+    .select()
+    .single()
+
+  if (error) return { error: error.message }
+  revalidatePath(`/dashboard/organization/${check.festival.organization_id}/festivals/${festivalId}/participants`)
+  return { data }
+}
+
+export async function softDeleteParticipant(participantId: string) {
   const admin = createAdminClient()
   const { data: existing } = await admin.from("participants").select("festival_id, organization_id, first_name, last_name").eq("id", participantId).single()
   if (!existing) return { error: "Participant not found" }
@@ -228,7 +269,6 @@ export async function softDeleteParticipant(participantId: string) {
   const { error } = await admin.from("participants").update({ deleted_at: new Date().toISOString() }).eq("id", participantId)
   if (error) return { error: error.message }
 
-  await logActivity(existing.organization_id, "participant.deleted", { participant_id: participantId, name: `${existing.first_name} ${existing.last_name}` })
   revalidatePath(`/dashboard/organization/${existing.organization_id}/festivals/${existing.festival_id}/participants`)
   return { success: true }
 }
@@ -259,7 +299,12 @@ export async function getParticipants(festivalId: string, params: {
   if (!check.allowed) return { data: [], count: 0 }
 
   const admin = createAdminClient()
-  let query = admin.from("participants").select("*, guardians(*), institution:institutions(*), registrations(*)", { count: "exact" })
+  let query = admin
+    .from("participants")
+    .select(
+      "id, festival_id, organization_id, participant_id, registration_number, chest_number, first_name, last_name, date_of_birth, gender, email, phone, unit, division, sector, notes, created_at, deleted_at",
+      { count: "exact" }
+    )
     .eq("festival_id", festivalId)
     .order("created_at", { ascending: false })
 

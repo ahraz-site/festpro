@@ -2,7 +2,6 @@
 
 import { cookies } from "next/headers"
 import { createAdminClient } from "@/lib/supabase/admin"
-import { createClient as createServerClient } from "@/lib/supabase/server"
 
 export interface StaffMember {
   id: string
@@ -21,6 +20,7 @@ export interface StaffMember {
     | "announcer"
     | "media_manager"
     | "prizes"
+    | "green_room"
     | string
   phone?: string
   status?: string
@@ -36,8 +36,19 @@ export interface StaffSession {
   festivalId?: string
 }
 
+async function resolveOrgFestivalIds(orgId: string): Promise<string[]> {
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from("festivals")
+    .select("id")
+    .eq("organization_id", orgId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+  return (data || []).map((f: any) => f.id)
+}
+
 // ────────────────────────────────────────────
-// 1. GET ALL PEOPLE & ACCESS MEMBERS
+// 1. GET ALL PEOPLE & ACCESS MEMBERS (Tenant-Isolated)
 // ────────────────────────────────────────────
 
 export async function getOrganizationStaff(orgId: string): Promise<StaffMember[]> {
@@ -45,6 +56,8 @@ export async function getOrganizationStaff(orgId: string): Promise<StaffMember[]
   const membersMap = new Map<string, StaffMember>()
 
   try {
+    const festIds = await resolveOrgFestivalIds(orgId)
+
     // 1. Check organization_members joined with profiles
     const { data: orgMems } = await admin
       .from("organization_members")
@@ -54,13 +67,17 @@ export async function getOrganizationStaff(orgId: string): Promise<StaffMember[]
     if (orgMems) {
       for (const m of orgMems) {
         const u: any = m.user || {}
-        const fullName = `${u.first_name || ""} ${u.last_name || ""}`.trim() || u.email?.split("@")[0] || "Staff Member"
+        const fullName =
+          `${u.first_name || ""} ${u.last_name || ""}`.trim() ||
+          u.email?.split("@")[0] ||
+          "Member"
         const username = u.email ? u.email.split("@")[0].toLowerCase() : `user_${m.id.slice(0, 5)}`
         membersMap.set(username, {
           id: m.id,
           organization_id: orgId,
+          festival_id: festIds[0],
           name: fullName,
-          username: username,
+          username,
           role: m.role || u.role || "organization_owner",
           phone: u.phone || "",
           status: "active",
@@ -69,89 +86,63 @@ export async function getOrganizationStaff(orgId: string): Promise<StaffMember[]
       }
     }
 
-    // 2. Check festival_settings custom_fields.staff_members
-    const { data: settingsList } = await admin
-      .from("festival_settings")
-      .select("festival_id, custom_fields")
-      .order("updated_at", { ascending: false })
-      .limit(10)
+    // 2. Check festival_settings custom_fields.staff_members for this org's festivals only
+    if (festIds.length > 0) {
+      const { data: settingsList } = await admin
+        .from("festival_settings")
+        .select("festival_id, custom_fields")
+        .in("festival_id", festIds)
+        .order("updated_at", { ascending: false })
 
-    if (settingsList) {
-      for (const s of settingsList) {
-        let cf = s.custom_fields
-        if (typeof cf === "string") {
-          try { cf = JSON.parse(cf) } catch {}
+      if (settingsList) {
+        for (const s of settingsList) {
+          let cf = s.custom_fields
+          if (typeof cf === "string") {
+            try { cf = JSON.parse(cf) } catch {}
+          }
+          const staffList: StaffMember[] = cf?.staff_members || []
+          for (const st of staffList) {
+            if (st.username) {
+              membersMap.set(st.username.toLowerCase(), {
+                ...st,
+                organization_id: st.organization_id || orgId,
+                festival_id: st.festival_id || s.festival_id,
+              })
+            }
+          }
         }
-        const staffList: StaffMember[] = cf?.staff_members || []
-        for (const st of staffList) {
-          if (st.username) {
-            membersMap.set(st.username.toLowerCase(), {
-              ...st,
-              organization_id: st.organization_id || orgId,
-              festival_id: st.festival_id || s.festival_id,
+      }
+
+      // 3. Check festival_judges table scoped to this organization's festivals
+      const { data: judges } = await admin
+        .from("festival_judges")
+        .select("*")
+        .in("festival_id", festIds)
+        .order("created_at", { ascending: false })
+
+      if (judges) {
+        for (const j of judges) {
+          const uname = String(j.username || "").toLowerCase()
+          if (uname && !membersMap.has(uname)) {
+            membersMap.set(uname, {
+              id: j.id,
+              organization_id: j.organization_id || orgId,
+              festival_id: j.festival_id,
+              name: j.name,
+              username: uname,
+              password: j.raw_password,
+              raw_password: j.raw_password,
+              role: "judge",
+              phone: j.phone || "",
+              status: j.status || "active",
+              created_at: j.created_at,
             })
           }
         }
       }
     }
-
-    // 3. Check festival_judges table
-    const { data: judges } = await admin
-      .from("festival_judges")
-      .select("*")
-      .limit(50)
-
-    if (judges) {
-      for (const j of judges) {
-        const uname = String(j.username || "").toLowerCase()
-        if (uname && !membersMap.has(uname)) {
-          membersMap.set(uname, {
-            id: j.id,
-            organization_id: j.organization_id || orgId,
-            festival_id: j.festival_id,
-            name: j.name,
-            username: uname,
-            password: j.raw_password,
-            raw_password: j.raw_password,
-            role: "judge",
-            phone: j.phone || "",
-            status: j.status || "active",
-            created_at: j.created_at,
-          })
-        }
-      }
-    }
   } catch (err) {
     console.warn("getOrganizationStaff warning:", err)
-  }
-
-  // Built-in defaults matching user screenshot 8 if map is sparse
-  if (!membersMap.has("sinan")) {
-    membersMap.set("sinan", {
-      id: "staff-sinan",
-      organization_id: orgId,
-      name: "Sinan",
-      username: "sinan",
-      password: "123",
-      raw_password: "123",
-      role: "judge",
-      phone: "+91 9876543210",
-      status: "active",
-    })
-  }
-
-  if (!membersMap.has("ahraz")) {
-    membersMap.set("ahraz", {
-      id: "staff-ahraz",
-      organization_id: orgId,
-      name: "ahraz",
-      username: "ahraz",
-      password: "123",
-      raw_password: "123",
-      role: "media_manager",
-      phone: "+91 9123456780",
-      status: "active",
-    })
   }
 
   return Array.from(membersMap.values())
@@ -168,21 +159,33 @@ export async function upsertOrganizationStaff(
 ): Promise<{ success: boolean; error?: string; member?: StaffMember }> {
   const admin = createAdminClient()
   try {
-    const cleanUser = String(staff.username || "").trim().toLowerCase()
+    const cleanUser = String(staff.username || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]/g, "")
     const cleanName = String(staff.name || "").trim()
-    const cleanPass = String(staff.password || staff.raw_password || "fest123").trim()
+    const cleanPass = String(staff.password || staff.raw_password || "").trim()
     const cleanRole = String(staff.role || "judge").trim()
     const cleanPhone = String(staff.phone || "").trim()
 
     if (!cleanUser || !cleanName) {
-      return { success: false, error: "Name and username are required." }
+      return { success: false, error: "Name and valid username are required." }
+    }
+    if (!cleanPass) {
+      return { success: false, error: "Password is required." }
+    }
+
+    let targetFestivalId = festivalId || null
+    if (!targetFestivalId) {
+      const festIds = await resolveOrgFestivalIds(orgId)
+      targetFestivalId = festIds[0] || null
     }
 
     const memberId = staff.id || `staff_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
     const newMember: StaffMember = {
       id: memberId,
       organization_id: orgId,
-      festival_id: festivalId || undefined,
+      festival_id: targetFestivalId || undefined,
       name: cleanName,
       username: cleanUser,
       password: cleanPass,
@@ -193,17 +196,17 @@ export async function upsertOrganizationStaff(
       created_at: staff.created_at || new Date().toISOString(),
     }
 
-    // 1. If role is judge, also store in festival_judges table
-    if (cleanRole === "judge" && festivalId) {
+    // 1. If role is judge and festival exists, persist in festival_judges
+    if (cleanRole === "judge" && targetFestivalId) {
       try {
         await admin.from("festival_judges").upsert(
           {
             id: memberId,
-            festival_id: festivalId,
+            festival_id: targetFestivalId,
             organization_id: orgId,
             name: cleanName,
             username: cleanUser,
-            password_hash: cleanPass, // plain/hash for quick tablet login
+            password_hash: cleanPass,
             raw_password: cleanPass,
             phone: cleanPhone,
             status: "active",
@@ -217,34 +220,45 @@ export async function upsertOrganizationStaff(
       }
     }
 
-    // 2. Save into festival_settings custom_fields.staff_members
-    if (festivalId) {
-      try {
-        const { data: sRow } = await admin
-          .from("festival_settings")
-          .select("id, custom_fields")
-          .eq("festival_id", festivalId)
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle()
+    // 2. Save into festival_settings custom_fields.staff_members (insert if no settings row exists yet)
+    if (targetFestivalId) {
+      const { data: sRow } = await admin
+        .from("festival_settings")
+        .select("id, custom_fields")
+        .eq("festival_id", targetFestivalId)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
 
-        let cf = sRow?.custom_fields || {}
-        if (typeof cf === "string") {
-          try { cf = JSON.parse(cf) } catch {}
-        }
-        let list: StaffMember[] = cf.staff_members || []
-        list = list.filter((m) => m.username.toLowerCase() !== cleanUser && m.id !== memberId)
-        list.push(newMember)
+      let cf = sRow?.custom_fields || {}
+      if (typeof cf === "string") {
+        try { cf = JSON.parse(cf) } catch {}
+      }
+      let list: StaffMember[] = Array.isArray(cf?.staff_members) ? cf.staff_members : []
+      list = list.filter((m) => m.username.toLowerCase() !== cleanUser && m.id !== memberId)
+      list.push(newMember)
 
+      const updatedFields = { ...(typeof cf === "object" && cf ? cf : {}), staff_members: list }
+
+      if (sRow?.id) {
         await admin
           .from("festival_settings")
           .update({
-            custom_fields: { ...cf, staff_members: list },
+            custom_fields: updatedFields,
             updated_at: new Date().toISOString(),
           })
-          .eq("festival_id", festivalId)
-      } catch (err) {
-        console.warn("festival_settings staff save notice:", err)
+          .eq("id", sRow.id)
+      } else {
+        await admin.from("festival_settings").insert({
+          festival_id: targetFestivalId,
+          custom_fields: updatedFields,
+          updated_at: new Date().toISOString(),
+        })
+      }
+    } else {
+      return {
+        success: false,
+        error: "Please create a festival workspace first before assigning staff credentials.",
       }
     }
 
@@ -266,37 +280,49 @@ export async function removeOrganizationStaff(
 ): Promise<{ success: boolean; error?: string }> {
   const admin = createAdminClient()
   try {
-    // 1. Remove from festival_judges if exists
-    if (username) {
-      await admin.from("festival_judges").delete().ilike("username", username)
-    }
-    await admin.from("festival_judges").delete().eq("id", memberId)
+    const festIds = festivalId ? [festivalId] : await resolveOrgFestivalIds(orgId)
 
-    // 2. Remove from festival_settings custom_fields.staff_members
-    if (festivalId) {
-      const { data: sRow } = await admin
+    // 1. Remove from festival_judges scoped to org festivals
+    if (festIds.length > 0) {
+      if (username) {
+        await admin
+          .from("festival_judges")
+          .delete()
+          .in("festival_id", festIds)
+          .ilike("username", username)
+      }
+      await admin
+        .from("festival_judges")
+        .delete()
+        .in("festival_id", festIds)
+        .eq("id", memberId)
+
+      // 2. Remove from festival_settings custom_fields.staff_members across org festivals
+      const { data: settingsRows } = await admin
         .from("festival_settings")
-        .select("id, custom_fields")
-        .eq("festival_id", festivalId)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle()
+        .select("id, festival_id, custom_fields")
+        .in("festival_id", festIds)
 
-      if (sRow) {
+      for (const sRow of settingsRows || []) {
         let cf = sRow.custom_fields || {}
         if (typeof cf === "string") {
           try { cf = JSON.parse(cf) } catch {}
         }
-        let list: StaffMember[] = cf.staff_members || []
-        list = list.filter((m) => m.id !== memberId && (!username || m.username.toLowerCase() !== username.toLowerCase()))
-
-        await admin
-          .from("festival_settings")
-          .update({
-            custom_fields: { ...cf, staff_members: list },
-            updated_at: new Date().toISOString(),
-          })
-          .eq("festival_id", festivalId)
+        const list: StaffMember[] = Array.isArray(cf?.staff_members) ? cf.staff_members : []
+        const filtered = list.filter(
+          (m) =>
+            m.id !== memberId &&
+            (!username || m.username.toLowerCase() !== username.toLowerCase())
+        )
+        if (filtered.length !== list.length) {
+          await admin
+            .from("festival_settings")
+            .update({
+              custom_fields: { ...cf, staff_members: filtered },
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", sRow.id)
+        }
       }
     }
 
@@ -336,24 +362,31 @@ export async function loginStaffAction(
         .from("festival_judges")
         .select("*")
         .ilike("username", cleanUser)
-        .limit(1)
+        .limit(5)
 
       if (judgeRows && judgeRows.length > 0) {
-        const j = judgeRows[0]
-        if (
-          j.raw_password === cleanPass ||
-          j.password_hash === cleanPass ||
-          cleanPass === "123"
-        ) {
+        const matched = judgeRows.find(
+          (j: any) => j.raw_password === cleanPass || j.password_hash === cleanPass
+        )
+        if (matched) {
+          let resolvedOrgId = matched.organization_id
+          if (!resolvedOrgId && matched.festival_id) {
+            const { data: fest } = await admin
+              .from("festivals")
+              .select("organization_id")
+              .eq("id", matched.festival_id)
+              .maybeSingle()
+            resolvedOrgId = fest?.organization_id
+          }
           found = {
-            id: j.id,
-            organization_id: j.organization_id || "a3b0972c-a447-4934-8d26-3bad6c9a9cc9",
-            festival_id: j.festival_id,
-            name: j.name,
+            id: matched.id,
+            organization_id: resolvedOrgId || "",
+            festival_id: matched.festival_id,
+            name: matched.name,
             username: cleanUser,
             role: "judge",
-            phone: j.phone || "",
-            status: j.status || "active",
+            phone: matched.phone || "",
+            status: matched.status || "active",
           }
         }
       }
@@ -366,7 +399,7 @@ export async function loginStaffAction(
           .from("festival_settings")
           .select("festival_id, custom_fields")
           .order("updated_at", { ascending: false })
-          .limit(15)
+          .limit(50)
 
         if (settingsList) {
           for (const s of settingsList) {
@@ -374,71 +407,42 @@ export async function loginStaffAction(
             if (typeof cf === "string") {
               try { cf = JSON.parse(cf) } catch {}
             }
-            const list: StaffMember[] = cf?.staff_members || []
+            const list: StaffMember[] = Array.isArray(cf?.staff_members) ? cf.staff_members : []
             const match = list.find(
-              (m) => String(m.username || "").toLowerCase() === cleanUser
+              (m) =>
+                String(m.username || "").toLowerCase() === cleanUser &&
+                (m.password === cleanPass || m.raw_password === cleanPass)
             )
             if (match) {
-              if (
-                match.password === cleanPass ||
-                match.raw_password === cleanPass ||
-                cleanPass === "123"
-              ) {
-                found = {
-                  ...match,
-                  festival_id: match.festival_id || s.festival_id,
-                }
-                break
+              let resolvedOrgId = match.organization_id
+              const resolvedFestId = match.festival_id || s.festival_id
+              if (!resolvedOrgId && resolvedFestId) {
+                const { data: fest } = await admin
+                  .from("festivals")
+                  .select("organization_id")
+                  .eq("id", resolvedFestId)
+                  .maybeSingle()
+                resolvedOrgId = fest?.organization_id
               }
+              found = {
+                ...match,
+                organization_id: resolvedOrgId || "",
+                festival_id: resolvedFestId,
+              }
+              break
             }
           }
         }
       } catch {}
     }
 
-    // 3. Fallback demo users (Sinan = Judge, Ahraz = Media Manager, Judge1 = Judge)
-    if (!found) {
-      if (cleanUser === "sinan" && (cleanPass === "123" || cleanPass === "fest123" || cleanPass === "password")) {
-        found = {
-          id: "staff-sinan",
-          organization_id: "a3b0972c-a447-4934-8d26-3bad6c9a9cc9",
-          festival_id: "c66d0281-bc93-4cb8-b94e-e54bf27c7119",
-          name: "Sinan",
-          username: "sinan",
-          role: "judge",
-          phone: "+91 9876543210",
-        }
-      } else if (cleanUser === "ahraz" && (cleanPass === "123" || cleanPass === "fest123" || cleanPass === "password")) {
-        found = {
-          id: "staff-ahraz",
-          organization_id: "a3b0972c-a447-4934-8d26-3bad6c9a9cc9",
-          festival_id: "c66d0281-bc93-4cb8-b94e-e54bf27c7119",
-          name: "ahraz",
-          username: "ahraz",
-          role: "media_manager",
-          phone: "+91 9123456780",
-        }
-      } else if (cleanUser === "judge1" && cleanPass === "123") {
-        found = {
-          id: "demo-judge-1",
-          organization_id: "a3b0972c-a447-4934-8d26-3bad6c9a9cc9",
-          festival_id: "c66d0281-bc93-4cb8-b94e-e54bf27c7119",
-          name: "Stage 1 Judge",
-          username: "judge1",
-          role: "judge",
-          phone: "+91 9876543210",
-        }
-      }
-    }
-
     if (!found) {
       return {
         success: false,
-        error: "Invalid username or password. Please verify with festival administration.",
+        error: "Invalid username or password. Please verify with your festival administrator.",
       }
     }
 
-    // Set auth cookies
     const cookieStore = await cookies()
     const sessionPayload = {
       id: found.id,
@@ -453,7 +457,7 @@ export async function loginStaffAction(
       httpOnly: false,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7,
       path: "/",
     })
 
@@ -476,26 +480,29 @@ export async function loginStaffAction(
       )
     }
 
-    // Determine target redirect URL based on role
-    const orgId = found.organization_id || "a3b0972c-a447-4934-8d26-3bad6c9a9cc9"
-    const festId = found.festival_id || "c66d0281-bc93-4cb8-b94e-e54bf27c7119"
-    let redirectUrl = `/dashboard/organization/${orgId}/festivals/${festId}`
+    const orgId = found.organization_id
+    const festId = found.festival_id
+    let redirectUrl = "/dashboard"
 
     const r = found.role.toLowerCase()
     if (r === "judge") {
       redirectUrl = "/dashboard/judge"
-    } else if (r === "media_manager" || r === "media") {
-      redirectUrl = `/dashboard/organization/${orgId}/festivals/${festId}/media-panel`
-    } else if (r === "stage_manager" || r === "stage") {
-      redirectUrl = `/dashboard/organization/${orgId}/festivals/${festId}/stage-desk`
-    } else if (r === "team_manager" || r === "team") {
-      redirectUrl = `/dashboard/organization/${orgId}/festivals/${festId}/teams/portal`
-    } else if (r === "green_room" || r === "greenroom") {
-      redirectUrl = `/dashboard/organization/${orgId}/festivals/${festId}/green-room`
-    } else if (r === "announcer" || r === "reception") {
-      redirectUrl = `/dashboard/organization/${orgId}/festivals/${festId}/announcements`
-    } else if (r === "prizes" || r === "award") {
-      redirectUrl = `/dashboard/organization/${orgId}/festivals/${festId}/prizes`
+    } else if (orgId && festId) {
+      if (r === "media_manager" || r === "media") {
+        redirectUrl = `/dashboard/organization/${orgId}/festivals/${festId}/media-panel`
+      } else if (r === "stage_manager" || r === "stage") {
+        redirectUrl = `/dashboard/organization/${orgId}/festivals/${festId}/stage-desk`
+      } else if (r === "team_manager" || r === "team") {
+        redirectUrl = `/dashboard/organization/${orgId}/festivals/${festId}/teams/portal`
+      } else if (r === "green_room" || r === "greenroom") {
+        redirectUrl = `/dashboard/organization/${orgId}/festivals/${festId}/green-room`
+      } else if (r === "announcer" || r === "reception") {
+        redirectUrl = `/dashboard/organization/${orgId}/festivals/${festId}/announcements`
+      } else if (r === "prizes" || r === "award") {
+        redirectUrl = `/dashboard/organization/${orgId}/festivals/${festId}/prizes`
+      } else {
+        redirectUrl = `/dashboard/organization/${orgId}/festivals/${festId}`
+      }
     }
 
     return {
@@ -536,4 +543,3 @@ export async function logoutStaffAction(): Promise<{ success: boolean }> {
     return { success: true }
   }
 }
-

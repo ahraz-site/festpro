@@ -11,6 +11,7 @@ import type {
   FestivalSponsor, FestivalGalleryItem, FestivalBanner, FestivalStatistics,
   FestivalDashboardData, FestivalFormData, FestivalWizardData,
 } from "@/types/festival"
+import { verifyFestivalAccess } from "@/lib/auth/session-guard"
 import { DEFAULT_FESTIVAL_CONFIG } from "@/config/festival-modules"
 
 // ────────────────────────────────────────────
@@ -24,27 +25,14 @@ async function getAuth() {
 }
 
 async function checkFestivalAccess(festivalId: string, requiredRoles: UserRole[] = []) {
-  const user = await getAuth()
-  if (!user) return { allowed: false, error: "Not authenticated" } as const
-
-  const admin = createAdminClient()
-  const { data: festival } = await admin.from("festivals").select("organization_id, created_by").eq("id", festivalId).single()
-  if (!festival) return { allowed: false, error: "Festival not found" } as const
-
-  const { data: member } = await admin
-    .from("organization_members")
-    .select("role")
-    .eq("organization_id", festival.organization_id)
-    .eq("user_id", user.id)
-    .single()
-
-  if (!member) return { allowed: false, error: "Not a member of this organization" } as const
-
-  if (requiredRoles.length > 0 && !requiredRoles.includes(member.role as UserRole)) {
-    return { allowed: false, error: "Permission denied" } as const
-  }
-
-  return { allowed: true, user, festival, member: member as { role: UserRole } } as const
+  const access = await verifyFestivalAccess(festivalId, requiredRoles)
+  if (!access.allowed) return { allowed: false, error: access.error } as const
+  return {
+    allowed: true,
+    user: { id: access.userId || access.staffId || "staff" },
+    festival: { organization_id: access.organizationId, created_by: access.userId || "" },
+    member: { role: access.role as UserRole },
+  } as const
 }
 
 async function logActivity(festivalId: string, action: string, metadata: Record<string, any> = {}) {
@@ -300,37 +288,14 @@ export async function getOrCreateOrganizationFestivalAction(orgId: string): Prom
       return { success: false, error: festError?.message || "Failed to initialize festival workspace" }
     }
 
-    // 3. Seed starter data matching Festize template:
+    // 3. Initialize clean festival_settings row without auto-seeded demo data
     try {
-      // 2 Teams
-      await admin.from("teams").insert([
-        { festival_id: newFest.id, name: "Team A", code: "TA", color: "#3B82F6" },
-        { festival_id: newFest.id, name: "Team B", code: "TB", color: "#EF4444" },
-      ])
-      // 1 Stage
-      await admin.from("festival_stages").insert([
-        { festival_id: newFest.id, name: "Stage 1", code: "ST1", venue_name: "Main Stage / Auditorium", is_active: true },
-      ])
-      // 1 Competition category & 1 competition
-      const { data: cat } = await admin.from("competition_categories").insert({
+      await admin.from("festival_settings").insert({
         festival_id: newFest.id,
-        name: "General",
-        code: "GEN",
-      }).select().single()
-
-      if (cat) {
-        await admin.from("competitions").insert({
-          festival_id: newFest.id,
-          category_id: cat.id,
-          name: "Inaugural Programme",
-          code: "PRG-01",
-          competition_type: "individual",
-          status: "draft",
-        })
-      }
-    } catch (seedErr) {
-      console.warn("Auto-seed warning:", seedErr)
-    }
+        custom_fields: {},
+        updated_at: new Date().toISOString(),
+      })
+    } catch {}
 
     revalidatePath(`/dashboard/organization/${orgId}`, "layout")
     return { success: true, festival: newFest as Festival }

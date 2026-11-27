@@ -1,12 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import { toast } from "sonner"
 import {
-  Award, Eye, EyeOff, Plus, Download, Printer, CheckCircle,
-  FileText, QrCode, Sparkles, ChevronDown, Move, Layers,
-  Trash2, RefreshCw, Check
+  Award, Eye, EyeOff, Printer, QrCode, RefreshCw, Check
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -30,23 +28,33 @@ interface TextElement {
 
 export default function FestivalCertificatesPage() {
   const params = useParams()
-  const orgId = params.orgId as string
   const festivalId = params.festivalId as string
 
-  // Template Form State (Screenshots 3, 4, 5)
-  const [templateName, setTemplateName] = useState("Winner certificate 2026")
-  const [certType, setCertType] = useState("registered_participation")
+  const [teams, setTeams] = useState<any[]>([])
+  const [categories, setCategories] = useState<any[]>([])
+  const [competitions, setCompetitions] = useState<any[]>([])
+  const [participants, setParticipants] = useState<any[]>([])
+  const [registrations, setRegistrations] = useState<any[]>([])
+  const [resultItems, setResultItems] = useState<any[]>([])
+
+  // Template Form State
+  const [templates, setTemplates] = useState([
+    { id: "winner", name: "Winner Certificate" },
+    { id: "participation", name: "Participation Certificate" },
+  ])
+  const [templateName, setTemplateName] = useState("Winner Certificate")
+  const [certType, setCertType] = useState("winner")
   const [pageSize, setPageSize] = useState("a4_landscape")
   const [certTitle, setCertTitle] = useState("CERTIFICATE")
   const [introText, setIntroText] = useState("This certificate is presented to")
 
-  // Selected Text Element Controls (Screenshot 4)
+  // Selected Text Element Controls
   const [selectedElementKey, setSelectedElementKey] = useState("place")
   const [elements, setElements] = useState<Record<string, TextElement>>({
     place: {
       id: "place",
       label: "Place",
-      text: "1st place",
+      text: "1st Place",
       visible: true,
       font: "Noto Sans Malayalam",
       x: 30,
@@ -62,7 +70,7 @@ export default function FestivalCertificatesPage() {
     name: {
       id: "name",
       label: "Participant name",
-      text: "Amina Rahman Mohammed",
+      text: "Participant Name",
       visible: true,
       font: "Playfair Display",
       x: 30,
@@ -78,7 +86,7 @@ export default function FestivalCertificatesPage() {
     program: {
       id: "program",
       label: "Program",
-      text: "English Speech",
+      text: "Program Name",
       visible: true,
       font: "Noto Sans Malayalam",
       x: 30,
@@ -94,7 +102,7 @@ export default function FestivalCertificatesPage() {
     festName: {
       id: "festName",
       label: "Fest name",
-      text: "FestPro Cultural Fest 2026",
+      text: "Festival Name",
       visible: true,
       font: "Inter",
       x: 30,
@@ -109,18 +117,43 @@ export default function FestivalCertificatesPage() {
     },
   })
 
-  // QR Code Settings (Screenshot 5)
+  // QR Code Settings
   const [showQrCode, setShowQrCode] = useState(true)
   const [qrX, setQrX] = useState(269)
   const [qrY, setQrY] = useState(182)
   const [qrSize, setQrSize] = useState(20)
 
-  // Issuing & Recipients State (Screenshot 5 & 6)
-  const [selectedIssueTemplate, setSelectedIssueTemplate] = useState("winner_2026")
+  // Issuing & Recipients State
+  const [selectedIssueTemplate, setSelectedIssueTemplate] = useState("winner")
   const [selectedTeam, setSelectedTeam] = useState("all")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [checkedRecipients, setCheckedRecipients] = useState<any[] | null>(null)
   const [checkingRecipients, setCheckingRecipients] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    fetch(`/api/festival/${festivalId}/workspace?scope=certificates`, { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!active) return
+        setTeams(Array.isArray(data?.teams) ? data.teams : [])
+        setCategories(Array.isArray(data?.categories) ? data.categories : [])
+        setCompetitions(Array.isArray(data?.competitions) ? data.competitions : [])
+        setParticipants(Array.isArray(data?.participants) ? data.participants : [])
+        setRegistrations(Array.isArray(data?.registrations) ? data.registrations : [])
+        setResultItems(Array.isArray(data?.resultItems) ? data.resultItems : [])
+        if (data?.festival?.name) {
+          setElements((prev) => ({
+            ...prev,
+            festName: { ...prev.festName, text: data.festival.name },
+          }))
+        }
+      })
+      .catch((err) => console.error("Failed to load certificates workspace:", err))
+    return () => {
+      active = false
+    }
+  }, [festivalId])
 
   const activeElement = elements[selectedElementKey] || elements.place
 
@@ -135,20 +168,86 @@ export default function FestivalCertificatesPage() {
   }
 
   const handleCreateTemplate = () => {
-    toast.success(`Template "${templateName}" created successfully!`)
+    const cleanName = templateName.trim()
+    if (!cleanName) {
+      toast.error("Template name is required")
+      return
+    }
+    const newId = `tpl_${Date.now()}`
+    setTemplates((prev) => [...prev, { id: newId, name: cleanName }])
+    setSelectedIssueTemplate(newId)
+    toast.success(`Template "${cleanName}" created!`)
   }
 
   const handleCheckRecipients = () => {
     setCheckingRecipients(true)
-    setTimeout(() => {
-      setCheckingRecipients(false)
-      setCheckedRecipients([
-        { id: "1", name: "Amina Rahman Mohammed", chest: "SNR-101", team: "Blue Falcons", program: "English Speech", rank: "1st Place" },
-        { id: "2", name: "Zuhair Abdullah", chest: "SNR-108", team: "Red Eagles", program: "English Speech", rank: "2nd Place" },
-        { id: "3", name: "Fathima Nihala", chest: "SNR-115", team: "Golden Hawks", program: "English Speech", rank: "3rd Place" },
-      ])
-      toast.success("Verified 3 recipient records ready for issuing!")
-    }, 600)
+    const partById = new Map(participants.map((p: any) => [p.id, p]))
+    const compById = new Map(competitions.map((c: any) => [c.id, c]))
+
+    let records: any[] = []
+    if ((certType === "winner" || certType === "merit") && resultItems.length > 0) {
+      records = resultItems
+        .filter((item: any) => Number(item.rank || 99) <= 3 || item.grade === "A+" || item.grade === "A")
+        .map((item: any) => {
+          const p = partById.get(item.participant_id)
+          const comp = compById.get(item.competition_id)
+          const r = Number(item.rank || 0)
+          const rankLabel = item.position || (r === 1 ? "1st Place" : r === 2 ? "2nd Place" : r === 3 ? "3rd Place" : `Grade ${item.grade || "A"}`)
+          return {
+            id: item.id,
+            name: p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() : (item.participant_name || "Participant"),
+            chest: p?.chest_number || item.chest_number || "—",
+            team: p?.unit || "Unassigned",
+            category: p?.division || comp?.category?.name || "General",
+            program: comp?.name || "Program",
+            rank: rankLabel,
+          }
+        })
+    } else if (registrations.length > 0) {
+      records = registrations.map((reg: any) => {
+        const p = partById.get(reg.participant_id)
+        const comp = compById.get(reg.competition_id)
+        return {
+          id: reg.id,
+          name: p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() : "Participant",
+          chest: p?.chest_number || reg.chest_number || "—",
+          team: p?.unit || "Unassigned",
+          category: p?.division || comp?.category?.name || "General",
+          program: comp?.name || "Participation",
+          rank: "Participant",
+        }
+      })
+    } else {
+      records = participants.map((p: any) => ({
+        id: p.id,
+        name: `${p.first_name || ""} ${p.last_name || ""}`.trim(),
+        chest: p.chest_number || "—",
+        team: p.unit || "Unassigned",
+        category: p.division || "General",
+        program: "Festival Entry",
+        rank: "Participant",
+      }))
+    }
+
+    const filteredRecords = records.filter((rec) => {
+      if (selectedTeam !== "all" && rec.team.toLowerCase() !== selectedTeam.toLowerCase()) return false
+      if (selectedCategory !== "all" && rec.category.toLowerCase() !== selectedCategory.toLowerCase()) return false
+      return Boolean(rec.name)
+    })
+
+    setCheckedRecipients(filteredRecords)
+    setCheckingRecipients(false)
+    if (filteredRecords.length === 0) {
+      toast.info("No matching recipients found for selected filters.")
+    } else {
+      toast.success(`Verified ${filteredRecords.length} recipient record(s)!`)
+      setElements((prev) => ({
+        ...prev,
+        name: { ...prev.name, text: filteredRecords[0].name },
+        program: { ...prev.program, text: filteredRecords[0].program },
+        place: { ...prev.place, text: filteredRecords[0].rank },
+      }))
+    }
   }
 
   const handleIssueCertificates = () => {
@@ -501,8 +600,9 @@ export default function FestivalCertificatesPage() {
                 onChange={(e) => setSelectedIssueTemplate(e.target.value)}
                 className="w-full h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-800"
               >
-                <option value="winner_2026">Winner certificate 2026</option>
-                <option value="participation_general">General Participation 2026</option>
+                {templates.map((tpl) => (
+                  <option key={tpl.id} value={tpl.id}>{tpl.name}</option>
+                ))}
               </select>
             </div>
 
@@ -514,8 +614,9 @@ export default function FestivalCertificatesPage() {
                 className="w-full h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-800"
               >
                 <option value="all">All teams</option>
-                <option value="blue">Blue Falcons</option>
-                <option value="red">Red Eagles</option>
+                {teams.map((t: any) => (
+                  <option key={t.id} value={t.code || t.name}>{t.name}</option>
+                ))}
               </select>
             </div>
 
@@ -527,8 +628,9 @@ export default function FestivalCertificatesPage() {
                 className="w-full h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-800"
               >
                 <option value="all">All categories</option>
-                <option value="senior">Senior</option>
-                <option value="junior">Junior</option>
+                {categories.map((cat: any) => (
+                  <option key={cat.id} value={cat.name}>{cat.name}</option>
+                ))}
               </select>
             </div>
 

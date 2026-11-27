@@ -39,8 +39,9 @@ export default function CodeLettersPage() {
   useEffect(() => {
     async function load() {
       try {
-        const comps = await getCompetitions(festivalId)
-        const compList = (comps || []) as Competition[]
+        const res = await fetch(`/api/festival/${festivalId}/workspace?scope=code-letters`, { cache: "no-store" })
+        const data = await res.json()
+        const compList = (data?.competitions || []) as Competition[]
         setCompetitions(compList)
       } catch (err) {
         console.error("Failed to load competitions:", err)
@@ -59,33 +60,35 @@ export default function CodeLettersPage() {
 
     async function loadCandidates() {
       try {
-        const parts = await getParticipants(festivalId)
-        const pList = (parts?.data || []) as Participant[]
+        const res = await fetch(`/api/festival/${festivalId}/workspace?scope=code-letters`, { cache: "no-store" })
+        const data = await res.json()
+        const pList = (data?.participants || []) as Participant[]
+        const regs = (data?.registrations || []) as Array<{ participant_id: string; competition_id: string }>
+        const savedEntries = ((data?.customFields?.code_letters as Record<string, Array<{ id: string; codeLetter: string; isReported: boolean }>> | undefined)?.[selectedCompId]) || []
+        const savedById = new Map(savedEntries.map((s) => [s.id, s]))
 
-        const codesList: CandidateCode[] = pList.slice(0, 8).map((p, idx) => {
-          const letter = String.fromCharCode(65 + idx) // A, B, C...
+        const enrolledIds = new Set(regs.filter((r) => r.competition_id === selectedCompId).map((r) => r.participant_id))
+        const filteredParticipants = enrolledIds.size > 0
+          ? pList.filter((p) => enrolledIds.has(p.id))
+          : pList
+
+        const codesList: CandidateCode[] = filteredParticipants.map((p, idx) => {
+          const saved = savedById.get(p.id)
+          const letter = saved?.codeLetter || String.fromCharCode(65 + (idx % 26))
           return {
             id: p.id,
-            chestNumber: p.chest_number || String(101 + idx),
+            chestNumber: p.chest_number || "—",
             name: `${p.first_name} ${p.last_name || ""}`.trim(),
-            team: p.unit || "Team Alpha",
+            team: p.unit || "Unassigned",
             codeLetter: letter,
-            isReported: idx < 4,
+            isReported: saved?.isReported ?? false,
           }
         })
 
-        if (codesList.length === 0) {
-          const sample: CandidateCode[] = [
-            { id: "c1", chestNumber: "101", name: "Rujhan Muhammad", team: "Team A", codeLetter: "A", isReported: true },
-            { id: "c2", chestNumber: "102", name: "Ahmed Sinan", team: "Team B", codeLetter: "B", isReported: true },
-            { id: "c3", chestNumber: "103", name: "Fathima Noor", team: "Team A", codeLetter: "C", isReported: false },
-          ]
-          setCandidates(sample)
-        } else {
-          setCandidates(codesList)
-        }
+        setCandidates(codesList)
       } catch (err) {
         console.error("Failed to load participants:", err)
+        setCandidates([])
       }
     }
     loadCandidates()
@@ -115,12 +118,35 @@ export default function CodeLettersPage() {
     toast.success("Assigned letters A through Z to all candidates")
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!selectedCompId) return
     setSaving(true)
-    setTimeout(() => {
+    try {
+      const res = await fetch(`/api/festival/${festivalId}/operations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "save_code_letters",
+          payload: {
+            competitionId: selectedCompId,
+            entries: candidates.map((c) => ({
+              id: c.id,
+              codeLetter: c.codeLetter,
+              isReported: c.isReported,
+            })),
+          },
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to save code letters")
+      }
+      toast.success("Code letters saved!")
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to save code letters")
+    } finally {
       setSaving(false)
-      toast.success("Code letters saved. Candidates marked as reported!")
-    }, 500)
+    }
   }
 
   const selectedComp = competitions.find((c) => c.id === selectedCompId)

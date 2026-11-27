@@ -1,19 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useParams } from "next/navigation"
-import Link from "next/link"
-import { getCompetitions } from "@/lib/actions/competition"
-import { getResultItems } from "@/lib/actions/result"
 import type { Competition } from "@/types/competition"
 import { ExportPrintBar } from "@/components/ui/export-print-bar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { toast } from "sonner"
-import {
-  Trophy, Search, Loader2, Eye, X, Check,
-  Medal, Award, ExternalLink
-} from "lucide-react"
+import { Trophy, Search, Loader2, X, Check } from "lucide-react"
 
 interface WinnerItem {
   place: string
@@ -26,13 +19,15 @@ interface WinnerItem {
 
 export default function FestivalResultsPage() {
   const params = useParams()
-  const orgId = params.orgId as string
   const festivalId = params.festivalId as string
 
   const [competitions, setCompetitions] = useState<Competition[]>([])
+  const [categories, setCategories] = useState<any[]>([])
+  const [participants, setParticipants] = useState<any[]>([])
+  const [resultItems, setResultItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Filters (Screenshot 2)
+  // Filters
   const [search, setSearch] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [includeInactive, setIncludeInactive] = useState(false)
@@ -42,51 +37,77 @@ export default function FestivalResultsPage() {
   const [modalWinners, setModalWinners] = useState<WinnerItem[]>([])
 
   useEffect(() => {
+    let active = true
     async function load() {
       try {
-        const comps = await getCompetitions(festivalId)
-        setCompetitions((comps || []) as Competition[])
+        const res = await fetch(`/api/festival/${festivalId}/workspace?scope=results`, {
+          cache: "no-store",
+        })
+        const data = await res.json()
+        if (!active) return
+        setCompetitions((Array.isArray(data?.competitions) ? data.competitions : []) as Competition[])
+        setCategories(Array.isArray(data?.categories) ? data.categories : [])
+        setParticipants(Array.isArray(data?.participants) ? data.participants : [])
+        setResultItems(Array.isArray(data?.resultItems) ? data.resultItems : [])
       } catch (err) {
         console.error("Failed to load results:", err)
       } finally {
-        setLoading(false)
+        if (active) setLoading(false)
       }
     }
     load()
+    return () => {
+      active = false
+    }
   }, [festivalId])
 
-  const handleOpenResults = async (comp: Competition, idx?: number) => {
+  const publishedCompIds = useMemo(() => {
+    return new Set(
+      resultItems
+        .filter((r: any) => !r.status || r.status === "live" || r.status === "published")
+        .map((r: any) => r.competition_id)
+    )
+  }, [resultItems])
+
+  const handleOpenResults = (comp: Competition) => {
     setViewingComp(comp)
-    setModalWinners([])
-    try {
-      const res = await getResultItems(comp.id)
-      if (res?.data && res.data.length > 0) {
-        const winners: WinnerItem[] = res.data.map((item: any, idx: number) => {
-          const placeStr = idx === 0 ? "1st" : idx === 1 ? "2nd" : idx === 2 ? "3rd" : `${idx + 1}th`
-          const pName = item.participant ? `${item.participant.first_name || ""} ${item.participant.last_name || ""}`.trim() : "Participant"
-          return {
-            place: placeStr,
-            name: pName,
-            chestNumber: item.participant?.chest_number || item.participant?.participant_id || "-",
-            team: item.participant?.unit || item.participant?.division || "Team",
-            score: item.total_score || item.score || 0,
-            grade: item.grade || (item.total_score >= 90 ? "A+" : item.total_score >= 80 ? "A" : "B"),
-          }
-        })
-        setModalWinners(winners)
+    const partById = new Map(participants.map((p: any) => [p.id, p]))
+    const items = resultItems
+      .filter((item: any) => item.competition_id === comp.id)
+      .sort((a: any, b: any) => {
+        const ra = Number(a.rank || 999)
+        const rb = Number(b.rank || 999)
+        if (ra !== rb) return ra - rb
+        return Number(b.total_score || 0) - Number(a.total_score || 0)
+      })
+
+    const winners: WinnerItem[] = items.map((item: any, idx: number) => {
+      const p = partById.get(item.participant_id) || item.participant
+      const r = Number(item.rank || idx + 1)
+      const placeStr = item.position || (r === 1 ? "1st" : r === 2 ? "2nd" : r === 3 ? "3rd" : `${r}th`)
+      const pName = p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() : (item.participant_name || "Participant")
+      const total = Number(item.total_score ?? item.final_score ?? item.score ?? 0)
+      return {
+        place: placeStr,
+        name: pName,
+        chestNumber: p?.chest_number || item.chest_number || "-",
+        team: p?.unit || p?.division || "Unassigned",
+        score: total,
+        grade: item.grade || (total >= 90 ? "A+" : total >= 80 ? "A" : "B"),
       }
-    } catch (e) {
-      console.error("Error loading winners:", e)
-    }
+    })
+    setModalWinners(winners)
   }
 
   const filtered = competitions.filter((c) => {
+    if (!includeInactive && !publishedCompIds.has(c.id)) return false
+
     const q = search.toLowerCase()
     const matchesSearch = c.name.toLowerCase().includes(q) || (c.code && c.code.toLowerCase().includes(q))
     if (!matchesSearch) return false
 
     if (categoryFilter !== "all") {
-      const catName = (c as any).category?.name || "Senior"
+      const catName = (c as any).category?.name || "General"
       if (catName.toLowerCase() !== categoryFilter.toLowerCase()) return false
     }
 
@@ -96,8 +117,8 @@ export default function FestivalResultsPage() {
   const exportColumns = [
     { header: "Result number", accessor: (c: Competition, idx?: number) => String((idx || 0) + 1) },
     { header: "Program", accessor: (c: Competition) => c.name },
-    { header: "Category", accessor: (c: Competition) => (c as any).category?.name || "Senior" },
-    { header: "Status", accessor: () => "Published" },
+    { header: "Category", accessor: (c: Competition) => (c as any).category?.name || "General" },
+    { header: "Status", accessor: (c: Competition) => (publishedCompIds.has(c.id) ? "Published" : "Pending") },
   ]
 
   return (
@@ -148,9 +169,9 @@ export default function FestivalResultsPage() {
               className="h-9 px-3.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 w-36 shadow-xs"
             >
               <option value="all">All</option>
-              <option value="Senior">Senior</option>
-              <option value="Junior">Junior</option>
-              <option value="Sub Junior">Sub Junior</option>
+              {categories.map((cat: any) => (
+                <option key={cat.id} value={cat.name}>{cat.name}</option>
+              ))}
             </select>
 
             <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer select-none">
@@ -160,7 +181,7 @@ export default function FestivalResultsPage() {
                 onChange={(e) => setIncludeInactive(e.target.checked)}
                 className="rounded-md border-slate-300 text-indigo-600 h-4 w-4"
               />
-              <span>Include inactive</span>
+              <span>Include unpublished programs</span>
             </label>
           </div>
         </div>
@@ -190,7 +211,8 @@ export default function FestivalResultsPage() {
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
                 {filtered.map((comp, idx) => {
-                  const catName = (comp as any).category?.name || "Senior"
+                  const catName = (comp as any).category?.name || "General"
+                  const isPublished = publishedCompIds.has(comp.id)
 
                   return (
                     <tr key={comp.id} className="hover:bg-slate-50/80 transition-colors">
@@ -198,12 +220,14 @@ export default function FestivalResultsPage() {
                       <td className="py-4 px-3 font-bold text-slate-900 text-sm">{comp.name}</td>
                       <td className="py-4 px-3 text-slate-600">{catName}</td>
                       <td className="py-4 px-3">
-                        <span className="text-slate-700 font-semibold">Published</span>
+                        <span className={`font-semibold ${isPublished ? "text-emerald-700" : "text-slate-400"}`}>
+                          {isPublished ? "Published" : "Pending"}
+                        </span>
                       </td>
                       <td className="py-4 px-3 text-right">
                         <Button
                           size="sm"
-                          onClick={() => handleOpenResults(comp, idx)}
+                          onClick={() => handleOpenResults(comp)}
                           className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-4"
                         >
                           View results
@@ -225,7 +249,7 @@ export default function FestivalResultsPage() {
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h2 className="text-lg font-black text-slate-900">{viewingComp.name}</h2>
-                <p className="text-xs text-slate-500 font-medium">Official Winner List · {(viewingComp as any).category?.name || "Senior"}</p>
+                <p className="text-xs text-slate-500 font-medium">Official Winner List · {(viewingComp as any).category?.name || "General"}</p>
               </div>
               <button onClick={() => setViewingComp(null)} className="p-1 rounded-full text-slate-400 hover:text-slate-700">
                 <X className="h-5 w-5" />

@@ -186,28 +186,17 @@ export default function FestivalOperationsDashboard() {
     points: t.points || 0,
   }))
 
-  // Real stages for live stage monitoring (strictly matching reference QUAF layout with 9 stage monitoring slots)
-  const displayStages = Array.from({ length: Math.max(9, activeStages.length) }, (_, idx) => {
-    const existing = activeStages[idx]
-    if (existing) {
-      return {
-        id: existing.id,
-        name: existing.name || `Stage ${String(idx + 1).padStart(2, "0")}`,
-        code: (existing as any).code || `STG-${String(idx + 1).padStart(2, "0")}`,
-        status: existing.status === "Active" ? "Active" : "Closed",
-        currentProgram: (existing as any).currentProgram && (existing as any).currentProgram !== "Intermission / Ready"
-          ? (existing as any).currentProgram
-          : "Intermission / Sound Check",
-      }
-    }
-    return {
-      id: `slot-stg-${idx + 1}`,
-      name: `Stage ${String(idx + 1).padStart(2, "0")}`,
-      code: `STG-${String(idx + 1).padStart(2, "0")}`,
-      status: idx < 2 ? "Active" : "Closed",
-      currentProgram: "Intermission / Sound Check",
-    }
-  })
+  // Real stages from Supabase only (zero synthetic mock stage padding)
+  const displayStages = activeStages.map((existing, idx) => ({
+    id: existing.id,
+    name: existing.name || `Stage ${idx + 1}`,
+    code: (existing as any).code || `STG-${String(idx + 1).padStart(2, "0")}`,
+    status: existing.status === "Active" ? "Active" : "Closed",
+    currentProgram:
+      (existing as any).currentProgram && (existing as any).currentProgram !== "Intermission / Ready"
+        ? (existing as any).currentProgram
+        : "Intermission / Ready",
+  }))
 
   // Progress calculations
   const declaredCount = resultsPublished
@@ -400,7 +389,17 @@ export default function FestivalOperationsDashboard() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            {displayStages.map((stage, idx) => (
+            {displayStages.length === 0 ? (
+              <div className="sm:col-span-2 rounded-xl border border-dashed border-slate-200 p-8 text-center space-y-2">
+                <p className="text-xs font-bold text-slate-600">No stages configured yet</p>
+                <Link
+                  href={`/dashboard/organization/${orgId}/festivals/${festivalId}/stages`}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Add First Stage
+                </Link>
+              </div>
+            ) : displayStages.map((stage, idx) => (
               <div
                 key={stage.id}
                 className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between"
