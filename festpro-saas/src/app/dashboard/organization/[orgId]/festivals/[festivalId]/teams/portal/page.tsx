@@ -242,16 +242,16 @@ export default function TeamManagerPortalPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16 font-sans">
       {/* ── TOP HEADER ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-[#00c9a7] uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 uppercase tracking-wider">
             <Users className="h-4 w-4" />
             <span>House Captain &amp; Team Leader Portal</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-1">
             Team Manager Desk
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Manage your house contestants, monitor live stage calls, and track overall point standing.
           </p>
         </div>
@@ -267,7 +267,7 @@ export default function TeamManagerPortalPage() {
 
           <button
             onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+            className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
           >
             <Plus className="h-4 w-4" />
             <span>Add Contestant</span>
@@ -285,8 +285,8 @@ export default function TeamManagerPortalPage() {
               onClick={() => setSelectedTeamId(t.id)}
               className={`px-5 py-3 rounded-2xl border text-left transition-all flex items-center gap-3 shrink-0 cursor-pointer ${
                 isSelected
-                  ? "border-indigo-600 dark:border-[#00a389] bg-indigo-50/60 dark:bg-[#00a389]/10 shadow-xs ring-1 ring-indigo-500"
-                  : "border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c131d] hover:border-slate-300"
+                  ? "border-indigo-600 bg-indigo-50/70 shadow-xs ring-1 ring-indigo-500"
+                  : "border-slate-200 bg-white hover:border-slate-300"
               }`}
             >
               <span
@@ -294,10 +294,10 @@ export default function TeamManagerPortalPage() {
                 style={{ backgroundColor: t.color }}
               />
               <div>
-                <span className="text-xs font-black text-slate-900 dark:text-white block">
+                <span className="text-xs font-black text-slate-900 block">
                   {t.name}
                 </span>
-                <span className="text-[10px] text-slate-500">
+                <span className="text-[10px] text-slate-500 font-semibold">
                   Rank #{t.rank} · {t.totalPoints} pts
                 </span>
               </div>
@@ -309,69 +309,69 @@ export default function TeamManagerPortalPage() {
       {/* ── 3 METRIC CARDS FOR CURRENT TEAM ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Total Points */}
-        <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c131d] shadow-xs space-y-1">
-          <div className="flex items-center justify-between text-xs text-slate-500">
+        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-xs text-slate-500 font-semibold">
             <span>House Score</span>
             <Trophy className="h-4 w-4 text-amber-500" />
           </div>
-          <div className="text-3xl font-black text-slate-900 dark:text-white">
+          <div className="text-3xl font-black text-slate-900">
             {selectedTeam.totalPoints}{" "}
             <span className="text-xs font-normal text-slate-500">pts</span>
           </div>
-          <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
+          <p className="text-[11px] text-emerald-600 font-bold">
             Rank #{selectedTeam.rank} in Grand Standings
           </p>
         </div>
 
         {/* Registered Participants */}
-        <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c131d] shadow-xs space-y-1">
-          <div className="flex items-center justify-between text-xs text-slate-500">
+        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-xs text-slate-500 font-semibold">
             <span>Enrolled Contestants</span>
             <Users className="h-4 w-4 text-indigo-500" />
           </div>
-          <div className="text-3xl font-black text-slate-900 dark:text-white">
+          <div className="text-3xl font-black text-slate-900">
             {members.length}
           </div>
-          <p className="text-[11px] text-slate-500">
+          <p className="text-[11px] text-slate-500 font-medium">
             Representing {selectedTeam.name}
           </p>
         </div>
 
         {/* Live Stage Status */}
-        <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c131d] shadow-xs space-y-1">
-          <div className="flex items-center justify-between text-xs text-slate-500">
+        <div className="p-5 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-xs text-slate-500 font-semibold">
             <span>Active on Stage</span>
             <Clock className="h-4 w-4 text-emerald-500" />
           </div>
-          <div className="text-3xl font-black text-emerald-600 dark:text-emerald-400">
+          <div className="text-3xl font-black text-emerald-600">
             {members.filter((m) => m.greenRoomStatus === "on_stage").length}
           </div>
-          <p className="text-[11px] text-slate-500">
+          <p className="text-[11px] text-slate-500 font-medium">
             {members.filter((m) => m.greenRoomStatus === "reported").length} reported in Green Room
           </p>
         </div>
       </div>
 
       {/* ── LIVE CALL BANNER (NEXT PERFORMER ON STAGE) ── */}
-      <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-900 to-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
+      <div className="p-5 rounded-2xl bg-indigo-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-md">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300 shrink-0">
+          <div className="h-10 w-10 rounded-xl bg-indigo-800/80 border border-indigo-700 flex items-center justify-center text-indigo-300 shrink-0">
             <Clock className="h-5 w-5" />
           </div>
           <div>
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-300 block">
               Urgent Green Room Call
             </span>
-            <span className="text-sm font-black">
+            <span className="text-sm font-black text-white">
               Chest #105 (Muhammed Sinan) - Madh Song on Stage 1
             </span>
-            <p className="text-xs text-slate-400">Please ensure contestant is in the green room ready for call 2.</p>
+            <p className="text-xs text-indigo-200">Please ensure contestant is in the green room ready for call 2.</p>
           </div>
         </div>
 
         <Link
           href={`/dashboard/organization/${orgId}/festivals/${festivalId}/green-room`}
-          className="px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-900 hover:bg-slate-100 flex items-center justify-center gap-1.5 transition-all shrink-0"
+          className="px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-900 hover:bg-slate-100 flex items-center justify-center gap-1.5 transition-all shrink-0 shadow-xs"
         >
           <span>Open Green Room Desk</span>
           <ExternalLink className="h-3.5 w-3.5" />
@@ -379,9 +379,9 @@ export default function TeamManagerPortalPage() {
       </div>
 
       {/* ── CONTESTANTS ROSTER TABLE ── */}
-      <div className="space-y-4 bg-white dark:bg-[#0c131d] rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-xs">
+      <div className="space-y-4 bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h2 className="text-lg font-black text-slate-900 dark:text-white">
+          <h2 className="text-lg font-black text-slate-900">
             {selectedTeam.name} Contestants
           </h2>
 
@@ -392,14 +392,14 @@ export default function TeamManagerPortalPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search chest # or student name..."
-              className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+              className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500"
             />
           </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider border-y border-slate-200 dark:border-slate-800">
+            <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-y border-slate-200">
               <tr>
                 <th className="py-3 px-4">Chest #</th>
                 <th className="py-3 px-4">Contestant</th>
@@ -409,24 +409,24 @@ export default function TeamManagerPortalPage() {
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-slate-100 font-medium">
               {filteredMembers.map((m) => {
                 const isOnStage = m.greenRoomStatus === "on_stage"
                 const isReported = m.greenRoomStatus === "reported"
                 const isCompleted = m.greenRoomStatus === "completed"
 
                 return (
-                  <tr key={m.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                    <td className="py-3 px-4 font-mono font-black text-slate-900 dark:text-white">
+                  <tr key={m.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="py-3 px-4 font-mono font-black text-slate-900">
                       #{m.chestNumber}
                     </td>
                     <td className="py-3 px-4">
-                      <span className="font-bold text-slate-800 dark:text-slate-200 block">
+                      <span className="font-bold text-slate-800 block">
                         {m.name}
                       </span>
                       {m.phone && <span className="text-[10px] text-slate-400">{m.phone}</span>}
                     </td>
-                    <td className="py-3 px-4 font-medium text-slate-600 dark:text-slate-300">
+                    <td className="py-3 px-4 font-medium text-slate-600">
                       {m.category}
                     </td>
                     <td className="py-3 px-4">
@@ -434,7 +434,7 @@ export default function TeamManagerPortalPage() {
                         {m.enrolledCompetitions.map((c) => (
                           <span
                             key={c}
-                            className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-medium text-slate-700 dark:text-slate-300"
+                            className="px-2 py-0.5 rounded-md bg-slate-100 text-[10px] font-medium text-slate-700"
                           >
                             {c}
                           </span>
@@ -443,19 +443,19 @@ export default function TeamManagerPortalPage() {
                     </td>
                     <td className="py-3 px-4">
                       {isOnStage ? (
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 animate-pulse">
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200 animate-pulse">
                           ON STAGE
                         </span>
                       ) : isReported ? (
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                           REPORTED
                         </span>
                       ) : isCompleted ? (
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500">
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
                           COMPLETED
                         </span>
                       ) : (
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                           WAITING
                         </span>
                       )}
@@ -463,7 +463,7 @@ export default function TeamManagerPortalPage() {
                     <td className="py-3 px-4 text-right">
                       <button
                         onClick={() => toast.info(`Printing admit card for #${m.chestNumber} (${m.name})`)}
-                        className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold text-[11px] text-slate-700 dark:text-slate-300 cursor-pointer"
+                        className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 font-bold text-[11px] text-slate-700 cursor-pointer shadow-2xs"
                       >
                         Print Slip
                       </button>
@@ -479,17 +479,17 @@ export default function TeamManagerPortalPage() {
       {/* ── MODAL: QUICK ADD CONTESTANT ── */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white dark:bg-[#0c131d] border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-base font-black text-slate-900 dark:text-white">
+                <h3 className="text-base font-black text-slate-900">
                   Add Contestant to {selectedTeam.name}
                 </h3>
                 <p className="text-xs text-slate-500">Direct house entry</p>
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
               >
                 ✕
               </button>
@@ -497,7 +497,7 @@ export default function TeamManagerPortalPage() {
 
             <form onSubmit={handleAddStudent} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                <label className="text-xs font-bold text-slate-700">
                   Full Name *
                 </label>
                 <input
@@ -506,13 +506,13 @@ export default function TeamManagerPortalPage() {
                   value={newStudentName}
                   onChange={(e) => setNewStudentName(e.target.value)}
                   placeholder="e.g. Aysha Nihala"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  <label className="text-xs font-bold text-slate-700">
                     Chest # (Optional)
                   </label>
                   <input
@@ -520,18 +520,18 @@ export default function TeamManagerPortalPage() {
                     value={newChestNumber}
                     onChange={(e) => setNewChestNumber(e.target.value)}
                     placeholder="Auto if blank"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 font-mono focus:outline-none focus:border-indigo-500"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  <label className="text-xs font-bold text-slate-700">
                     Category
                   </label>
                   <select
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 focus:outline-none focus:border-indigo-500"
                   >
                     <option value="Senior">Senior</option>
                     <option value="Junior">Junior</option>
@@ -542,13 +542,13 @@ export default function TeamManagerPortalPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                <label className="text-xs font-bold text-slate-700">
                   Enrolled Program
                 </label>
                 <select
                   value={newProgram}
                   onChange={(e) => setNewProgram(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 focus:outline-none focus:border-indigo-500"
                 >
                   <option value="Madh Song">Madh Song</option>
                   <option value="Classical Solo Dance">Classical Solo Dance</option>
@@ -559,17 +559,17 @@ export default function TeamManagerPortalPage() {
                 </select>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm cursor-pointer"
                 >
                   Save &amp; Enroll
                 </button>

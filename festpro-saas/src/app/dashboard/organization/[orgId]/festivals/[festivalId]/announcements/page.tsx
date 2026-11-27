@@ -118,11 +118,11 @@ export default function AnnouncerDeskPage() {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
       const now = audioCtx.currentTime
 
-      // First pleasant note (A4 - 440Hz)
+      // First pleasant note (D5 - 587.33Hz)
       const osc1 = audioCtx.createOscillator()
       const gain1 = audioCtx.createGain()
       osc1.type = "sine"
-      osc1.frequency.setValueAtTime(587.33, now) // D5
+      osc1.frequency.setValueAtTime(587.33, now)
       gain1.gain.setValueAtTime(0.3, now)
       gain1.gain.exponentialRampToValueAtTime(0.001, now + 1.2)
       osc1.connect(gain1)
@@ -130,11 +130,11 @@ export default function AnnouncerDeskPage() {
       osc1.start(now)
       osc1.stop(now + 1.2)
 
-      // Second note harmonizer (F#5 - 739.99Hz)
+      // Second note harmonizer (A5 - 880Hz)
       const osc2 = audioCtx.createOscillator()
       const gain2 = audioCtx.createGain()
       osc2.type = "sine"
-      osc2.frequency.setValueAtTime(880, now + 0.15) // A5
+      osc2.frequency.setValueAtTime(880, now + 0.15)
       gain2.gain.setValueAtTime(0.25, now + 0.15)
       gain2.gain.exponentialRampToValueAtTime(0.001, now + 1.5)
       osc2.connect(gain2)
@@ -199,16 +199,16 @@ export default function AnnouncerDeskPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16 font-sans">
       {/* ── TOP HEADER ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-xs font-bold text-purple-600 uppercase tracking-wider">
             <Radio className="h-4 w-4 animate-pulse" />
             <span>Master of Ceremonies (MC) &amp; Public Address Desk</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-1">
             Announcer Console
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Stage contestant call scripts, live winner announcements on mic, chime gongs, and display bulletins.
           </p>
         </div>
@@ -217,7 +217,7 @@ export default function AnnouncerDeskPage() {
           {/* Attention Gong Button */}
           <button
             onClick={playChime}
-            className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black flex items-center gap-2 transition-all shadow-md shadow-amber-500/20 cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black flex items-center gap-2 transition-all shadow-sm cursor-pointer"
           >
             <Bell className="h-4 w-4" />
             <span>Sound Chime Bell</span>
@@ -236,22 +236,22 @@ export default function AnnouncerDeskPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* ── LEFT COLUMN: LIVE MIC CALL PROMPT GENERATOR ── */}
         <div className="lg:col-span-7 space-y-6">
-          <div className="p-6 rounded-3xl bg-white dark:bg-[#0c131d] border border-slate-200 dark:border-slate-800 shadow-xs space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+          <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                <div className="p-2 rounded-xl bg-purple-50 text-purple-600 border border-purple-200">
                   <Megaphone className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-base font-black text-slate-900 dark:text-white">
+                  <h2 className="text-base font-black text-slate-900">
                     Live Stage Call Cue
                   </h2>
-                  <p className="text-xs text-slate-500">Read on mic when summoning next candidate</p>
+                  <p className="text-xs text-slate-500 font-medium">Read on mic when summoning next candidate</p>
                 </div>
               </div>
 
               {/* Call Type Pill */}
-              <div className="inline-flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold">
+              <div className="inline-flex p-1 rounded-xl bg-slate-100 text-xs font-bold">
                 {(["Call 1", "Call 2", "Final Call"] as const).map((t) => (
                   <button
                     key={t}
@@ -259,9 +259,9 @@ export default function AnnouncerDeskPage() {
                     className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
                       callType === t
                         ? t === "Final Call"
-                          ? "bg-red-500 text-white shadow-xs"
-                          : "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs"
-                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                          ? "bg-red-600 text-white shadow-xs"
+                          : "bg-white text-slate-900 shadow-xs"
+                        : "text-slate-500 hover:text-slate-900"
                     }`}
                   >
                     {t}
@@ -273,11 +273,11 @@ export default function AnnouncerDeskPage() {
             {/* Stage, Chest #, Name Inputs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 dark:text-slate-400">Target Stage</label>
+                <label className="text-xs font-bold text-slate-700">Target Stage</label>
                 <select
                   value={selectedStage}
                   onChange={(e) => setSelectedStage(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-900 dark:text-white font-bold focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 font-bold focus:outline-none focus:border-purple-500"
                 >
                   <option value="Stage 1">Stage 1 (Main Auditorium)</option>
                   <option value="Stage 2">Stage 2 (Seminar Hall)</option>
@@ -291,35 +291,35 @@ export default function AnnouncerDeskPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 dark:text-slate-400">Chest Number</label>
+                <label className="text-xs font-bold text-slate-700">Chest Number</label>
                 <input
                   type="text"
                   value={chestNumber}
                   onChange={(e) => setChestNumber(e.target.value)}
                   placeholder="e.g. 105"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-900 dark:text-white font-mono font-black focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 font-mono font-black focus:outline-none focus:border-purple-500"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 dark:text-slate-400">Candidate &amp; Team</label>
+                <label className="text-xs font-bold text-slate-700">Candidate &amp; Team</label>
                 <input
                   type="text"
                   value={contestantName}
                   onChange={(e) => setContestantName(e.target.value)}
                   placeholder="Contestant name"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-900 dark:text-white font-medium focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 font-medium focus:outline-none focus:border-purple-500"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 dark:text-slate-400">Competition</label>
+                <label className="text-xs font-bold text-slate-700">Competition</label>
                 <input
                   type="text"
                   value={programName}
                   onChange={(e) => setProgramName(e.target.value)}
                   placeholder="e.g. Madh Song"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-900 dark:text-white font-medium focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 font-medium focus:outline-none focus:border-purple-500"
                 />
               </div>
             </div>
@@ -331,25 +331,25 @@ export default function AnnouncerDeskPage() {
               </span>
 
               {/* English Script */}
-              <div className="p-4 rounded-2xl bg-slate-900 text-white space-y-1.5 shadow-inner">
-                <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider text-purple-400">
+              <div className="p-4 rounded-2xl bg-purple-50/70 border border-purple-200 text-slate-900 space-y-1.5 shadow-2xs">
+                <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider text-purple-700">
                   <span>English Prompt</span>
-                  <span className="bg-purple-500/20 px-2 py-0.5 rounded text-purple-300">
+                  <span className="bg-purple-200 text-purple-900 px-2 py-0.5 rounded font-black">
                     {callType}
                   </span>
                 </div>
-                <p className="text-sm font-bold leading-relaxed">{generatedScriptEn}</p>
+                <p className="text-sm font-bold leading-relaxed text-slate-900">{generatedScriptEn}</p>
               </div>
 
               {/* Malayalam Script */}
-              <div className="p-4 rounded-2xl bg-[#08151f] text-slate-100 space-y-1.5 border border-slate-800">
-                <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider text-[#00c9a7]">
+              <div className="p-4 rounded-2xl bg-teal-50/70 border border-teal-200 text-slate-900 space-y-1.5 shadow-2xs">
+                <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider text-teal-800">
                   <span>Malayalam Prompt (മലയാളം)</span>
-                  <span className="bg-[#00a389]/20 px-2 py-0.5 rounded text-[#00c9a7]">
+                  <span className="bg-teal-200 text-teal-900 px-2 py-0.5 rounded font-black">
                     {callType}
                   </span>
                 </div>
-                <p className="text-sm font-semibold leading-relaxed">{generatedScriptMl}</p>
+                <p className="text-sm font-semibold leading-relaxed text-slate-900">{generatedScriptMl}</p>
               </div>
             </div>
 
@@ -357,7 +357,7 @@ export default function AnnouncerDeskPage() {
             <div className="flex items-center justify-between pt-2">
               <button
                 onClick={playChime}
-                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 cursor-pointer"
+                className="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-700 flex items-center gap-1.5 cursor-pointer shadow-2xs"
               >
                 <Bell className="h-4 w-4 text-amber-500" />
                 <span>Test Sound</span>
@@ -365,7 +365,7 @@ export default function AnnouncerDeskPage() {
 
               <button
                 onClick={handleBroadcastCall}
-                className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-black shadow-lg shadow-purple-600/20 flex items-center gap-2 cursor-pointer transition-all"
+                className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-black shadow-sm flex items-center gap-2 cursor-pointer transition-all"
               >
                 <Volume2 className="h-4 w-4" />
                 <span>Announce {callType} on Stage Desk</span>
@@ -377,35 +377,35 @@ export default function AnnouncerDeskPage() {
         {/* ── RIGHT COLUMN: LIVE RESULTS FLASH & BROADCAST TICKER ── */}
         <div className="lg:col-span-5 space-y-6">
           {/* LIVE RESULTS FLASH CARD */}
-          <div className="p-6 rounded-3xl bg-white dark:bg-[#0c131d] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-amber-500" />
-                <h2 className="text-base font-black text-slate-900 dark:text-white">
+                <h2 className="text-base font-black text-slate-900">
                   Live Results Flash
                 </h2>
               </div>
-              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                 Official Winners
               </span>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               {liveResults.map((r) => (
                 <div
                   key={r.id}
                   className={`p-4 rounded-2xl border transition-all ${
                     r.isAnnounced
-                      ? "border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-900/40 opacity-70"
-                      : "border-amber-400/50 bg-amber-50/20 dark:bg-amber-500/10 shadow-sm"
+                      ? "border-slate-200 bg-slate-50/80 opacity-75"
+                      : "border-amber-300 bg-amber-50/40 shadow-xs"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div>
-                      <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                      <h3 className="text-sm font-black text-slate-900">
                         {r.programName}
                       </h3>
-                      <span className="text-[10px] text-slate-500">
+                      <span className="text-[10px] text-slate-500 font-semibold">
                         {r.category} · {r.stageName} · {r.publishedAt}
                       </span>
                     </div>
@@ -414,7 +414,7 @@ export default function AnnouncerDeskPage() {
                       onClick={() => toggleAnnouncedResult(r.id)}
                       className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                         r.isAnnounced
-                          ? "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                          ? "bg-slate-200 text-slate-700"
                           : "bg-amber-500 hover:bg-amber-600 text-white shadow-xs"
                       }`}
                     >
@@ -424,24 +424,24 @@ export default function AnnouncerDeskPage() {
 
                   {/* 1st, 2nd, 3rd Winner breakdown to read */}
                   <div className="space-y-1 text-xs">
-                    <div className="flex items-center justify-between p-1.5 rounded-lg bg-white/70 dark:bg-[#0c131d]/70">
-                      <span className="font-black text-amber-600 dark:text-amber-400">1st Place:</span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200">
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200/60">
+                      <span className="font-black text-amber-600">1st Place:</span>
+                      <span className="font-bold text-slate-800">
                         #{r.firstPlace.chestNumber} - {r.firstPlace.name} ({r.firstPlace.team})
                       </span>
                     </div>
                     {r.secondPlace && (
-                      <div className="flex items-center justify-between p-1.5 rounded-lg bg-white/70 dark:bg-[#0c131d]/70">
-                        <span className="font-black text-slate-500 dark:text-slate-400">2nd Place:</span>
-                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200/60">
+                        <span className="font-black text-slate-500">2nd Place:</span>
+                        <span className="font-bold text-slate-800">
                           #{r.secondPlace.chestNumber} - {r.secondPlace.name} ({r.secondPlace.team})
                         </span>
                       </div>
                     )}
                     {r.thirdPlace && (
-                      <div className="flex items-center justify-between p-1.5 rounded-lg bg-white/70 dark:bg-[#0c131d]/70">
-                        <span className="font-black text-amber-700 dark:text-amber-600">3rd Place:</span>
-                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200/60">
+                        <span className="font-black text-amber-700">3rd Place:</span>
+                        <span className="font-bold text-slate-800">
                           #{r.thirdPlace.chestNumber} - {r.thirdPlace.name} ({r.thirdPlace.team})
                         </span>
                       </div>
@@ -453,9 +453,9 @@ export default function AnnouncerDeskPage() {
           </div>
 
           {/* QUICK TICKER BULLETIN SENDER */}
-          <div className="p-6 rounded-3xl bg-white dark:bg-[#0c131d] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
-            <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
-              <Send className="h-4 w-4 text-purple-500" />
+          <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-4">
+            <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+              <Send className="h-4 w-4 text-purple-600" />
               <span>Broadcast Screen Bulletin</span>
             </h3>
 
@@ -465,7 +465,7 @@ export default function AnnouncerDeskPage() {
                 onChange={(e) => setCustomNotice(e.target.value)}
                 placeholder="Type emergency alert, lunch break, or lost & found notice..."
                 rows={2}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-purple-500"
               />
 
               <div className="flex items-center justify-between">

@@ -138,18 +138,18 @@ export default function GreenRoomPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+    <div className="space-y-6 max-w-7xl mx-auto pb-16 font-sans">
+      {/* ── HEADER ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 uppercase tracking-wider">
             <DoorOpen className="h-4 w-4" />
             <span>Green Room &amp; Candidate Call Desk</span>
           </div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white mt-1">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-1">
             Green Room Console
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Verify contestant reporting, draw blind code-letters, call next performers &amp; dispatch to active stages.
           </p>
         </div>
@@ -158,14 +158,14 @@ export default function GreenRoomPage() {
           <button
             onClick={loadData}
             disabled={loading}
-            className="px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 transition-all cursor-pointer"
+            className="px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 flex items-center gap-1.5 transition-all cursor-pointer bg-white shadow-2xs"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
             <span>Sync Desk</span>
           </button>
           <Link
             href={`/dashboard/organization/${orgId}/festivals/${festivalId}/stage-desk`}
-            className="px-4 py-2 text-xs font-bold rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center gap-1.5 transition-all shadow-sm"
+            className="px-4 py-2 text-xs font-bold rounded-xl bg-slate-900 hover:bg-slate-800 text-white flex items-center gap-1.5 transition-all shadow-xs"
           >
             <span>Stage Desk</span>
             <ExternalLink className="h-3.5 w-3.5" />
@@ -173,9 +173,9 @@ export default function GreenRoomPage() {
         </div>
       </div>
 
-      {/* Active Caller Banner */}
+      {/* ── ACTIVE CALLER BANNER ── */}
       {callingCandidate && (
-        <div className="p-4 rounded-2xl bg-indigo-600 text-white flex items-center justify-between gap-3 shadow-lg animate-pulse">
+        <div className="p-4 rounded-2xl bg-indigo-600 text-white flex items-center justify-between gap-3 shadow-md animate-pulse">
           <div className="flex items-center gap-3">
             <Volume2 className="h-6 w-6 shrink-0" />
             <div>
@@ -196,20 +196,20 @@ export default function GreenRoomPage() {
         </div>
       )}
 
-      {/* Status Queue Pipeline Counters */}
+      {/* ── STATUS QUEUE PIPELINE COUNTERS ── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <button
           onClick={() => setStatusFilter("waiting")}
           className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
             statusFilter === "waiting"
-              ? "border-amber-500 bg-amber-500/10 shadow-xs"
-              : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
+              ? "border-amber-500 bg-amber-50/70 shadow-xs ring-1 ring-amber-400"
+              : "border-slate-200 bg-white hover:border-slate-300"
           }`}
         >
-          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
             Waiting to Report
           </div>
-          <div className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">
+          <div className="text-2xl font-black text-amber-600 mt-1">
             {counts.waiting}
           </div>
         </button>
@@ -218,14 +218,14 @@ export default function GreenRoomPage() {
           onClick={() => setStatusFilter("reported")}
           className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
             statusFilter === "reported"
-              ? "border-blue-500 bg-blue-500/10 shadow-xs"
-              : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
+              ? "border-blue-500 bg-blue-50/70 shadow-xs ring-1 ring-blue-400"
+              : "border-slate-200 bg-white hover:border-slate-300"
           }`}
         >
-          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
             Reported / Checked In
           </div>
-          <div className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1">
+          <div className="text-2xl font-black text-blue-600 mt-1">
             {counts.reported}
           </div>
         </button>
@@ -234,14 +234,14 @@ export default function GreenRoomPage() {
           onClick={() => setStatusFilter("ready_for_stage")}
           className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
             statusFilter === "ready_for_stage"
-              ? "border-indigo-500 bg-indigo-500/10 shadow-xs"
-              : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
+              ? "border-indigo-500 bg-indigo-50/70 shadow-xs ring-1 ring-indigo-400"
+              : "border-slate-200 bg-white hover:border-slate-300"
           }`}
         >
-          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
             Ready for Stage
           </div>
-          <div className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1">
+          <div className="text-2xl font-black text-indigo-600 mt-1">
             {counts.ready}
           </div>
         </button>
@@ -250,15 +250,15 @@ export default function GreenRoomPage() {
           onClick={() => setStatusFilter("on_stage")}
           className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
             statusFilter === "on_stage"
-              ? "border-emerald-500 bg-emerald-500/10 shadow-xs"
-              : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
+              ? "border-emerald-500 bg-emerald-50/70 shadow-xs ring-1 ring-emerald-400"
+              : "border-slate-200 bg-white hover:border-slate-300"
           }`}
         >
-          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center justify-between">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
             <span>On Stage Now</span>
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
           </div>
-          <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
+          <div className="text-2xl font-black text-emerald-600 mt-1">
             {counts.onStage}
           </div>
         </button>
@@ -267,20 +267,20 @@ export default function GreenRoomPage() {
           onClick={() => setStatusFilter("completed")}
           className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
             statusFilter === "completed"
-              ? "border-slate-500 bg-slate-500/10 shadow-xs"
-              : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
+              ? "border-slate-400 bg-slate-100 shadow-xs ring-1 ring-slate-400"
+              : "border-slate-200 bg-white hover:border-slate-300"
           }`}
         >
-          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
             Completed
           </div>
-          <div className="text-2xl font-black text-slate-700 dark:text-slate-300 mt-1">
+          <div className="text-2xl font-black text-slate-700 mt-1">
             {counts.completed}
           </div>
         </button>
       </div>
 
-      {/* Search & Status Filters */}
+      {/* ── SEARCH & FILTERS ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="relative w-full sm:w-80">
           <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -289,7 +289,7 @@ export default function GreenRoomPage() {
             placeholder="Search chest #, name, or team..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
         </div>
 
@@ -297,7 +297,7 @@ export default function GreenRoomPage() {
           {statusFilter !== "all" && (
             <button
               onClick={() => setStatusFilter("all")}
-              className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+              className="text-xs text-indigo-600 font-bold hover:underline cursor-pointer"
             >
               Clear filter ({counts.total} total)
             </button>
@@ -305,13 +305,13 @@ export default function GreenRoomPage() {
         </div>
       </div>
 
-      {/* Participants Queue List */}
+      {/* ── PARTICIPANTS QUEUE CARDS ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.length === 0 ? (
-          <div className="col-span-full p-12 text-center rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-400">
-            <Users className="h-10 w-10 mx-auto text-slate-400/50 mb-2" />
-            <div className="text-sm font-bold text-slate-700 dark:text-slate-200">No candidates match this filter</div>
-            <div className="text-xs mt-0.5">Check spelling or select a different queue status.</div>
+          <div className="col-span-full p-12 text-center rounded-2xl border border-slate-200 bg-white text-slate-400">
+            <Users className="h-10 w-10 mx-auto text-slate-300 mb-2" />
+            <div className="text-sm font-bold text-slate-700">No candidates match this filter</div>
+            <div className="text-xs mt-0.5 text-slate-400">Check spelling or select a different queue status.</div>
           </div>
         ) : (
           filtered.map((p) => {
@@ -324,19 +324,19 @@ export default function GreenRoomPage() {
                 key={p.id}
                 className={`p-5 rounded-2xl border transition-all ${
                   isOnStage
-                    ? "border-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/20 ring-2 ring-emerald-500/20"
+                    ? "border-emerald-500 bg-emerald-50/40 ring-1 ring-emerald-500/30"
                     : isReady
-                    ? "border-indigo-400 bg-indigo-50/20 dark:bg-indigo-950/20"
-                    : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
+                    ? "border-indigo-300 bg-indigo-50/30"
+                    : "border-slate-200 bg-white"
                 } shadow-xs space-y-3.5`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-1 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-mono font-black text-xs">
+                    <span className="px-2.5 py-1 rounded-lg bg-slate-900 text-white font-mono font-black text-xs">
                       #{p.chestNumber}
                     </span>
                     {p.codeLetter && (
-                      <span className="px-2 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-black text-xs border border-indigo-200 dark:border-indigo-800">
+                      <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-black text-xs border border-indigo-200">
                         Code: {p.codeLetter}
                       </span>
                     )}
@@ -344,12 +344,12 @@ export default function GreenRoomPage() {
                   <span
                     className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
                       isOnStage
-                        ? "bg-emerald-500 text-white"
+                        ? "bg-emerald-600 text-white"
                         : isReady
-                        ? "bg-indigo-500 text-white"
+                        ? "bg-indigo-600 text-white"
                         : isReported
-                        ? "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-200 text-slate-700"
                     }`}
                   >
                     {p.greenRoomStatus.replace(/_/g, " ")}
@@ -357,10 +357,8 @@ export default function GreenRoomPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-base font-black text-slate-900 dark:text-white truncate">
-                    {p.name}
-                  </h3>
-                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-2 truncate">
+                  <h3 className="font-bold text-slate-900 text-sm">{p.name}</h3>
+                  <div className="flex items-center gap-2 text-xs text-slate-500 font-medium mt-0.5">
                     <span>{p.team}</span>
                     <span>•</span>
                     <span>{p.category}</span>
@@ -368,53 +366,53 @@ export default function GreenRoomPage() {
                 </div>
 
                 {p.reportedTime && (
-                  <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
-                    <Clock className="h-3 w-3" />
-                    <span>Reported at {p.reportedTime}</span>
+                  <div className="text-[11px] text-slate-400 font-medium">
+                    Reported at: <span className="font-bold text-slate-600">{p.reportedTime}</span>
                   </div>
                 )}
 
-                {/* Queue Transitions */}
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+                {/* Status action buttons */}
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-1.5">
                   <button
                     onClick={() => callCandidateAudio(p)}
-                    className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs cursor-pointer"
-                    title="Audio Chime / Call"
+                    className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                    title="Call candidate to stage"
                   >
                     <Volume2 className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Audio Call</span>
                   </button>
 
-                  <div className="flex items-center gap-1.5 ml-auto">
-                    {p.greenRoomStatus === "waiting" && (
+                  <div className="flex items-center gap-1">
+                    {!isReported && p.greenRoomStatus === "waiting" && (
                       <button
                         onClick={() => updateStatus(p.id, "reported")}
-                        className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold cursor-pointer"
+                        className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold cursor-pointer transition-colors"
                       >
                         Check In
                       </button>
                     )}
-                    {p.greenRoomStatus === "reported" && (
+                    {isReported && (
                       <button
                         onClick={() => updateStatus(p.id, "ready_for_stage")}
-                        className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold cursor-pointer"
+                        className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold cursor-pointer transition-colors"
                       >
-                        Ready for Stage
+                        Ready
                       </button>
                     )}
-                    {p.greenRoomStatus === "ready_for_stage" && (
+                    {isReady && (
                       <button
                         onClick={() => updateStatus(p.id, "on_stage")}
-                        className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold cursor-pointer"
+                        className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer transition-colors"
                       >
-                        Send to Stage
+                        To Stage
                       </button>
                     )}
-                    {p.greenRoomStatus === "on_stage" && (
+                    {isOnStage && (
                       <button
                         onClick={() => updateStatus(p.id, "completed")}
-                        className="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold cursor-pointer"
+                        className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold cursor-pointer transition-colors"
                       >
-                        Mark Completed
+                        Complete
                       </button>
                     )}
                   </div>

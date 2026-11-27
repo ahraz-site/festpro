@@ -6,45 +6,46 @@ import Link from "next/link"
 import { toast } from "sonner"
 import {
   Camera,
-  Newspaper,
-  Share2,
+  Image as ImageIcon,
   Video,
   Upload,
   Trash2,
+  Share2,
   ExternalLink,
-  Copy,
-  Check,
-  Sparkles,
   RefreshCw,
-  Plus,
+  Check,
+  Copy,
   Radio,
-  Image as ImageIcon,
+  Newspaper,
+  Plus,
   Play,
   Trophy,
   Award,
-  Layers,
   CheckCircle2,
+  Sliders,
+  Globe,
+  Sparkles,
 } from "lucide-react"
 import {
   getFestivalWebsiteConfigAction,
   saveFestivalWebsiteConfigAction,
 } from "@/lib/actions/website-builder"
-import type { FestivalWebsiteConfig, GalleryItem, NewsItem, VideoItem, VideoPlatform } from "@/types/website-studio"
+import type {
+  FestivalWebsiteConfig,
+  GalleryItem,
+  NewsItem,
+  VideoItem,
+  VideoPlatform,
+} from "@/types/website-studio"
 
 function compressImageFile(file: File, maxDim = 1200, onLoaded: (url: string) => void) {
   const reader = new FileReader()
   reader.onload = (e) => {
     const raw = e.target?.result as string
-    if (!raw) return
-    if (file.type === "image/gif" || file.type === "image/svg+xml") {
-      onLoaded(raw)
-      return
-    }
     const img = new Image()
     img.onload = () => {
       const canvas = document.createElement("canvas")
-      let w = img.width
-      let h = img.height
+      let { width: w, height: h } = img
       if (w > maxDim || h > maxDim) {
         if (w > h) {
           h = Math.round((h * maxDim) / w)
@@ -99,77 +100,67 @@ function resolveVideoThumb(url: string): string {
 
 export default function MediaPanelPage() {
   const params = useParams()
-  const orgId = (params?.orgId as string) || "a3b0972c-a447-4934-8d26-3bad6c9a9cc9"
-  const festivalId = (params?.festivalId as string) || "c66d0281-bc93-4cb8-b94e-e54bf27c7119"
+  const orgId = params.orgId as string
+  const festivalId = params.festivalId as string
 
   const [loading, setLoading] = useState(true)
   const [isPending, startTransition] = useTransition()
   const [config, setConfig] = useState<FestivalWebsiteConfig | null>(null)
-  const [copiedKey, setCopiedKey] = useState<string | null>(null)
 
-  // Photo form
+  // Local Form States
   const [photoTitle, setPhotoTitle] = useState("")
   const [photoCategory, setPhotoCategory] = useState("Stage 1")
   const [photoDataUrl, setPhotoDataUrl] = useState("")
 
-  // Video form
-  const [videoTitle, setVideoTitle] = useState("")
   const [videoUrl, setVideoUrl] = useState("")
+  const [videoTitle, setVideoTitle] = useState("")
   const [videoCategory, setVideoCategory] = useState("Stage 1")
   const [videoAspectRatio, setVideoAspectRatio] = useState<"16:9" | "9:16" | "1:1">("16:9")
 
-  // News form
   const [newsTitle, setNewsTitle] = useState("")
   const [newsBadge, setNewsBadge] = useState("Live")
   const [newsContent, setNewsContent] = useState("")
 
-  // Live Stream URL
   const [liveStreamUrl, setLiveStreamUrl] = useState("")
+  const [copiedKey, setCopiedKey] = useState<string | null>(null)
 
   const loadData = () => {
-    if (!festivalId) return
     setLoading(true)
     getFestivalWebsiteConfigAction(festivalId)
-      .then((res) => {
+      .then((res: any) => {
         if (res?.data?.config) {
           setConfig(res.data.config)
           setLiveStreamUrl(res.data.config.liveStreamUrl || "")
         }
       })
-      .catch((err) => {
-        console.warn("Failed to load website media config notice:", err)
-      })
+      .catch((err) => toast.error(err.message || "Failed to load media config"))
       .finally(() => setLoading(false))
   }
 
   useEffect(() => {
-    loadData()
+    if (festivalId) loadData()
   }, [festivalId])
 
   const handleCopy = (text: string, key: string) => {
     navigator.clipboard.writeText(text)
     setCopiedKey(key)
-    toast.success("Link copied to clipboard")
+    toast.success("Link copied to clipboard!")
     setTimeout(() => setCopiedKey(null), 2500)
   }
 
   // ── PHOTO ACTIONS ──
   const handleAddPhoto = () => {
-    if (!photoTitle.trim()) {
-      toast.error("Please enter a photo caption/title")
-      return
-    }
-    if (!photoDataUrl.trim()) {
-      toast.error("Please choose a photo to upload")
+    if (!photoDataUrl) {
+      toast.error("Please choose a photo file from your PC first")
       return
     }
     if (!config) return
 
     const newItem: GalleryItem = {
-      id: `g_${Date.now()}`,
-      title: photoTitle.trim(),
-      category: photoCategory,
+      id: `img_${Date.now()}`,
       url: photoDataUrl,
+      title: photoTitle.trim() || `Festival Event Photo ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
+      category: photoCategory,
     }
 
     const updatedConfig: FestivalWebsiteConfig = {
@@ -184,8 +175,8 @@ export default function MediaPanelPage() {
       } else {
         toast.success("Photo published live to website gallery!")
         setConfig(updatedConfig)
-        setPhotoTitle("")
         setPhotoDataUrl("")
+        setPhotoTitle("")
       }
     })
   }
@@ -200,7 +191,7 @@ export default function MediaPanelPage() {
       if (res?.error) {
         toast.error(res.error)
       } else {
-        toast.success("Photo removed from gallery")
+        toast.success("Photo removed from website")
         setConfig(updatedConfig)
       }
     })
@@ -208,25 +199,29 @@ export default function MediaPanelPage() {
 
   // ── VIDEO ACTIONS ──
   const handleAddVideo = () => {
-    const cleanUrl = videoUrl.trim()
-    if (!cleanUrl) {
-      toast.error("Please enter a video or stream URL (YouTube, Vimeo, Reels, MP4)")
+    if (!videoUrl.trim()) {
+      toast.error("Please enter a video URL")
       return
     }
     if (!config) return
 
-    let platform: VideoPlatform = "youtube"
-    if (cleanUrl.includes("vimeo.com")) platform = "vimeo"
-    else if (cleanUrl.includes("instagram.com")) platform = "instagram_reel"
-    else if (cleanUrl.includes("youtube.com/shorts")) platform = "youtube_shorts"
-    else if (cleanUrl.includes("facebook.com")) platform = "facebook"
-    else if (cleanUrl.endsWith(".mp4") || cleanUrl.endsWith(".webm")) platform = "mp4"
+    const cleanUrl = videoUrl.trim()
+    let detectedPlatform: VideoPlatform = "mp4"
+    if (cleanUrl.includes("youtube.com") || cleanUrl.includes("youtu.be")) {
+      detectedPlatform = cleanUrl.includes("shorts") ? "youtube_shorts" : "youtube"
+    } else if (cleanUrl.includes("instagram.com")) {
+      detectedPlatform = "instagram_reel"
+    } else if (cleanUrl.includes("vimeo.com")) {
+      detectedPlatform = "vimeo"
+    } else if (cleanUrl.includes("facebook.com") || cleanUrl.includes("fb.watch")) {
+      detectedPlatform = "facebook"
+    }
 
     const newVid: VideoItem = {
-      id: `v_${Date.now()}`,
-      title: videoTitle.trim() || `${videoCategory} Video`,
+      id: `vid_${Date.now()}`,
+      title: videoTitle.trim() || `Highlight Clip ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
       url: cleanUrl,
-      platform,
+      platform: detectedPlatform,
       aspectRatio: videoAspectRatio,
       category: videoCategory,
       thumbnailUrl: resolveVideoThumb(cleanUrl),
@@ -333,20 +328,20 @@ export default function MediaPanelPage() {
       ...config,
       liveStreamUrl: liveStreamUrl.trim(),
     }
+
     startTransition(async () => {
       const res = await saveFestivalWebsiteConfigAction(festivalId, updatedConfig)
       if (res?.error) {
         toast.error(res.error)
       } else {
-        toast.success("Live stream URL updated successfully")
+        toast.success("Live stream telecast URL updated on public portal!")
         setConfig(updatedConfig)
       }
     })
   }
 
-  // Quick sync actions for results and team standing
   const handleSyncResultsToWeb = () => {
-    toast.success("Live results synchronized with public website portal!")
+    toast.success("Published verified results synced to public website!")
   }
 
   const handleSyncStandingsToWeb = () => {
@@ -363,18 +358,18 @@ export default function MediaPanelPage() {
   const videosList = config?.videoStudio?.videos || []
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto font-sans">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+    <div className="space-y-6 max-w-7xl mx-auto pb-16 font-sans">
+      {/* ── HEADER ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-xs font-bold text-rose-600 uppercase tracking-wider">
             <Camera className="h-4 w-4" />
             <span>Media, Photography &amp; Press Desk</span>
           </div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white mt-1">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-1">
             Media Panel
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Instant live publishing: upload photos to website gallery, add video highlights, broadcast news &amp; sync live results.
           </p>
         </div>
@@ -383,7 +378,7 @@ export default function MediaPanelPage() {
           <button
             onClick={loadData}
             disabled={loading}
-            className="px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 transition-all cursor-pointer"
+            className="px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 flex items-center gap-1.5 transition-all cursor-pointer bg-white shadow-2xs"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
             <span>Sync</span>
@@ -400,18 +395,18 @@ export default function MediaPanelPage() {
         </div>
       </div>
 
-      {/* Result Publishing & Team Standings Live Control Hub (As in Quaf) */}
-      <div className="p-5 rounded-2xl bg-gradient-to-r from-teal-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 border border-teal-200/80 dark:border-slate-800 space-y-4 shadow-xs">
+      {/* ── RESULT PUBLISHING & HOUSE STANDINGS CONTROL HUB ── */}
+      <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-teal-600 text-white shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-teal-50 text-[#149377] border border-teal-200 shadow-2xs">
               <Trophy className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-sm font-black text-slate-900 dark:text-white">
+              <h2 className="text-base font-black text-slate-900">
                 Live Result Publishing &amp; House Standings Control Desk
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              </h2>
+              <p className="text-xs text-slate-500">
                 Instantly push verified marks, candidate positions and house points to the public portal.
               </p>
             </div>
@@ -420,14 +415,14 @@ export default function MediaPanelPage() {
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={handleSyncResultsToWeb}
-              className="px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-[#149377] hover:bg-[#107c64] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
             >
               <CheckCircle2 className="h-3.5 w-3.5" />
               <span>Publish Results to Web</span>
             </button>
             <button
               onClick={handleSyncStandingsToWeb}
-              className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
             >
               <Award className="h-3.5 w-3.5" />
               <span>Update House Standings</span>
@@ -436,13 +431,13 @@ export default function MediaPanelPage() {
         </div>
 
         {/* Direct Navigation Links to Website Sections */}
-        <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-slate-200/60 dark:border-slate-800 text-xs">
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Quick Verify:</span>
+        <div className="flex items-center gap-2 flex-wrap pt-3 border-t border-slate-100 text-xs">
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Quick Verify:</span>
           <a
             href={publicResultsUrl}
             target="_blank"
             rel="noreferrer"
-            className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold hover:text-teal-600 flex items-center gap-1"
+            className="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 font-semibold hover:bg-slate-100 hover:text-teal-700 flex items-center gap-1 transition-colors"
           >
             <span>Live Results</span>
             <ExternalLink className="h-3 w-3" />
@@ -451,7 +446,7 @@ export default function MediaPanelPage() {
             href={publicStandingsUrl}
             target="_blank"
             rel="noreferrer"
-            className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold hover:text-indigo-600 flex items-center gap-1"
+            className="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 font-semibold hover:bg-slate-100 hover:text-indigo-700 flex items-center gap-1 transition-colors"
           >
             <span>House Standings</span>
             <ExternalLink className="h-3 w-3" />
@@ -460,7 +455,7 @@ export default function MediaPanelPage() {
             href={publicGalleryUrl}
             target="_blank"
             rel="noreferrer"
-            className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold hover:text-rose-600 flex items-center gap-1"
+            className="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 font-semibold hover:bg-slate-100 hover:text-rose-700 flex items-center gap-1 transition-colors"
           >
             <span>Photo Gallery</span>
             <ExternalLink className="h-3 w-3" />
@@ -469,7 +464,7 @@ export default function MediaPanelPage() {
             href={publicVideosUrl}
             target="_blank"
             rel="noreferrer"
-            className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold hover:text-purple-600 flex items-center gap-1"
+            className="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 font-semibold hover:bg-slate-100 hover:text-purple-700 flex items-center gap-1 transition-colors"
           >
             <span>Videos &amp; Telecasts</span>
             <ExternalLink className="h-3 w-3" />
@@ -477,47 +472,49 @@ export default function MediaPanelPage() {
         </div>
       </div>
 
-      {/* Quick Share Links Kit */}
-      <div className="p-5 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 space-y-3">
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
+      {/* ── QUICK SHARE LINKS KIT ── */}
+      <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-3">
+        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-700">
           <Share2 className="h-4 w-4" />
           <span>Press Release &amp; Social Share Links</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
             <div className="min-w-0">
               <div className="text-[10px] text-slate-400 font-bold uppercase">Public Portal URL</div>
-              <div className="text-xs font-bold truncate text-slate-900 dark:text-white mt-0.5">
+              <div className="text-xs font-mono font-bold truncate text-slate-900 mt-0.5">
                 {publicPortalUrl}
               </div>
             </div>
             <button
               onClick={() => handleCopy(publicPortalUrl, "portal")}
-              className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer"
+              className="p-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-indigo-600 shadow-2xs cursor-pointer"
+              title="Copy link"
             >
-              {copiedKey === "portal" ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+              {copiedKey === "portal" ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
             </button>
           </div>
 
-          <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
             <div className="min-w-0">
               <div className="text-[10px] text-slate-400 font-bold uppercase">Live Results Direct Link</div>
-              <div className="text-xs font-bold truncate text-slate-900 dark:text-white mt-0.5">
+              <div className="text-xs font-mono font-bold truncate text-slate-900 mt-0.5">
                 {publicResultsUrl}
               </div>
             </div>
             <button
               onClick={() => handleCopy(publicResultsUrl, "results")}
-              className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer"
+              className="p-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-indigo-600 shadow-2xs cursor-pointer"
+              title="Copy link"
             >
-              {copiedKey === "results" ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+              {copiedKey === "results" ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
             </button>
           </div>
 
-          <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
             <div className="min-w-0">
               <div className="text-[10px] text-slate-400 font-bold uppercase">WhatsApp Share Summary</div>
-              <div className="text-xs font-bold truncate text-slate-900 dark:text-white mt-0.5">
+              <div className="text-xs font-bold truncate text-slate-700 mt-0.5">
                 Click to copy press text
               </div>
             </div>
@@ -528,42 +525,43 @@ export default function MediaPanelPage() {
                   "wa"
                 )
               }
-              className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer"
+              className="p-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-indigo-600 shadow-2xs cursor-pointer"
+              title="Copy text"
             >
-              {copiedKey === "wa" ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+              {copiedKey === "wa" ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
             </button>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Col 1: Photo Stream / Gallery Upload */}
-        <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-4 shadow-xs">
+        {/* ── LEFT COL 1: PHOTO STREAM / GALLERY UPLOAD ── */}
+        <div className="p-6 rounded-2xl border border-slate-200 bg-white space-y-4 shadow-xs">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <ImageIcon className="h-5 w-5 text-indigo-500" />
-              <h2 className="text-base font-black text-slate-900 dark:text-white">
+              <ImageIcon className="h-5 w-5 text-indigo-600" />
+              <h2 className="text-base font-black text-slate-900">
                 Website Gallery Photos
               </h2>
             </div>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
               {config?.gallery?.length || 0} published photos
             </span>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
+          <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200 space-y-3">
             <div className="grid grid-cols-2 gap-2">
               <input
                 type="text"
                 placeholder="Photo Caption / Event Title"
                 value={photoTitle}
                 onChange={(e) => setPhotoTitle(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                className="w-full px-3 py-2 text-xs rounded-xl bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 font-medium focus:outline-none focus:border-indigo-500"
               />
               <select
                 value={photoCategory}
                 onChange={(e) => setPhotoCategory(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-medium"
+                className="w-full px-3 py-2 text-xs rounded-xl bg-white border border-slate-200 text-slate-900 font-semibold focus:outline-none focus:border-indigo-500"
               >
                 <option value="Stage 1">Stage 1</option>
                 <option value="Stage 2">Stage 2</option>
@@ -575,7 +573,7 @@ export default function MediaPanelPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <label className="flex-1 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold text-center cursor-pointer transition-all flex items-center justify-center gap-1.5">
+              <label className="flex-1 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold text-center cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-xs">
                 <Upload className="h-4 w-4" />
                 <span>{photoDataUrl ? "Change Photo File" : "Choose Photo from PC"}</span>
                 <input
@@ -592,14 +590,14 @@ export default function MediaPanelPage() {
               <button
                 onClick={handleAddPhoto}
                 disabled={isPending}
-                className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold cursor-pointer transition-all shadow-xs"
+                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold cursor-pointer transition-all shadow-xs"
               >
                 Publish Photo
               </button>
             </div>
 
             {photoDataUrl && (
-              <div className="h-28 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 relative">
+              <div className="h-28 rounded-lg overflow-hidden border border-slate-200 relative">
                 <img src={photoDataUrl} alt="Preview" className="w-full h-full object-cover" />
               </div>
             )}
@@ -610,7 +608,7 @@ export default function MediaPanelPage() {
             {(config?.gallery || []).map((g) => (
               <div
                 key={g.id}
-                className="group relative rounded-xl overflow-hidden aspect-square border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950"
+                className="group relative rounded-xl overflow-hidden aspect-square border border-slate-200 bg-slate-100"
               >
                 <img src={g.url} alt="" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2 text-white">
@@ -619,7 +617,8 @@ export default function MediaPanelPage() {
                     <span className="text-[10px] font-bold truncate line-clamp-1">{g.title}</span>
                     <button
                       onClick={() => handleDeletePhoto(g.id)}
-                      className="p-1 rounded bg-rose-600/80 hover:bg-rose-600 text-white cursor-pointer"
+                      className="p-1 rounded bg-rose-600/90 hover:bg-rose-600 text-white cursor-pointer"
+                      title="Delete photo"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
@@ -630,27 +629,27 @@ export default function MediaPanelPage() {
           </div>
         </div>
 
-        {/* Right Col 1: Video Management & Reels Desk */}
-        <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-4 shadow-xs">
+        {/* ── RIGHT COL 1: VIDEO MANAGEMENT & REELS DESK ── */}
+        <div className="p-6 rounded-2xl border border-slate-200 bg-white space-y-4 shadow-xs">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Video className="h-5 w-5 text-rose-500" />
-              <h2 className="text-base font-black text-slate-900 dark:text-white">
+              <h2 className="text-base font-black text-slate-900">
                 Website Videos &amp; Reels
               </h2>
             </div>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
               {videosList.length} published videos
             </span>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
+          <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200 space-y-3">
             <input
               type="text"
               placeholder="Video URL (YouTube, Vimeo, Reels, Shorts, MP4)"
               value={videoUrl}
               onChange={(e) => setVideoUrl(e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-mono"
+              className="w-full px-3 py-2 text-xs rounded-xl bg-white border border-slate-200 text-slate-900 font-mono focus:outline-none focus:border-rose-500"
             />
 
             <div className="grid grid-cols-3 gap-2">
@@ -659,12 +658,12 @@ export default function MediaPanelPage() {
                 placeholder="Video Title (Optional)"
                 value={videoTitle}
                 onChange={(e) => setVideoTitle(e.target.value)}
-                className="px-3 py-2 text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                className="px-3 py-2 text-xs rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:border-rose-500"
               />
               <select
                 value={videoCategory}
                 onChange={(e) => setVideoCategory(e.target.value)}
-                className="px-2.5 py-2 text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-medium"
+                className="px-2.5 py-2 text-xs rounded-xl bg-white border border-slate-200 text-slate-900 font-medium focus:outline-none focus:border-rose-500"
               >
                 <option value="Stage 1">Stage 1</option>
                 <option value="Stage 2">Stage 2</option>
@@ -676,7 +675,7 @@ export default function MediaPanelPage() {
               <select
                 value={videoAspectRatio}
                 onChange={(e) => setVideoAspectRatio(e.target.value as any)}
-                className="px-2.5 py-2 text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-medium"
+                className="px-2.5 py-2 text-xs rounded-xl bg-white border border-slate-200 text-slate-900 font-medium focus:outline-none focus:border-rose-500"
               >
                 <option value="16:9">16:9 Widescreen</option>
                 <option value="9:16">9:16 Vertical Reel</option>
@@ -687,7 +686,7 @@ export default function MediaPanelPage() {
             <button
               onClick={handleAddVideo}
               disabled={isPending}
-              className="w-full py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold cursor-pointer transition-all shadow-xs flex items-center justify-center gap-1.5"
+              className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold cursor-pointer transition-all shadow-xs flex items-center justify-center gap-1.5"
             >
               <Plus className="h-4 w-4" />
               <span>Add Video to Website</span>
@@ -699,11 +698,11 @@ export default function MediaPanelPage() {
             {videosList.map((v) => (
               <div
                 key={v.id}
-                className="group relative rounded-xl overflow-hidden aspect-video border border-slate-200 dark:border-slate-800 bg-slate-900 text-white"
+                className="group relative rounded-xl overflow-hidden aspect-video border border-slate-200 bg-slate-900 text-white"
               >
                 <img src={resolveVideoThumb(v.url)} alt="" className="w-full h-full object-cover opacity-80" />
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                  <div className="w-9 h-9 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow-lg">
+                  <div className="w-9 h-9 rounded-full bg-white/95 text-slate-900 flex items-center justify-center shadow-lg">
                     <Play className="h-4 w-4 fill-slate-900 ml-0.5 text-slate-900" />
                   </div>
                 </div>
@@ -711,7 +710,7 @@ export default function MediaPanelPage() {
                   <span className="text-[10px] font-bold truncate pr-1">{v.title}</span>
                   <button
                     onClick={() => handleDeleteVideo(v.id)}
-                    className="p-1 rounded bg-rose-600/80 hover:bg-rose-600 text-white cursor-pointer shrink-0"
+                    className="p-1 rounded bg-rose-600/90 hover:bg-rose-600 text-white cursor-pointer shrink-0"
                     title="Delete video"
                   >
                     <Trash2 className="h-3 w-3" />
@@ -722,16 +721,16 @@ export default function MediaPanelPage() {
           </div>
         </div>
 
-        {/* Left Col 2: Official Bulletins & News */}
-        <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-4 shadow-xs">
+        {/* ── LEFT COL 2: OFFICIAL BULLETINS & NEWS ── */}
+        <div className="p-6 rounded-2xl border border-slate-200 bg-white space-y-4 shadow-xs">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Newspaper className="h-5 w-5 text-emerald-500" />
-              <h2 className="text-base font-black text-slate-900 dark:text-white">
+              <Newspaper className="h-5 w-5 text-emerald-600" />
+              <h2 className="text-base font-black text-slate-900">
                 Official Bulletins &amp; News
               </h2>
             </div>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
               {config?.news?.length || 0} notices live
             </span>
           </div>
@@ -743,12 +742,12 @@ export default function MediaPanelPage() {
                 placeholder="Bulletin Headline"
                 value={newsTitle}
                 onChange={(e) => setNewsTitle(e.target.value)}
-                className="col-span-2 px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-medium"
+                className="col-span-2 px-3 py-2 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium focus:outline-none focus:border-emerald-500"
               />
               <select
                 value={newsBadge}
                 onChange={(e) => setNewsBadge(e.target.value)}
-                className="px-2.5 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-bold"
+                className="px-2.5 py-2 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-bold focus:outline-none focus:border-emerald-500"
               >
                 <option value="Live">Live</option>
                 <option value="Schedule">Schedule</option>
@@ -763,13 +762,13 @@ export default function MediaPanelPage() {
               value={newsContent}
               onChange={(e) => setNewsContent(e.target.value)}
               rows={2}
-              className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white resize-none"
+              className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-900 resize-none focus:outline-none focus:border-emerald-500"
             />
 
             <button
               onClick={handlePublishNews}
               disabled={isPending}
-              className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold cursor-pointer transition-all shadow-xs"
+              className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer transition-all shadow-xs"
             >
               Broadcast Bulletin Live
             </button>
@@ -780,21 +779,22 @@ export default function MediaPanelPage() {
             {(config?.news || []).map((n) => (
               <div
                 key={n.id}
-                className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-start justify-between gap-3 text-xs"
+                className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-start justify-between gap-3 text-xs"
               >
                 <div className="space-y-0.5 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
+                    <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-emerald-100 text-emerald-800">
                       {n.badge}
                     </span>
                     <span className="text-[10px] text-slate-400">{n.date}</span>
                   </div>
-                  <div className="font-bold text-slate-900 dark:text-white truncate">{n.title}</div>
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">{n.content}</div>
+                  <div className="font-bold text-slate-900 truncate">{n.title}</div>
+                  <div className="text-[11px] text-slate-600 line-clamp-1">{n.content}</div>
                 </div>
                 <button
                   onClick={() => handleDeleteNews(n.id)}
-                  className="p-1 rounded hover:bg-rose-100 dark:hover:bg-rose-950 text-slate-400 hover:text-rose-600 cursor-pointer shrink-0"
+                  className="p-1 rounded hover:bg-rose-100 text-slate-400 hover:text-rose-600 cursor-pointer shrink-0"
+                  title="Delete bulletin"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -803,15 +803,15 @@ export default function MediaPanelPage() {
           </div>
         </div>
 
-        {/* Right Col 2: Live Stream Setup */}
-        <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-3 shadow-xs">
+        {/* ── RIGHT COL 2: LIVE STREAM SETUP ── */}
+        <div className="p-6 rounded-2xl border border-slate-200 bg-white space-y-3 shadow-xs">
           <div className="flex items-center gap-2">
             <Radio className="h-5 w-5 text-rose-500" />
-            <h3 className="text-base font-black text-slate-900 dark:text-white">
+            <h3 className="text-base font-black text-slate-900">
               Live Broadcast Telecast Link
             </h3>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-slate-500">
             Paste your YouTube Live or RTMP embed stream URL to broadcast directly on the festival portal.
           </p>
           <div className="flex items-center gap-2">
@@ -820,12 +820,12 @@ export default function MediaPanelPage() {
               placeholder="https://www.youtube.com/embed/..."
               value={liveStreamUrl}
               onChange={(e) => setLiveStreamUrl(e.target.value)}
-              className="flex-1 px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-mono"
+              className="flex-1 px-3 py-2 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-mono focus:outline-none focus:border-rose-500"
             />
             <button
               onClick={handleSaveLiveStream}
               disabled={isPending}
-              className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold cursor-pointer transition-all shadow-xs"
+              className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold cursor-pointer transition-all shadow-xs"
             >
               Save Stream
             </button>
