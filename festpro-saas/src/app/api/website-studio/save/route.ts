@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { revalidatePath } from "next/cache"
 import { createClient as createServerClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { type FestivalWebsiteConfig } from "@/types/website-studio"
@@ -106,6 +107,12 @@ export async function POST(request: NextRequest) {
         }
       }
     }
+
+    try {
+      revalidatePath(`/festivals/${festivalId}`)
+      revalidatePath(`/festivals/${festivalId}`, "page")
+      revalidatePath(`/`, "layout")
+    } catch {}
 
     return NextResponse.json({ success: true, message: "FesPro Studio design published to live site!" })
   } catch (err: any) {

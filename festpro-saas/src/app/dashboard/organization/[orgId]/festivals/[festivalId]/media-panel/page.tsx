@@ -124,17 +124,43 @@ export default function MediaPanelPage() {
   const [liveStreamUrl, setLiveStreamUrl] = useState("")
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
 
-  const loadData = () => {
+  const loadData = async () => {
     setLoading(true)
-    getFestivalWebsiteConfigAction(festivalId)
-      .then((res: any) => {
-        if (res?.data?.config) {
-          setConfig(res.data.config)
-          setLiveStreamUrl(res.data.config.liveStreamUrl || "")
-        }
+    try {
+      // 1. Direct API fetch (eliminates Next.js Server Action digest errors)
+      const res = await fetch(`/api/website-studio/config?festivalId=${encodeURIComponent(festivalId)}`, {
+        cache: "no-store",
       })
-      .catch((err) => toast.error(err.message || "Failed to load media config"))
-      .finally(() => setLoading(false))
+      if (res.ok) {
+        const json = await res.json()
+        if (json?.data?.config) {
+          setConfig(json.data.config)
+          setLiveStreamUrl(json.data.config.liveStreamUrl || "")
+          setLoading(false)
+          return
+        }
+      }
+
+      // 2. Fallback to server action
+      const actRes = await getFestivalWebsiteConfigAction(festivalId)
+      if (actRes?.data?.config) {
+        setConfig(actRes.data.config)
+        setLiveStreamUrl(actRes.data.config.liveStreamUrl || "")
+      }
+    } catch (err: any) {
+      console.warn("Media panel load fallback:", err)
+      try {
+        const actRes = await getFestivalWebsiteConfigAction(festivalId)
+        if (actRes?.data?.config) {
+          setConfig(actRes.data.config)
+          setLiveStreamUrl(actRes.data.config.liveStreamUrl || "")
+        }
+      } catch (e) {
+        console.warn("Fallback error ignored:", e)
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -146,6 +172,54 @@ export default function MediaPanelPage() {
     setCopiedKey(key)
     toast.success("Link copied to clipboard!")
     setTimeout(() => setCopiedKey(null), 2500)
+  }
+
+  // ── UNIFIED ROBUST SAVE HELPER ──
+  const persistConfig = async (
+    updatedConfig: FestivalWebsiteConfig,
+    successMessage: string,
+    onSuccessCallback?: () => void
+  ) => {
+    startTransition(async () => {
+      try {
+        const res = await fetch("/api/website-studio/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ festivalId, config: updatedConfig }),
+        })
+        const json = await res.json()
+
+        if (res.ok && !json.error) {
+          toast.success(successMessage)
+          setConfig(updatedConfig)
+          if (onSuccessCallback) onSuccessCallback()
+          return
+        }
+
+        // Fallback to Server Action if API route failed
+        const actRes = await saveFestivalWebsiteConfigAction(festivalId, updatedConfig)
+        if (actRes?.error) {
+          toast.error(actRes.error)
+        } else {
+          toast.success(successMessage)
+          setConfig(updatedConfig)
+          if (onSuccessCallback) onSuccessCallback()
+        }
+      } catch (err: any) {
+        try {
+          const actRes = await saveFestivalWebsiteConfigAction(festivalId, updatedConfig)
+          if (actRes?.error) {
+            toast.error(actRes.error)
+          } else {
+            toast.success(successMessage)
+            setConfig(updatedConfig)
+            if (onSuccessCallback) onSuccessCallback()
+          }
+        } catch {
+          toast.error("Failed to sync changes. Please try again.")
+        }
+      }
+    })
   }
 
   // ── PHOTO ACTIONS ──
@@ -168,16 +242,9 @@ export default function MediaPanelPage() {
       gallery: [newItem, ...(config.gallery || [])],
     }
 
-    startTransition(async () => {
-      const res = await saveFestivalWebsiteConfigAction(festivalId, updatedConfig)
-      if (res?.error) {
-        toast.error(res.error)
-      } else {
-        toast.success("Photo published live to website gallery!")
-        setConfig(updatedConfig)
-        setPhotoDataUrl("")
-        setPhotoTitle("")
-      }
+    persistConfig(updatedConfig, "Photo published live to website gallery!", () => {
+      setPhotoDataUrl("")
+      setPhotoTitle("")
     })
   }
 
@@ -185,16 +252,7 @@ export default function MediaPanelPage() {
     if (!config) return
     const updatedGallery = (config.gallery || []).filter((g) => g.id !== id)
     const updatedConfig: FestivalWebsiteConfig = { ...config, gallery: updatedGallery }
-
-    startTransition(async () => {
-      const res = await saveFestivalWebsiteConfigAction(festivalId, updatedConfig)
-      if (res?.error) {
-        toast.error(res.error)
-      } else {
-        toast.success("Photo removed from website")
-        setConfig(updatedConfig)
-      }
-    })
+    persistConfig(updatedConfig, "Photo removed from website")
   }
 
   // ── VIDEO ACTIONS ──
@@ -236,16 +294,9 @@ export default function MediaPanelPage() {
       },
     }
 
-    startTransition(async () => {
-      const res = await saveFestivalWebsiteConfigAction(festivalId, updatedConfig)
-      if (res?.error) {
-        toast.error(res.error)
-      } else {
-        toast.success("Video added live to public website!")
-        setConfig(updatedConfig)
-        setVideoUrl("")
-        setVideoTitle("")
-      }
+    persistConfig(updatedConfig, "Video added live to public website!", () => {
+      setVideoUrl("")
+      setVideoTitle("")
     })
   }
 
@@ -260,16 +311,7 @@ export default function MediaPanelPage() {
         videos: updatedVideos,
       },
     }
-
-    startTransition(async () => {
-      const res = await saveFestivalWebsiteConfigAction(festivalId, updatedConfig)
-      if (res?.error) {
-        toast.error(res.error)
-      } else {
-        toast.success("Video removed from website")
-        setConfig(updatedConfig)
-      }
-    })
+    persistConfig(updatedConfig, "Video removed from website")
   }
 
   // ── NEWS ACTIONS ──
@@ -293,16 +335,9 @@ export default function MediaPanelPage() {
       news: [newItem, ...(config.news || [])],
     }
 
-    startTransition(async () => {
-      const res = await saveFestivalWebsiteConfigAction(festivalId, updatedConfig)
-      if (res?.error) {
-        toast.error(res.error)
-      } else {
-        toast.success("Official bulletin broadcasted live to website!")
-        setConfig(updatedConfig)
-        setNewsTitle("")
-        setNewsContent("")
-      }
+    persistConfig(updatedConfig, "Official bulletin broadcasted live to website!", () => {
+      setNewsTitle("")
+      setNewsContent("")
     })
   }
 
@@ -310,16 +345,7 @@ export default function MediaPanelPage() {
     if (!config) return
     const updatedNews = (config.news || []).filter((n) => n.id !== id)
     const updatedConfig: FestivalWebsiteConfig = { ...config, news: updatedNews }
-
-    startTransition(async () => {
-      const res = await saveFestivalWebsiteConfigAction(festivalId, updatedConfig)
-      if (res?.error) {
-        toast.error(res.error)
-      } else {
-        toast.success("Bulletin removed")
-        setConfig(updatedConfig)
-      }
-    })
+    persistConfig(updatedConfig, "Bulletin removed")
   }
 
   const handleSaveLiveStream = () => {
@@ -328,16 +354,7 @@ export default function MediaPanelPage() {
       ...config,
       liveStreamUrl: liveStreamUrl.trim(),
     }
-
-    startTransition(async () => {
-      const res = await saveFestivalWebsiteConfigAction(festivalId, updatedConfig)
-      if (res?.error) {
-        toast.error(res.error)
-      } else {
-        toast.success("Live stream telecast URL updated on public portal!")
-        setConfig(updatedConfig)
-      }
-    })
+    persistConfig(updatedConfig, "Live stream telecast URL updated on public portal!")
   }
 
   const handleSyncResultsToWeb = () => {
